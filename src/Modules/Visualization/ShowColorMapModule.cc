@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -24,7 +23,8 @@
    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
-   */
+*/
+
 
 #include <Modules/Visualization/ShowColorMapModule.h>
 #include <Core/Datatypes/ColorMap.h>
@@ -40,7 +40,9 @@ using namespace Core::Algorithms;
 using namespace Core::Geometry;
 using namespace Graphics::Datatypes;
 
-ShowColorMap::ShowColorMap() : GeometryGeneratingModule(ModuleLookupInfo("ShowColorMap", "Visualization", "SCIRun"))
+MODULE_INFO_DEF(ShowColorMap, Visualization, SCIRun)
+
+ShowColorMap::ShowColorMap() : GeometryGeneratingModule(staticInfo_)
 {
   INITIALIZE_PORT(ColorMapObject);
   INITIALIZE_PORT(GeometryOutput);
@@ -62,6 +64,7 @@ void ShowColorMap::setStateDefaults()
   state->setValue(AddExtraSpace, false);
   state->setValue(XTranslation, 0);
   state->setValue(YTranslation, 0);
+  state->setValue(ColorMapName, std::string(""));
 }
 
 void ShowColorMap::execute()
@@ -70,7 +73,7 @@ void ShowColorMap::execute()
   if (needToExecute())
   {
     std::ostringstream ostr;
-    ostr << get_id() << "_" <<
+    ostr << id() << "$" <<
       colorMap->getColorMapInvert() << colorMap->getColorMapName() << colorMap->getColorMapRescaleScale() <<
       colorMap->getColorMapRescaleShift() << colorMap->getColorMapResolution() << colorMap.get() <<
       colorMap->getColorMapShift();
@@ -79,7 +82,7 @@ void ShowColorMap::execute()
   }
 }
 
-GeometryBaseHandle ShowColorMap::buildGeometryObject(ColorMapHandle cm, ModuleStateHandle state, const std::string& id)
+GeometryBaseHandle ShowColorMap::buildGeometryObject(ColorMapHandle cm, ModuleStateHandle state, const std::string& geomId)
 {
   std::vector<Vector> points;
   std::vector<ColorRGB> colors;
@@ -87,18 +90,18 @@ GeometryBaseHandle ShowColorMap::buildGeometryObject(ColorMapHandle cm, ModuleSt
   int32_t numVBOElements = 0;
   double resolution = 1. / static_cast<double>(cm->getColorMapResolution());
   //show colormap does not rescale colors, so reset them. we want to see the whole colormap on the scale.
-  ColorMap new_map(cm->getColorStrategy(), cm->getColorMapName(), cm->getColorMapResolution(),
+  ColorMap new_map(cm->getColorData(), cm->getColorMapName(), cm->getColorMapResolution(),
     cm->getColorMapShift(), cm->getColorMapInvert(), 1., 0.);
   for (double i = 0.; std::abs(i - 1.) > 0.000001; i += resolution) {
     ColorRGB col = new_map.valueToColor(i);
     uint32_t offset = static_cast<uint32_t>(points.size());
-    points.push_back(Vector(0., i, +0.001));
+    points.push_back(Vector(0., i, 0.001));
     colors.push_back(col);
-    points.push_back(Vector(1., i, +0.001));
+    points.push_back(Vector(1., i, 0.001));
     colors.push_back(col);
-    points.push_back(Vector(0., i + resolution, +0.001));
+    points.push_back(Vector(0., i + resolution, 0.001));
     colors.push_back(col);
-    points.push_back(Vector(1., i + resolution, +0.001));
+    points.push_back(Vector(1., i + resolution, 0.001));
     colors.push_back(col);
     numVBOElements += 2;
     indices.push_back(offset + 0);
@@ -113,13 +116,13 @@ GeometryBaseHandle ShowColorMap::buildGeometryObject(ColorMapHandle cm, ModuleSt
   uint32_t iboSize = sizeof(uint32_t) * static_cast<uint32_t>(indices.size());
   uint32_t vboSize = sizeof(float) * 7 * static_cast<uint32_t>(points.size());
 
-  std::shared_ptr<CPM_VAR_BUFFER_NS::VarBuffer> iboBufferSPtr(
-    new CPM_VAR_BUFFER_NS::VarBuffer(vboSize));
-  std::shared_ptr<CPM_VAR_BUFFER_NS::VarBuffer> vboBufferSPtr(
-    new CPM_VAR_BUFFER_NS::VarBuffer(iboSize));
+  std::shared_ptr<spire::VarBuffer> iboBufferSPtr(
+    new spire::VarBuffer(iboSize));
+  std::shared_ptr<spire::VarBuffer> vboBufferSPtr(
+    new spire::VarBuffer(vboSize));
 
-  CPM_VAR_BUFFER_NS::VarBuffer* iboBuffer = iboBufferSPtr.get();
-  CPM_VAR_BUFFER_NS::VarBuffer* vboBuffer = vboBufferSPtr.get();
+  spire::VarBuffer* iboBuffer = iboBufferSPtr.get();
+  spire::VarBuffer* vboBuffer = vboBufferSPtr.get();
 
   for (auto a : indices) iboBuffer->write(a);
 
@@ -135,25 +138,24 @@ GeometryBaseHandle ShowColorMap::buildGeometryObject(ColorMapHandle cm, ModuleSt
 
   //add the actual points and colors
 
-  auto st = get_state();
-  int sigdig = st->getValue(SignificantDigits).toInt();
-  int numlabel = st->getValue(Labels).toInt();
-  int txtsize = st->getValue(TextSize).toInt();
-  double scale = st->getValue(Scale).toDouble();
+  int sigdig = state->getValue(SignificantDigits).toInt();
+  int numlabel = state->getValue(Labels).toInt();
+  int txtsize = state->getValue(TextSize).toInt();
+  double scale = state->getValue(Scale).toDouble();
   int displaySide = state->getValue(DisplaySide).toInt();
-  float red = static_cast<float>(st->getValue(TextRed).toDouble());
-  float green = static_cast<float>(st->getValue(TextGreen).toDouble());
-  float blue = static_cast<float>(st->getValue(TextBlue).toDouble());
-  float xTrans = static_cast<float>(st->getValue(XTranslation).toInt());
-  float yTrans = static_cast<float>(st->getValue(YTranslation).toInt());
+  float red = static_cast<float>(state->getValue(TextRed).toDouble());
+  float green = static_cast<float>(state->getValue(TextGreen).toDouble());
+  float blue = static_cast<float>(state->getValue(TextBlue).toDouble());
+  float xTrans = static_cast<float>(state->getValue(XTranslation).toInt());
+  float yTrans = static_cast<float>(state->getValue(YTranslation).toInt());
   std::stringstream ss;
-  ss << resolution << sigdig << txtsize << numlabel << st->getValue(Units).toString() <<
+  ss << resolution << sigdig << txtsize << numlabel << state->getValue(Units).toString() <<
     scale << displaySide << red << green << blue << xTrans << yTrans;
 
-  std::string uniqueNodeID = id + "colorMapLegend" + ss.str();
-  std::string vboName = uniqueNodeID + "VBO";
-  std::string iboName = uniqueNodeID + "IBO";
-  std::string passName = uniqueNodeID + "Pass";
+  auto uniqueNodeID = geomId + "colorMapLegend" + ss.str();
+  auto vboName = uniqueNodeID + "VBO";
+  auto iboName = uniqueNodeID + "IBO";
+  auto passName = uniqueNodeID + "Pass";
 
   // NOTE: Attributes will depend on the color scheme. We will want to
   // normalize the colors if the color scheme is COLOR_IN_SITU.
@@ -169,8 +171,8 @@ GeometryBaseHandle ShowColorMap::buildGeometryObject(ColorMapHandle cm, ModuleSt
   uniforms.push_back(SpireSubPass::Uniform("uDisplaySide", static_cast<float>(displaySide)));
   int displayLength = state->getValue(DisplayLength).toInt();
   uniforms.push_back(SpireSubPass::Uniform("uDisplayLength", static_cast<float>(displayLength)));
-  SpireVBO geomVBO = SpireVBO(vboName, attribs, vboBufferSPtr,
-    numVBOElements, BBox(), true);
+  auto geomVBO = SpireVBO(vboName, attribs, vboBufferSPtr,
+    numVBOElements, BBox(Point{}, Point{}), true);
 
   // Construct IBO.
 
@@ -188,41 +190,43 @@ GeometryBaseHandle ShowColorMap::buildGeometryObject(ColorMapHandle cm, ModuleSt
   // Add all uniforms generated above to the pass.
   for (const auto& uniform : uniforms) { pass.addUniform(uniform); }
 
-  GeometryHandle geom(new GeometryObjectSpire(*this, "ShowColorMap", false));
+  std::string idname = "ShowColorMap";
+  if (!state->getValue(ColorMapName).toString().empty())
+  {
+    idname += GeometryObject::delimiter + state->getValue(ColorMapName).toString() + " (from " + id().id_ + ")";
+  }
 
-  geom->mColorMap = cm->getColorMapName();
-  geom->mIBOs.push_back(geomIBO);
-  geom->mVBOs.push_back(geomVBO);
-  geom->mPasses.push_back(pass);
+  auto geom(boost::make_shared<GeometryObjectSpire>(*this, idname, false));
+
+  geom->setColorMap(cm->getColorMapName());
+  geom->ibos().push_back(geomIBO);
+  geom->vbos().push_back(geomVBO);
+  geom->passes().push_back(pass);
 
   //text
   char str2[128];
   std::stringstream sd;
   sd << "%." << sigdig << "g";
   std::vector<Vector> txt_coords;
-  double increment = 1. / static_cast<double>(numlabel - 1);
-  //double textSize = 5. * static_cast<double>(txtsize + 3);
-  double textSize = 3. * static_cast<double>(txtsize);
+  double increment = 1.0 / (numlabel - 1);
+  double textSize = 3.0 * txtsize;
   double dash_size = 18.;
   double pipe_size = 18.;
-  size_t text_size = size_t(textSize);
-  if (!textBuilder_.isInit())
-    textBuilder_.initFreeType("FreeSans.ttf", text_size);
-  else if (!textBuilder_.isValid())
-    textBuilder_.loadNewFace("FreeSans.ttf", text_size);
+  size_t text_size = static_cast<size_t>(textSize);
 
-  if (!textBuilder_.isInit() || !textBuilder_.isValid())
+  if (!textBuilder_.initialize(text_size))
     return geom;
+
   if (textBuilder_.getFaceSize() != text_size)
     textBuilder_.setFaceSize(text_size);
-  textBuilder_.setColor(glm::vec4(red, green, blue, 1.0));
+  textBuilder_.setColor(red, green, blue, 1.0);
 
   for (double i = 0.; i <= 1.000000001; i += increment)
   {
     std::stringstream line;
     sprintf(str2, sd.str().c_str(), (i / cm->getColorMapRescaleScale() - cm->getColorMapRescaleShift()) * scale);
-    line << str2 << " " << st->getValue(Units).toString();
-    Vector shift = Vector((displaySide == 0) ?
+    line << str2 << " " << state->getValue(Units).toString();
+    Vector shift((displaySide == 0) ?
       (xTrans > 50 ? -(textSize*strlen(line.str().c_str())) : dash_size) : 0.,
       (displaySide == 0) ?
       0. : (yTrans > 50 ? (-textSize - pipe_size / 2.) : pipe_size), i);
@@ -237,7 +241,7 @@ GeometryBaseHandle ShowColorMap::buildGeometryObject(ColorMapHandle cm, ModuleSt
       + yTrans / 50.;
     Vector trans(x_trans, y_trans, 0.0);
 
-    textBuilder_.printString(line.str(), trans, shift, id, geom);
+    textBuilder_.printString(line.str(), trans, shift, geomId, *geom);
   }
 
   return geom;
@@ -257,3 +261,4 @@ const AlgorithmParameterName ShowColorMap::TextGreen("TextGreen");
 const AlgorithmParameterName ShowColorMap::TextBlue("TextBlue");
 const AlgorithmParameterName ShowColorMap::XTranslation("XTranslation");
 const AlgorithmParameterName ShowColorMap::YTranslation("YTranslation");
+const AlgorithmParameterName ShowColorMap::ColorMapName("ColorMapName");

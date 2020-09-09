@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -24,7 +23,8 @@
    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
-   */
+*/
+
 
 #include <Core/Algorithms/Legacy/Converter/ConverterAlgo.h>
 
@@ -754,8 +754,6 @@ bool ConverterAlgo::MatrixToString(Datatypes::MatrixHandle input, Datatypes::Str
   if (matrixIs::sparse(input))
   {
     SparseRowMatrixHandle sparse = convertMatrix::toSparse(input);
-    SparseRowMatrixGeneric<double>::RowsPtr rowData = sparse->get_rows();
-    SparseRowMatrixGeneric<double>::ColumnsPtr columnData = sparse->get_cols();
     size_type numRows = sparse->nrows();
     size_type numCols = sparse->ncols();
 

@@ -1,46 +1,47 @@
-//
-//  For more information, please see: http://software.sci.utah.edu
-//
-//  The MIT License
-//
-//  Copyright (c) 2015 Scientific Computing and Imaging Institute,
-//  University of Utah.
-//
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a
-//  copy of this software and associated documentation files (the "Software"),
-//  to deal in the Software without restriction, including without limitation
-//  the rights to use, copy, modify, merge, publish, distribute, sublicense,
-//  and/or sell copies of the Software, and to permit persons to whom the
-//  Software is furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included
-//  in all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-//  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-//  THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-//  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-//  DEALINGS IN THE SOFTWARE.
-//
+/*
+   For more information, please see: http://software.sci.utah.edu
+
+   The MIT License
+
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
+   University of Utah.
+
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the "Software"),
+   to deal in the Software without restriction, including without limitation
+   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+   and/or sell copies of the Software, and to permit persons to whom the
+   Software is furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+*/
+
+
 //    File   : NetworkIO.cc
 //    Author : Martin Cole
 //    Date   : Mon Feb  6 14:32:15 2006
 
-
-// TODO: change string concatenation to string streams
-
-// Disable concepts compliance detection for problem compiler.
-// See boost/range/concepts.hpp for other problem compilers.
-#if defined __clang__
-#if __clang_major__ == 4 && __clang_minor__ == 2
-
-#define BOOST_RANGE_ENABLE_CONCEPT_ASSERT 0
-
-#endif
-#endif
+//
+// // TODO: change string concatenation to string streams
+//
+// // Disable concepts compliance detection for problem compiler.
+// // See boost/range/concepts.hpp for other problem compilers.
+// #if defined __clang__
+// #if __clang_major__ == 4 && __clang_minor__ == 2
+//
+// #define BOOST_RANGE_ENABLE_CONCEPT_ASSERT 0
+//
+// #endif
+// #endif
 
 #include <Dataflow/Serialization/Network/Importer/NetworkIO.h>
 #include <Dataflow/Network/Network.h>
@@ -58,6 +59,10 @@
 #include <iostream>
 #include <sstream>
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
+#include <boost/foreach.hpp>
+
 using namespace SCIRun::Dataflow::Networks;
 using namespace SCIRun::Core::Algorithms;
 using namespace SCIRun::Core::Logging;
@@ -71,11 +76,18 @@ out_fname_(""),
 sn_count_(0),
 sn_ctx_(0),
 dtdPath_(dtdpath),
-modFactory_(modFactory),
-simpleLog_(simpleLog)
+simpleLog_(simpleLog),
+modFactory_(modFactory)
 {
   netid_to_modid_.push(id_map_t());
   netid_to_conid_.push(id_map_t());
+}
+
+LegacyNetworkStateConversion LegacyNetworkIO::legacyState_;
+
+void LegacyNetworkIO::initializeStateConverter(std::istream& file)
+{
+  legacyState_.readImporterMap(file);
 }
 
 std::string
@@ -99,7 +111,7 @@ void
 LegacyNetworkIO::gui_pop_subnet_ctx(const std::string& ctx)
 {
   std::string cmmd = "set Subnet(Loading) " + ctx;
-  simpleLog_ << "TCLInterface::eval " << cmmd << std::endl;
+  //simpleLog_ << "TCLInterface::eval " << cmmd << std::endl;
 #if 0
   --sn_ctx_;
   netid_to_modid_.pop();
@@ -163,6 +175,16 @@ const std::string &y)
     nextId = *std::max_element(existingIdsWithThisModuleName.begin(), existingIdsWithThisModuleName.end()) + 1;
   moduleIdMap_[mod_id] = ModuleId(cmodule, nextId);
 
+  if (!modFactory_.moduleImplementationExists(cmodule))
+  {
+    simpleLog_ << "ERROR: module not implemented: " << cmodule << std::endl;
+    simpleLog_ << "\t~~~ File an issue at github.com/SCIInstitute/SCIRun for conversion (if not already created, please search first). ~~~" << std::endl;
+
+    std::ostringstream ostr;
+    ostr << "Error: Undefined module \"" << cmodule << "\"";
+    THROW_INVALID_ARGUMENT(ostr.str());
+  }
+
   ModuleLookupInfoXML& mod = xmlData_->network.modules[moduleIdMap_[mod_id]].module;
   mod.package_name_ = cpackage;
   mod.category_name_ = ccategory;
@@ -179,8 +201,19 @@ const std::map<std::string, std::string> LegacyNetworkIO::moduleRenameMap_ =
   {
     {"MapFieldDataOntoElems", "MapFieldDataOntoElements"},
     {"GetColumnOrRowFromMatrix", "GetMatrixSlice"},
-    {"CreateStandardColorMaps", "CreateStandardColorMap"}
+    {"CreateStandardColorMaps", "CreateStandardColorMap"},
+    { "EvaluateLinAlgBinary", "EvaluateLinearAlgebraBinary" },
+    { "EvaluateLinAlgUnary", "EvaluateLinearAlgebraUnary" },
+    { "ExtractIsosurface", "ExtractSimpleIsosurface" }, //TODO: needs rename after issue
+    { "CalculateFieldData2", "CalculateFieldData" },
+    { "CalculateFieldData3", "CalculateFieldData" },
+    { "CalculateFieldData4", "CalculateFieldData" },
+    { "CalculateFieldData5", "CalculateFieldData" }
   };
+
+#if 0
+LegacyNetworkIO::LegacyImporterMap LegacyNetworkIO::legacyNetworks_;
+#endif
 
 std::string LegacyNetworkIO::checkForModuleRename(const std::string& originalName)
 {
@@ -198,6 +231,11 @@ LegacyNetworkIO::createConnectionNew(const std::string& from, const std::string&
   auto toId = moduleIdMap_[to];
 
   if (!xmlData_)
+    return;
+
+  if (!modFactory_.moduleImplementationExists(fromId.name_))
+    return;
+  if (!modFactory_.moduleImplementationExists(toId.name_))
     return;
 
   try
@@ -236,7 +274,7 @@ LegacyNetworkIO::createConnectionNew(const std::string& from, const std::string&
     connections.push_back(conn);
     connectionIdMap_[con_id] = ConnectionId::create(conn).id_;
   }
-  catch (Core::InvalidArgumentException& e)
+  catch (Core::InvalidArgumentException&)
   {
     simpleLog_ << "File conversion error: connection not created between modules " << fromId << " and " << toId << std::endl;
   }
@@ -290,8 +328,7 @@ NetworkIO::gui_call_module_callback(const std::string &id, const std::string &ca
 #endif
 
 void
-LegacyNetworkIO::gui_set_modgui_variable(const std::string &mod_id, const std::string &var,
-const std::string &val)
+LegacyNetworkIO::gui_set_modgui_variable(const std::string &mod_id, const std::string &var, const std::string &val)
 {
   std::string cmmd;
   std::string mod = get_mod_id(mod_id);
@@ -312,32 +349,37 @@ const std::string &val)
 
   if (!xmlData_)
     return;
+  if (var == "ui_geometry")
+    return;
 
   std::string moduleName = xmlData_->network.modules[moduleIdMap_[mod_id]].module.module_name_;
   auto& stateXML = xmlData_->network.modules[moduleIdMap_[mod_id]].state;
 
-  auto moduleNameMapIter = nameLookup_.find(moduleName);
-  if (moduleNameMapIter == nameLookup_.end())
+  auto converterObj = legacyState_.getStateConverter(moduleName, var);
+  if (converterObj)
   {
-    simpleLog_ << "STATE CONVERSION TO IMPLEMENT: module " << moduleName << ", mod_id: " << moduleIdMap_[mod_id] << " var: " << var << " val: " << val << std::endl;
-    return;
+    std::string stripBraces(val.begin() + 1, val.end() - 1);
+    simpleLog_ << ">>> Attempting state conversion function: name{" << converterObj->name << "} "
+      << (converterObj->valueConverter ? "<func>" : "null func") << std::endl;
+    stateXML.setValue(converterObj->name, converterObj->valueConverter(stripBraces));
   }
-  auto valueConverterForModuleIter = valueConverter_.find(moduleName);
-  if (valueConverterForModuleIter == valueConverter_.end())
+  else
   {
-    simpleLog_ << "STATE CONVERSION TO IMPLEMENT: module " << moduleName << ", mod_id: " << moduleIdMap_[mod_id] << " var: " << var << " val: " << val << std::endl;
-    return;
+    simpleLog_ << "STATE CONVERSION TO IMPLEMENT: module " << moduleName << ", mod_id: " << moduleIdMap_[mod_id] << std::endl;
+    simpleLog_ << "VAR TO IMPLEMENT: module " << moduleName << ", mod_id: " << moduleIdMap_[mod_id] << " var: " << var << " val: " << val << std::endl;
   }
-  std::string stripBraces(val.begin() + 1, val.end() - 1);
-  stateXML.setValue(moduleNameMapIter->second[var], valueConverterForModuleIter->second[var](stripBraces));
 }
 
 namespace
 {
-  ValueConverter toInt = [](const std::string& s) { return boost::lexical_cast<int>(s); };
-  ValueConverter toDouble = [](const std::string& s) { return boost::lexical_cast<double>(s); };
+  ValueConverter toInt = [](const std::string& s) { return std::stoi(s); };
+  ValueConverter toDouble = [](const std::string& s)
+  {
+    if(s == "Inf") return DBL_MAX;
+    return boost::lexical_cast<double>(s);
+  };
   ValueConverter toPercent = [](const std::string& s) { return boost::lexical_cast<double>(s) / 100.0; };
-
+  ValueConverter toString = [](const std::string& s) { return s;};
   //TODO: mapping macro or find a boost lib to do pattern matching with funcs easily
   ValueConverter data_at = [](const std::string& s)
   {
@@ -353,38 +395,212 @@ namespace
   };
 
   ValueConverter throwAway = [](const std::string& s) { return 0; };
+  ValueConverter negateBool = [](const std::string& s)
+  {
+    if (s == "1") return 0;
+    return 1;
+  };
+  ValueConverter dataOrNodes = [](const std::string& s)
+  {
+    if (std::stoi(s) == 1) return std::string("data");
+    return std::string("node");
+  };
+  ValueConverter opStringToInt = [](const std::string& s)
+  {
+    if (s == "Add") return 0;
+    if (s == "Mult") return 2;
+    return 3;
+  };
+  ValueConverter capFirstLetter = [](const std::string& s)
+  {
+    std::string result = s;
+    result[0] = std::toupper(s[0]);
+    return result;
+  };
+  ValueConverter shortenMethodForLinearSystem = [](const std::string& s)
+  {
+    if (s[0] == 'C') return std::string("cg");
+    if (s[0] == 'B') return std::string("bicg");
+    if (s[0] == 'J') return std::string("jacobi");
+    return std::string("minres");
+  };
+  ValueConverter createMatrixFormat = [](const std::string& s)
+  {
+    std::string result;
+    bool newLineStart = false;
+    for (const auto &c : s)
+    {
+      if (c == '{') continue;
+      if (c == ' ' && newLineStart)
+      {
+        newLineStart = false;
+        continue;
+      }
+      if (c == '}')
+      {
+        result += '\n';
+        newLineStart = true;
+      }
+      else result += c;
+    }
+    return result;
+  };
+  ValueConverter directionForStreamLines = [](const std::string& s)
+  {
+    if (s == "0") return std::string("Negative");
+    if (s == "1") return std::string("Both");
+    return std::string("Positive");
+  };
+  ValueConverter valueForStreamLines = [](const std::string& s)
+  {
+    if (s == "0") return std::string("Seed value");
+    if (s == "1") return std::string("Seed index");
+    if (s == "2") return std::string("Integration index");
+    if (s == "3") return std::string("Integration step");
+    if (s == "4") return std::string("Distance from seed");
+    return std::string("Streamline length");
+  };
+  ValueConverter methodForStreamLines = [](const std::string& s)
+  {
+    if (s == "0") return std::string("CellWalk");
+    if (s == "1") return std::string("AdamsBashforth");
+    if (s == "2") return std::string("Heun");
+    if (s == "3") return std::string("RungeKutta");
+    return std::string("RungeKuttaFehlberg");
+  };
+  ValueConverter lengthForShowColorMap = [](const std::string& s)
+  {
+    if (s == "full") return 1;
+    if (s == "half1") return 0;
+    return 2;
+  };
+  ValueConverter sideForShowColorMap = [](const std::string& s)
+  {
+    if (s == "left") return 0;
+    return 1;
+  };
+  ValueConverter conditionsForFEMVoltage = [](const std::string& s)
+  {
+    if (s == "DirSub") return 1;
+    return 0;
+  };
+  ValueConverter opStringToIntUnary = [](const std::string& s)
+  {
+    if (s == "Transpose") return 0;
+    return 3;
+  };
+
+  static std::string colorState;
+  ValueConverter startColorR = [](const std::string& s)
+  {
+    colorState = "Color(" + s;
+    return colorState;
+  };
+  ValueConverter appendColorG = [](const std::string& s)
+  {
+    colorState += "," + s;
+    return colorState;
+  };
+  ValueConverter appendColorB = [](const std::string& s)
+  {
+    colorState += "," + s + ")";
+    return colorState;
+  };
+
+  typedef std::map<std::string, ValueConverter> StringToFunctorMap;
+
+  static StringToFunctorMap functorLookup_ =
+  {
+    {"toInt", toInt},
+    {"toDouble", toDouble},
+    {"toPercent", toPercent},
+    {"data_at", data_at},
+    {"element_size", element_size},
+    {"throwAway", throwAway},
+    {"toString", toString},
+    {"negateBool", negateBool},
+    {"colorR", startColorR}, //TODO: initState},
+    {"colorG", appendColorG}, //TODO: appendState},
+    {"colorB", appendColorB}, //TODO: appendState},
+    {"useState", throwAway}, //TODO: useState},
+    {"dataOrNodes", dataOrNodes},
+    {"opStringToInt", opStringToInt},
+    {"capFirstLetter", capFirstLetter},
+    {"shortenMethodForLinearSystem", shortenMethodForLinearSystem},
+    {"createMatrixFormat", createMatrixFormat},
+    {"directionForStreamLines", directionForStreamLines},
+    {"valueForStreamLines", valueForStreamLines},
+    {"methodForStreamLines", methodForStreamLines},
+    {"lengthForShowColorMap", lengthForShowColorMap},
+    {"sideForShowColorMap", sideForShowColorMap},
+    {"conditionsForFEMVoltage", conditionsForFEMVoltage},
+    {"opStringToIntUnary", opStringToIntUnary}
+  };
 }
 
-NameLookup LegacyNetworkIO::nameLookup_ =
+LegacyNetworkStateConversion::LegacyNetworkStateConversion()
 {
+#if 0
+  initState = [this](const std::string& s)
   {
-    "CreateLatVol",
-    {
-      { "sizex", Name("XSize") },
-      { "sizey", Name("YSize") },
-      { "sizez", Name("ZSize") },
-      { "padpercent", Name("PadPercent") },
-      { "data-at", Name("DataAtLocation") },
-      { "element-size", Name("ElementSizeNormalized") }
-    }
-  }
-};
+    v4MergeStateToV5_ = std::unique_ptr<std::string>(new std::string(s));
+    return s;
+  };
+  appendState = [this](const std::string& s)
+  {
+    *v4MergeStateToV5_ += "," + s;
+    return *v4MergeStateToV5_;
+  };
+  useState = [this](const std::string& s)
+  {
+    if(*v4MergeStateToV5_ == "linear")
+      return std::string("interpolateddata");
+    if(std::stoi(s) == 1)
+      return std::string("singledestination");
+    return std::string("closestdata");
+  };
+#endif
+}
 
-ValueConverterMap LegacyNetworkIO::valueConverter_ =
+void LegacyNetworkStateConversion::readImporterMap(std::istream& file)
 {
+  using boost::property_tree::ptree;
+  using boost::property_tree::read_xml;
+  ptree tree;
+  read_xml(file, tree);
+  for (const auto& module : tree.get_child("modules"))
   {
-    "CreateLatVol",
+    auto moduleName = LegacyNetworkIO::checkForModuleRename(module.second.get<std::string>("<xmlattr>.name"));
+    for (const auto& keys : module.second.get_child(""))
     {
-      { "sizex", toInt },
-      { "sizey", toInt },
-      { "sizez", toInt },
-      { "padpercent", toPercent },
-      { "data-at", data_at },
-      { "element-size", element_size },
-      { "ui_geometry", throwAway }
+      if (keys.first == "<xmlattr>")
+        continue;
+
+      // std::cout << moduleName << "," << keys.second.get<std::string>("from")
+      //   << ": " << keys.second.get<std::string>("to") << " -- " <<
+      //   keys.second.get<std::string>("type") << std::endl;
+
+      nameAndValLookup_[moduleName][keys.second.get<std::string>("from")] =
+        { Name(keys.second.get<std::string>("to")),
+          functorLookup_[keys.second.get<std::string>("type")]};
     }
   }
-};
+}
+
+boost::optional<NewNameAndValueConverter> LegacyNetworkStateConversion::getStateConverter(const std::string& moduleName, const std::string& oldStateName) const
+{
+  auto moduleNameMapIter = nameAndValLookup_.find(moduleName);
+  if (moduleNameMapIter == nameAndValLookup_.end())
+  {
+    return {};
+  }
+  auto varNameIter = moduleNameMapIter->second.find(oldStateName);
+  if (varNameIter == moduleNameMapIter->second.end())
+  {
+    return {};
+  }
+  return varNameIter->second;
+}
 
 #if 0
 void
@@ -459,7 +675,7 @@ void
 LegacyNetworkIO::gui_set_variable(const std::string &var, const std::string &val)
 {
   std::string cmd = "set " + var +  " " + val;
-  simpleLog_ << "TCLInterface::eval " << cmd << std::endl;
+  //simpleLog_ << "TCLInterface::eval " << cmd << std::endl;
 }
 
 void
@@ -467,7 +683,7 @@ LegacyNetworkIO::gui_open_module_gui(const std::string &mod_id)
 {
   std::string mod = get_mod_id(mod_id);
   std::string cmmd = mod + " initialize_ui";
-  simpleLog_ << "TCLInterface::eval " << cmmd << std::endl;
+  //simpleLog_ << "TCLInterface::eval " << cmmd << std::endl;
 }
 
 void
@@ -869,7 +1085,8 @@ LegacyNetworkIO::process_substitute(const std::string &orig)
       {
         subst = std::string("sphere");
       }
-      while (idx != std::string::npos) {
+      while (idx != std::string::npos)
+      {
         src = src.replace(idx, key.size(), subst);
         idx = src.find(key);
       }
@@ -883,12 +1100,11 @@ LegacyNetworkIO::process_substitute(const std::string &orig)
 NetworkFileHandle
 LegacyNetworkIO::load_net(const std::string &net)
 {
-//  FullFileName netfile(net);
   net_file_ = net;
-  //sci_putenv("SCIRUN_NETFILE", net);
   if (!load_network())
     return nullptr;
 
+  std::cout << "Network import successful." << std::endl;
   return xmlData_;
 }
 
@@ -934,25 +1150,24 @@ LegacyNetworkIO::process_network_node(xmlNode* network_node)
       }
 
       xmlNode* enode = node->children;
-      for (; enode != 0; enode = enode->next) {
-
-        if (enode->type == XML_ELEMENT_NODE &&
-          std::string(to_char_ptr(enode->name)) == std::string("environment"))
+      for (; enode != 0; enode = enode->next)
+      {
+        auto name = std::string(to_char_ptr(enode->name));
+        if (enode->type == XML_ELEMENT_NODE && name == "environment")
         {
           process_environment(enode);
-        } else if (enode->type == XML_ELEMENT_NODE &&
-          std::string(to_char_ptr(enode->name)) == std::string("modules"))
+        }
+        else if (enode->type == XML_ELEMENT_NODE && name == "modules")
         {
           process_modules_pass1(enode);
-        } else if (enode->type == XML_ELEMENT_NODE &&
-          std::string(to_char_ptr(enode->name)) == std::string("connections"))
+        }
+        else if (enode->type == XML_ELEMENT_NODE && name == "connections")
         {
           process_connections(enode);
-        } else if (enode->type == XML_ELEMENT_NODE &&
-          std::string(to_char_ptr(enode->name)) == std::string("note"))
+        }
+        else if (enode->type == XML_ELEMENT_NODE && name == "note")
         {
-          gui_set_variable(std::string("notes"),
-            std::string(to_char_ptr(enode->children->content)));
+          gui_set_variable(std::string("notes"), std::string(to_char_ptr(enode->children->content)));
         }
       }
     }

@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,24 +25,26 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #include <QtGui>
 #include <Interface/Application/TriggeredEventsWindow.h>
 #include <Interface/Application/NetworkEditor.h>
 #include <Core/Application/Preferences/Preferences.h>
+#include <Interface/Modules/Base/CustomWidgets/CodeEditorWidgets.h>
 
 using namespace SCIRun::Gui;
-//using namespace SCIRun::Dataflow::Networks;
-//using namespace SCIRun::Dataflow::Engine;
 
-TriggeredEventsWindow::TriggeredEventsWindow(QWidget* parent /* = 0 */) : QDockWidget(parent)
+TriggeredEventsWindow::TriggeredEventsWindow(QWidget* parent /* = 0 */) : QDockWidget(parent),
+  scriptPlainTextEdit_(new CodeEditor(this))
 {
   setupUi(this);
+  gridLayout_2->addWidget(scriptPlainTextEdit_, 2, 0);
   connect(eventListWidget_, SIGNAL(itemSelectionChanged()), this, SLOT(updateScriptEditor()));
   connect(scriptPlainTextEdit_, SIGNAL(textChanged()), this, SLOT(updateScripts()));
   connect(enabledCheckBox_, SIGNAL(stateChanged(int)), this, SLOT(enableStateChanged(int)));
 }
 
-const QMap<QString, QString>& TriggeredEventsWindow::getScripts() const
+const QMap<QString, QString>& TriggeredEventsWindow::scripts() const
 {
   return scripts_;
 }
@@ -56,7 +57,7 @@ void TriggeredEventsWindow::setScripts(const QMap<QString, QString>& scripts)
   updateScriptEditor();
 }
 
-const QMap<QString, bool>& TriggeredEventsWindow::getScriptEnabledFlags() const
+const QMap<QString, bool>& TriggeredEventsWindow::scriptEnabledFlags() const
 {
   return scriptEnabledFlags_;
 }
@@ -79,7 +80,11 @@ namespace
     "# scirun_set_module_state(scirun_module_ids()[-1], 'FileTypeName', 'Matlab Matrix (*.mat)') if scirun_module_ids()[-1].startswith('ReadMatrix') else None\n"
     "\n"
     "# With the \"On network load\" event, this snippet will open the UIs for all the ViewScenes in the network :\n"
-    "# [scirun_set_module_state(id, '__UI__', True) for id in scirun_module_ids() if id.startswith('ViewScene')]\n";
+    "# [scirun_set_module_state(id, '__UI__', True) for id in scirun_module_ids() if id.startswith('ViewScene')]\n"
+    "\n"
+    "# With the \"Application start\" event, this snippet will print SCIRun's python library path, which one could then edit:\n"
+    "import sys\n\nprint(sys.path)"
+    ;
 }
 
 void TriggeredEventsWindow::updateScriptEditor()
@@ -113,18 +118,22 @@ void TriggeredEventsWindow::enableStateChanged(int state)
 
 void TriggeredEventsWindow::push()
 {
+  auto& prefs = Core::Preferences::Instance();
+  static std::map<QString, Core::TriggeredScriptInfo*> scriptInfos
+  {
+    { "Post module add", &prefs.postModuleAdd },
+    { "On network load", &prefs.onNetworkLoad },
+    { "Application start", &prefs.applicationStart }
+  };
+
   for (int i = 0; i < eventListWidget_->count(); ++i)
   {
     auto key = eventListWidget_->item(i)->text();
-    if (key == "Post module add")
+    auto trig = scriptInfos.find(key);
+    if (trig != scriptInfos.end())
     {
-      Core::Preferences::Instance().postModuleAddScript_temporarySolution.setValue(scripts_[key].toStdString());
-      Core::Preferences::Instance().postModuleAddScriptEnabled_temporarySolution.setValue(scriptEnabledFlags_[key]);
-    }
-    else if (key == "On network load")
-    {
-      Core::Preferences::Instance().onNetworkLoadScript_temporarySolution.setValue(scripts_[key].toStdString());
-      Core::Preferences::Instance().onNetworkLoadScriptEnabled_temporarySolution.setValue(scriptEnabledFlags_[key]);
+      trig->second->script.setValue(scripts_[key].toStdString());
+      trig->second->enabled.setValue(scriptEnabledFlags_[key]);
     }
   }
 }

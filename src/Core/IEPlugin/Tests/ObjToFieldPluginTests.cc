@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,14 +25,17 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #include <gtest/gtest.h>
 #include <Core/IEPlugin/ObjToField_Plugin.h>
+#include <Testing/Utils/SCIRunUnitTests.h>
 #include <Core/IEPlugin/PointCloudField_Plugin.h>
 #include <Core/Datatypes/Legacy/Field/VField.h>
 #include <Core/Datatypes/Legacy/Field/FieldInformation.h>
 #include <Core/Algorithms/Legacy/Fields/ConvertMeshType/ConvertMeshToPointCloudMeshAlgo.h>
 
 /// TODO: intern
+using namespace SCIRun::TestUtils;
 
 TEST(ObjToFieldPluginTests, DISABLED_CanRead)
 {
@@ -64,8 +66,6 @@ TEST(PointCloudFieldTests, PrecisionOfNodePositions)
 
   ASSERT_TRUE(pc->vmesh()->is_pointcloudmesh());
 
-  ASSERT_TRUE(PointCloudFieldToText_writer(nullptr, pc, "E:\\v5pc.pts"));
-
-
-
+  boost::filesystem::path out(TestResources::rootDir() / "TransientOutput" / "v5pc.pts");
+  ASSERT_TRUE(PointCloudFieldToText_writer(nullptr, pc, out.string().c_str()));
 }

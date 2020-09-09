@@ -1,30 +1,30 @@
 /*
-For more information, please see: http://software.sci.utah.edu
+   For more information, please see: http://software.sci.utah.edu
 
-The MIT License
+   The MIT License
 
-Copyright (c) 2015 Scientific Computing and Imaging Institute,
-University of Utah.
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
+   University of Utah.
 
-License for the specific language governing rights and limitations under
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the "Software"),
-to deal in the Software without restriction, including without limitation
-the rights to use, copy, modify, merge, publish, distribute, sublicense,
-and/or sell copies of the Software, and to permit persons to whom the
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the "Software"),
+   to deal in the Software without restriction, including without limitation
+   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+   and/or sell copies of the Software, and to permit persons to whom the
+   Software is furnished to do so, subject to the following conditions:
 
-Software is furnished to do so, subject to the following conditions:
-The above copyright notice and this permission notice shall be included
-in all copies or substantial portions of the Software.
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
 */
+
 
 #include <Modules/Factory/ModuleDescriptionLookup.h>
 #include <Modules/Basic/ReceiveComplexScalar.h>
@@ -53,9 +53,7 @@ DEALINGS IN THE SOFTWARE.
 #include <Modules/Legacy/Fields/CalculateFieldData5.h>
 #include <Modules/Legacy/Fields/TransformMeshWithTransform.h>
 #include <Modules/Legacy/Fields/ResampleRegularMesh.h>
-#ifdef WITH_TETGEN
 #include <Modules/Legacy/Fields/InterfaceWithTetGen.h>
-#endif
 #include <Modules/Legacy/Fields/BuildMappingMatrix.h>
 #include <Modules/Legacy/Fields/ProjectPointsOntoMesh.h>
 #include <Modules/Legacy/Fields/CalculateDistanceToField.h>
@@ -93,12 +91,14 @@ DEALINGS IN THE SOFTWARE.
 #include <Modules/Visualization/ShowFieldGlyphs.h>
 #include <Modules/Visualization/CreateStandardColorMap.h>
 #include <Modules/Visualization/ShowColorMapModule.h>
+#include <Modules/Visualization/CreateTestingArrow.h>
 #include <Modules/Render/ViewScene.h>
 #include <Modules/Legacy/FiniteElements/BuildFEMatrix.h>
 #include <Modules/Basic/AsyncPortTestModule.h>
 #include <Modules/Basic/NeedToExecuteTester.h>
 #include <Modules/Legacy/Converters/ConvertMatrixToString.h>
 #include <Modules/Basic/PortFeedbackTestModules.h>
+#include <Modules/Basic/LoggingTester.h>
 
 using namespace SCIRun::Dataflow::Networks;
 using namespace SCIRun::Modules::Factory;
@@ -153,9 +153,7 @@ void ModuleDescriptionLookup::addEssentialModules()
   addModuleDesc<BuildBEMatrix>("Real ported module", "...");
   addModuleDesc<ResampleRegularMesh>("Real ported module", "...");
   addModuleDesc<ProjectPointsOntoMesh>("Real ported module", "...");
-  #ifdef WITH_TETGEN
   addModuleDesc<InterfaceWithTetGen>("Real ported module", "...");
-  #endif
   addModuleDesc<CalculateDistanceToField>("Real ported module", "...");
   addModuleDesc<CalculateDistanceToFieldBoundary>("Real ported module", "...");
   addModuleDesc<MapFieldDataOntoNodes>("Real ported module", "...");
@@ -184,7 +182,6 @@ void ModuleDescriptionLookup::addEssentialModules()
   addModuleDesc<GeneratePointSamplesFromField>("Real ported module", "in progress");
   addModuleDesc<GeneratePointSamplesFromFieldOrWidget>("Real ported module", "in progress");
   addModuleDesc<GenerateSinglePointProbeFromField>("Real ported module", "in progress");
-
   addModuleDesc<CollectMatrices>("Real ported module", "...");
 }
 
@@ -197,4 +194,6 @@ void ModuleDescriptionLookup::addTestingModules()
   addModuleDesc<NeedToExecuteTester>("...", "...");
   addModuleDesc<PortFeedbackReceiver>("...", "...");
   addModuleDesc<PortFeedbackSender>("...", "...");
+  addModuleDesc<LoggingTester>("...", "...");
+  addModuleDesc<CreateTestingArrow>("...", "...");
 }

@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,8 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
+
 /// @todo Documentation Modules/DataIO/WriteMatrix.cc
 
 #include <Modules/DataIO/WriteMatrix.h>
@@ -37,6 +38,7 @@
 using namespace SCIRun::Modules::DataIO;
 using namespace SCIRun::Core::Algorithms;
 using namespace SCIRun::Core::Datatypes;
+using namespace SCIRun::Core::Logging;
 using namespace SCIRun::Dataflow::Networks;
 using namespace SCIRun::Modules::DataIO;
 
@@ -51,7 +53,7 @@ WriteMatrix::WriteMatrix()
 
   MatrixIEPluginManager mgr;
   auto types = makeGuiTypesListForExport(mgr);
-  get_state()->setValue(Variables::FileTypeList, types);
+  get_state()->setTransientValue(Variables::FileTypeList, types);
 }
 
 bool WriteMatrix::call_exporter(const std::string& filename)
@@ -104,8 +106,8 @@ void WriteMatrix::execute()
 
 bool WriteMatrix::useCustomExporter(const std::string& filename) const
 {
-  auto ft = get_state()->getValue(Variables::FileTypeName).toString();
-  LOG_DEBUG("WriteMatrix with filetype " << ft);
+  auto ft = cstate()->getValue(Variables::FileTypeName).toString();
+  LOG_DEBUG("WriteMatrix with filetype {}", ft);
 
   filetype_ = (ft == "SCIRun Matrix ASCII") ? "ASCII" : "Binary";
 

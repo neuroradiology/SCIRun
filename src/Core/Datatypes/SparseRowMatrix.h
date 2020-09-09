@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -131,13 +130,13 @@ namespace Datatypes {
     }
     SparseRowMatrixGeneric(SparseRowMatrixGeneric&& other) : EigenBase(std::move(other)) {}
 
-    virtual SparseRowMatrixGeneric* clone() const
+    virtual SparseRowMatrixGeneric* clone() const override
     {
       return new SparseRowMatrixGeneric(*this);
     }
 
-    virtual size_t nrows() const { return this->rows(); }
-    virtual size_t ncols() const { return this->cols(); }
+    virtual size_t nrows() const override { return this->rows(); }
+    virtual size_t ncols() const override { return this->cols(); }
 
     typedef index_type RowsData;
     typedef index_type ColumnsData;
@@ -163,7 +162,7 @@ namespace Datatypes {
       return tr.block(i, 0, 1, nrows()).transpose();
     }
 
-    virtual void accept(MatrixVisitorGeneric<T>& visitor)
+    virtual void accept(MatrixVisitorGeneric<T>& visitor) override
     {
       visitor.visit(*this);
     }
@@ -323,14 +322,14 @@ namespace Datatypes {
     const MatrixBase<T>& castForPrinting() const { return *this; } /// @todo: lame...figure out a better way
 
     /// Persistent representation...
-    virtual std::string dynamic_type_name() const { return type_id.type; }
-    virtual void io(Piostream&);
+    virtual std::string dynamic_type_name() const override { return type_id.type; }
+    virtual void io(Piostream&) override;
     static PersistentTypeID type_id;
 
     static Persistent* SparseRowMatrixGenericMaker();
 
   private:
-    virtual void print(std::ostream& o) const
+    virtual void print(std::ostream& o) const override
     {
       o << static_cast<const EigenBase&>(*this);
     }

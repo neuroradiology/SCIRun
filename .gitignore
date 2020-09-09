@@ -6,6 +6,7 @@
 *.swp
 *.vcxproj*
 *DS_Store
+src/.ccls-cache
 src/Documentation/*/*/*.aux
 src/Documentation/*/*/*.blg
 src/Documentation/*/*/*.bbl
@@ -28,5 +29,4 @@ cmake_install.cmake
 install_manifest.txt
 CTestTestfile.cmake
 DartConfiguration.tcl
-bin*
 cmake

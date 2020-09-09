@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #include <Core/Algorithms/Math/GetMatrixSliceAlgo.h>
 #include <Core/Datatypes/DenseMatrix.h>
@@ -90,7 +90,7 @@ boost::tuple<MatrixHandle, int> GetMatrixSliceAlgo::runImpl(MatrixHandle matrix,
       if (sparse)
       {
         //TODO: makes a copy of the transpose. Not good. Should test out manually copying elements, trade speed for memory.
-        return boost::make_tuple(boost::make_shared<SparseRowMatrix>(std::move(sparse->getColumn(index))), max);
+        return boost::make_tuple(boost::make_shared<SparseRowMatrix>(sparse->getColumn(index)), max);
       }
       return boost::make_tuple(nullptr, 0);
     }

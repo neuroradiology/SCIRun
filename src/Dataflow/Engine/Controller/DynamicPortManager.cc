@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,12 +24,15 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
+
 /// @todo Documentation Dataflow/Engine/Controller/DynamicPortManager.cc
 
 #include <Dataflow/Engine/Controller/DynamicPortManager.h>
 #include <Dataflow/Network/NetworkInterface.h>
 #include <Dataflow/Network/Module.h>
 #include <Dataflow/Network/ConnectionId.h>
+#include <Dataflow/Network/ModuleBuilder.h>
 
 using namespace SCIRun;
 using namespace SCIRun::Dataflow::Engine;
@@ -47,15 +49,12 @@ void DynamicPortManager::connectionAddedNeedToCloneAPort(const SCIRun::Dataflow:
 {
   if (enabled_)
   {
-    //std::cout << "need to clone a port: " << ConnectionId::create(cd).id_ << std::endl;
-    /// @todo: assumption: dynamic = input
     auto moduleIn = controller_->getNetwork()->lookupModule(cd.in_.moduleId_);
     if (moduleIn->getInputPort(cd.in_.portId_)->isDynamic())
     {
-      Module::Builder builder;
+      ModuleBuilder builder;
       auto newPortId = builder.cloneInputPort(moduleIn, cd.in_.portId_);
-      //std::cout << "SIGNALLING ADD: " << moduleIn->get_id() << " /// " << newPortId << std::endl;
-      portAdded_(moduleIn->get_id(), newPortId);
+      portAdded_(moduleIn->id(), newPortId);
     }
   }
 }
@@ -64,16 +63,16 @@ void DynamicPortManager::connectionRemovedNeedToRemoveAPort(const SCIRun::Datafl
 {
   if (enabled_)
   {
-    //std::cout << "need to remove a port: " << id.id_ << std::endl;
     auto desc = id.describe();
     auto moduleIn = controller_->getNetwork()->lookupModule(desc.in_.moduleId_);
-    //std::cout << "REMOVE CHECKING: " << desc.in_.moduleId_ << " /// " << desc.in_.portId_ << std::endl;
-    if (moduleIn->getInputPort(desc.in_.portId_)->isDynamic())
+    if (moduleIn)
     {
-      Module::Builder builder;
-      builder.removeInputPort(moduleIn, desc.in_.portId_);
-      //std::cout << "SIGNALLING REMOVE: " << moduleIn->get_id() << " /// " << desc.in_.portId_ << std::endl;
-      portRemoved_(moduleIn->get_id(), desc.in_.portId_);
+      if (moduleIn->getInputPort(desc.in_.portId_)->isDynamic())
+      {
+        ModuleBuilder builder;
+        builder.removeInputPort(moduleIn, desc.in_.portId_);
+        portRemoved_(moduleIn->id(), desc.in_.portId_);
+      }
     }
   }
 }

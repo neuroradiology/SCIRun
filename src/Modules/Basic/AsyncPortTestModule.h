@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,10 +25,11 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef MODULES_BASIC_ASYNCPORTTESTMODULE_H
 #define MODULES_BASIC_ASYNCPORTTESTMODULE_H
 
-#include <Dataflow/Network/Module.h>
+#include <Dataflow/Network/ModuleWithAsyncDynamicPorts.h>
 #include <Modules/Basic/share.h>
 
 namespace SCIRun {
@@ -46,7 +46,7 @@ namespace Basic {
     virtual void asyncExecute(const Dataflow::Networks::PortId& pid, Core::Datatypes::DatatypeHandle data) override;
     virtual void setStateDefaults() override {}
 
-    INPUT_PORT_DYNAMIC(0, AsyncField, LegacyField);
+    INPUT_PORT_DYNAMIC(0, AsyncField, Field);
 
     MODULE_TRAITS_AND_INFO(NoAlgoOrUI)
   protected:

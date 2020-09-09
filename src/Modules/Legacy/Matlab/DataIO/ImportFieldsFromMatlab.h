@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,10 +25,12 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef MODULES_LEGACY_MATLAB_DATAIO_IMPORTFIELDSFROMMATLAB_H
 #define MODULES_LEGACY_MATLAB_DATAIO_IMPORTFIELDSFROMMATLAB_H
 
 #include <Dataflow/Network/Module.h>
+#include <Core/Matlab/matlabfwd.h>
 #include <Modules/Legacy/Matlab/DataIO/share.h>
 
 namespace SCIRun {
@@ -45,10 +46,24 @@ namespace SCIRun {
     }
   }
 
+  template <size_t N>
+  using StringPortName = Dataflow::Networks::StaticPortName<Core::Datatypes::String, N>;
+
 namespace Modules {
 namespace Matlab {
 
-  class SCISHARE ImportFieldsFromMatlab : public Dataflow::Networks::Module,
+  class SCISHARE MatlabFileIndexModule : public Dataflow::Networks::Module
+  {
+  public:
+    explicit MatlabFileIndexModule(const Dataflow::Networks::ModuleLookupInfo& info) : Dataflow::Networks::Module(info) {}
+  protected:
+    void indexmatlabfile();
+    void executeImpl(const StringPortName<0>& filenameIn, const StringPortName<6>& filenameOut);
+    virtual SCIRun::Core::Datatypes::DatatypeHandle processMatlabData(const MatlabIO::matlabarray&) const = 0;
+    virtual int indexMatlabFile(MatlabIO::matlabconverter& converter, const MatlabIO::matlabarray& mlarray, std::string& infostring) const = 0;
+  };
+
+  class SCISHARE ImportFieldsFromMatlab : public MatlabFileIndexModule,
     public Has1InputPort<StringPortTag>,
     public Has7OutputPorts<FieldPortTag, FieldPortTag, FieldPortTag, FieldPortTag, FieldPortTag, FieldPortTag, StringPortTag>
   {
@@ -57,12 +72,12 @@ namespace Matlab {
     virtual void execute() override;
     virtual void setStateDefaults() override;
     INPUT_PORT(0, Filename, String);
-    OUTPUT_PORT(0, Field1, LegacyField);
-    OUTPUT_PORT(1, Field2, LegacyField);
-    OUTPUT_PORT(2, Field3, LegacyField);
-    OUTPUT_PORT(3, Field4, LegacyField);
-    OUTPUT_PORT(4, Field5, LegacyField);
-    OUTPUT_PORT(5, Field6, LegacyField);
+    OUTPUT_PORT(0, Field1, Field);
+    OUTPUT_PORT(1, Field2, Field);
+    OUTPUT_PORT(2, Field3, Field);
+    OUTPUT_PORT(3, Field4, Field);
+    OUTPUT_PORT(4, Field5, Field);
+    OUTPUT_PORT(5, Field6, Field);
     OUTPUT_PORT(6, FilenameOut, String);
     enum { NUMPORTS = 6 };
 
@@ -72,9 +87,10 @@ namespace Matlab {
 
   protected:
     virtual void postStateChangeInternalSignalHookup() override;
-  private:
-    void indexmatlabfile();
+    virtual SCIRun::Core::Datatypes::DatatypeHandle processMatlabData(const MatlabIO::matlabarray&) const override;
+    virtual int indexMatlabFile(MatlabIO::matlabconverter& converter, const MatlabIO::matlabarray& mlarray, std::string& infostring) const override;
   };
+
 }}}
 
 #endif

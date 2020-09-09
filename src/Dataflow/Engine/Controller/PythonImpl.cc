@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,8 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
+
 /// @todo Documentation Dataflow/Engine/Controller/PythonImpl.cc
 
 #ifdef BUILD_WITH_PYTHON
@@ -127,7 +128,7 @@ namespace
 
   private:
     SparseRowMatrixHandle underlying_;
-    boost::python::list pyMat_;
+    boost::python::dict pyMat_;
   };
 
   class PyDatatypeField : public PyDatatype
@@ -260,7 +261,7 @@ namespace
   class PyPortsImpl : public PyPorts
   {
   public:
-    PyPortsImpl(ModuleHandle mod, bool input, NetworkEditorController& nec) : mod_(mod), nec_(nec), modId_(mod->get_id())
+    PyPortsImpl(ModuleHandle mod, bool input, NetworkEditorController& nec) : mod_(mod), nec_(nec), modId_(mod->id())
     {
       //wish:
       //boost::push_back(ports_,
@@ -368,7 +369,7 @@ namespace
     virtual std::string id() const override
     {
       if (module_)
-        return module_->get_id();
+        return module_->id();
       return "<Null module>";
     }
 
@@ -440,6 +441,8 @@ namespace
             return boost::python::object(transient_value_cast<bool>(v));
           if (transient_value_check<Variable>(v))
             return boost::python::object(convertVariableToPythonObject(transient_value_cast<Variable>(v)));
+          if (transient_value_check<boost::python::object>(v))
+            return transient_value_cast<boost::python::object>(v);
 
           return boost::python::object();
         }
@@ -565,11 +568,11 @@ boost::shared_ptr<PyModule> PythonImpl::addModule(const std::string& name)
 {
   auto m = nec_.addModule(name);
   if (m)
-    std::cout << "Module added: " + m->get_id().id_ << std::endl;
+    std::cout << "Module added: " + m->id().id_ << std::endl;
   else
     std::cout << "Module add failed, no such module type" << std::endl;
 
-  return modules_[m->get_id().id_];
+  return modules_[m->id().id_];
 }
 
 void PythonImpl::pythonModuleAddedSlot(const std::string& modId, ModuleHandle m, ModuleCounter)
@@ -612,7 +615,7 @@ boost::shared_ptr<PyModule> PythonImpl::findModule(const std::string& id) const
 
 std::string PythonImpl::executeAll(const ExecutableLookup* lookup)
 {
-  cmdFactory_->create(GlobalCommands::DisableViewScenes)->execute();
+  //cmdFactory_->create(GlobalCommands::DisableViewScenes)->execute();
 
   nec_.executeAll(lookup);
   return "Execution started."; //TODO: attach log for execution ended event.

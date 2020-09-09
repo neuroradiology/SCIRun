@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #include <Core/Utils/Exception.h>
 #include <Dataflow/Engine/Scheduler/SerialExecutionStrategy.h>
 #include <Dataflow/Engine/Scheduler/BasicParallelExecutionStrategy.h>
@@ -36,6 +36,7 @@
 
 using namespace SCIRun::Dataflow::Engine;
 using namespace SCIRun::Dataflow::Networks;
+using namespace SCIRun::Core::Logging;
 
 DesktopExecutionStrategyFactory::DesktopExecutionStrategyFactory(const boost::optional<std::string>& threadMode) :
   threadMode_(threadMode),
@@ -65,7 +66,7 @@ ExecutionStrategyHandle DesktopExecutionStrategyFactory::createDefault() const
   const ExecutionStrategy::Type latestWorkingVersion = ExecutionStrategy::DYNAMIC_PARALLEL;
   if (threadMode_)
   {
-    LOG_DEBUG("found thread mode: " << *threadMode_);
+    LOG_DEBUG("found thread mode: ", *threadMode_);
     if (*threadMode_ == "serial")
       return create(ExecutionStrategy::SERIAL);
     if (*threadMode_ == "basicParallel")
@@ -77,7 +78,7 @@ ExecutionStrategyHandle DesktopExecutionStrategyFactory::createDefault() const
   }
   else
   {
-    LOG_DEBUG("no thread mode found, using dynamic parallel"); /// @todo: update this to best working version
-    return create(latestWorkingVersion);  
+    LOG_TRACE("no thread mode found, using dynamic parallel"); /// @todo: update this to best working version
+    return create(latestWorkingVersion);
   }
 }

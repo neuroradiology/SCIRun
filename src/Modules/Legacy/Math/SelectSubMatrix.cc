@@ -1,12 +1,11 @@
- /*
+/*
    For more information, please see: http://software.sci.utah.edu
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #include <Modules/Legacy/Math/SelectSubMatrix.h>
 #include <Core/Algorithms/Math/SelectSubMatrix.h>
@@ -159,7 +159,6 @@ void SelectSubMatrix::execute()
 
   if (needToExecute())
   {
-   update_state(Executing);
    algo().set(SelectSubMatrixAlgorithm::rowCheckBox(), get_state()->getValue(SelectSubMatrixAlgorithm::rowCheckBox()).toBool());
    algo().set(SelectSubMatrixAlgorithm::columnCheckBox(), get_state()->getValue(SelectSubMatrixAlgorithm::columnCheckBox()).toBool());
    algo().set(SelectSubMatrixAlgorithm::rowStartSpinBox(), get_state()->getValue(SelectSubMatrixAlgorithm::rowStartSpinBox()).toInt());

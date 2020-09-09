@@ -3,9 +3,8 @@
 #
 #  The MIT License
 #
-#  Copyright (c) 2015 Scientific Computing and Imaging Institute,
+#  Copyright (c) 2020 Scientific Computing and Imaging Institute,
 #  University of Utah.
-#
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a
 #  copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,7 @@
 #  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 #  DEALINGS IN THE SOFTWARE.
 #
+
 
 # CMakeLists.txt for Dataflow/Modules/Fields
 
@@ -74,6 +74,7 @@ SET(Modules_Legacy_Fields_HEADERS
   MapFieldDataOntoElems.h
   MapFieldDataOntoNodes.h
   MapFieldDataFromSourceToDestination.h
+  MapFieldDataOntoNodesRadialbasis.h
   ReportFieldGeometryMeasures.h
   FlipSurfaceNormals.h
   SwapFieldDataWithMatrixEntries.h
@@ -86,24 +87,35 @@ SET(Modules_Legacy_Fields_HEADERS
   GeneratePointSamplesFromFieldOrWidget.h
   TransformMeshWithTransform.h
   GetMeshQualityField.h
+  RemoveUnusedNodes.h
+  CleanupTetMesh.h
+  CalculateInsideWhichField.h
+  ReorderNormalCoherently.h
+  CalculateMeshCenter.h
+  CreateImage.h
+  GetCentroidsFromMesh.h
+  SmoothVecFieldMedian.h
+  CalculateMeshNodes.h
+  GenerateElectrode.h
+  InterfaceWithTetGen.h
 )
 
 SET(Modules_Legacy_Fields_SRCS
   FlipSurfaceNormals.cc
   ClipVolumeByIsovalue.cc
-  #GenerateElectrode.cc
+  GenerateElectrode.cc
   #PadRegularMesh.cc
   ResampleRegularMesh.cc
   #CalculateMeshConnector.cc
-  #CalculateMeshCenter.cc
+  CalculateMeshCenter.cc
   #GetDomainStructure.cc
   RegisterWithCorrespondences.cc
-  #SmoothVecFieldMedian.cc
+  SmoothVecFieldMedian.cc
   SetFieldDataToConstantValue.cc
-  #RemoveUnusedNodes.cc
+  RemoveUnusedNodes.cc
   MapFieldDataOntoNodes.cc
   MapFieldDataOntoElems.cc
-  #CleanupTetMesh.cc
+  CleanupTetMesh.cc
   #MatchDomainLabels.cc
   SplitFieldByDomain.cc
   AlignMeshBoundingBoxes.cc
@@ -114,7 +126,7 @@ SET(Modules_Legacy_Fields_SRCS
   #CalculateNodeNormals.cc
   BuildMappingMatrix.cc
   BuildMatrixOfSurfaceNormals.cc
-  #GetCentroidsFromMesh.cc
+  GetCentroidsFromMesh.cc
   #ConvertMeshCoordinateSystem.cc
   ConvertFieldBasis.cc
   ConvertFieldDataType.cc
@@ -158,7 +170,7 @@ SET(Modules_Legacy_Fields_SRCS
   GenerateSinglePointProbeFromField.cc
   GeneratePointSamplesFromFieldOrWidget.cc
   CreateLatVol.cc
-  #CreateImage.cc
+  CreateImage.cc
   #CreateStructHex.cc
   #ReportScalarFieldStats.cc
   GeneratePointSamplesFromField.cc
@@ -169,7 +181,7 @@ SET(Modules_Legacy_Fields_SRCS
   ConvertMeshToUnstructuredMesh.cc
   CalculateFieldData5.cc
   #CalculateFieldDataMetric.cc
-  #CalculateMeshNodes.cc
+  CalculateMeshNodes.cc
   #QueryFieldData.cc
   TransformMeshWithTransform.cc
   CalculateVectorMagnitudes.cc
@@ -178,14 +190,14 @@ SET(Modules_Legacy_Fields_SRCS
   CalculateDistanceToFieldBoundary.cc
   CalculateSignedDistanceToField.cc
   #CalculateIsInsideField.cc
-  #CalculateInsideWhichField.cc
+  CalculateInsideWhichField.cc
   ConvertIndicesToFieldData.cc
   CreateFieldData.cc
   GetFieldData.cc
   SetFieldData.cc
   GetFieldNodes.cc
   SetFieldNodes.cc
-  #MapFieldDataOntoNodesRadialbasis.cc
+  MapFieldDataOntoNodesRadialbasis.cc
   #SelectAndSetFieldData.cc
   #SelectAndSetFieldData3.cc
   #SplitNodesByDomain.cc
@@ -197,17 +209,18 @@ SET(Modules_Legacy_Fields_SRCS
   MapFieldDataFromElemToNode.cc
   MapFieldDataFromNodeToElem.cc
   ExtractSimpleIsosurface.cc
+  ReorderNormalCoherently.cc
+  InterfaceWithTetGen.cc  
 )
 
 IF(WITH_TETGEN)
   SET(Modules_Legacy_Fields_SRCS ${Modules_Legacy_Fields_SRCS}
-    InterfaceWithTetGen.cc
     InterfaceWithTetGenImpl.cc
   )
   SET(Modules_Legacy_Fields_HEADERS ${Modules_Legacy_Fields_HEADERS}
-    InterfaceWithTetGen.h
     InterfaceWithTetGenImpl.h
   )
+  ADD_DEFINITIONS(-DWITH_TETGEN)
 ENDIF()
 
 SCIRUN_ADD_LIBRARY(Modules_Legacy_Fields
@@ -227,7 +240,7 @@ TARGET_LINK_LIBRARIES(Modules_Legacy_Fields
   Core_Math
   Core_Parser
   Core_Util_Legacy
-  Graphics_Glyphs
+  Graphics_Widgets
   Graphics_Datatypes
 )
 

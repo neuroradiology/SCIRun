@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef ALGORITHMS_MATH_SELECTSUBMATRIX_H
 #define ALGORITHMS_MATH_SELECTSUBMATRIX_H
 
@@ -37,23 +37,23 @@ namespace SCIRun {
 namespace Core {
 namespace Algorithms {
 namespace Math {
-  
+
   class SCISHARE SelectSubMatrixAlgorithm : public AlgorithmBase
   {
   public:
-    static AlgorithmInputName RowIndicies;
-    static AlgorithmInputName ColumnIndicies;
+    static const AlgorithmInputName RowIndicies;
+    static const AlgorithmInputName ColumnIndicies;
     static AlgorithmParameterName rowCheckBox();
     static AlgorithmParameterName columnCheckBox();
     static AlgorithmParameterName rowStartSpinBox();
     static AlgorithmParameterName columnStartSpinBox();
     static AlgorithmParameterName columnEndSpinBox();
     static AlgorithmParameterName rowEndSpinBox();
-    Datatypes::MatrixHandle run(Datatypes::MatrixHandle input_matrix, Datatypes::DenseMatrixHandle rows, Datatypes::DenseMatrixHandle columns) const; 
+    Datatypes::MatrixHandle run(Datatypes::MatrixHandle input_matrix, Datatypes::DenseMatrixHandle rows, Datatypes::DenseMatrixHandle columns) const;
     SelectSubMatrixAlgorithm();
     AlgorithmOutput run(const AlgorithmInput& input) const;
-    Datatypes::MatrixHandle get_sub_matrix(Datatypes::MatrixHandle& input_matrix, Datatypes::DenseMatrixHandle rows, Datatypes::DenseMatrixHandle cols) const;
-    Datatypes::MatrixHandle run(Datatypes::MatrixHandle input_matrix, std::vector<SCIRun::index_type> rows, std::vector<SCIRun::index_type> cols) const;
+    Datatypes::MatrixHandle get_sub_matrix(Datatypes::MatrixHandle input_matrix, Datatypes::DenseMatrixHandle rows, Datatypes::DenseMatrixHandle cols) const;
+    Datatypes::MatrixHandle run(Datatypes::MatrixHandle input_matrix, const std::vector<SCIRun::index_type>& rows, const std::vector<SCIRun::index_type>& cols) const;
   };
 
 }}}}

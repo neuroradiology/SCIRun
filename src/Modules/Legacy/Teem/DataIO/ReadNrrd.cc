@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2009 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -27,7 +26,6 @@
 */
 
 
-
 /*
  *  ReadNrrd.cc: Read in a Nrrd
  *
@@ -43,14 +41,7 @@
 #include <Core/Datatypes/Legacy/Nrrd/NrrdData.h>
 #include <Core/Algorithms/Base/AlgorithmVariableNames.h>
 #include <Core/ImportExport/Nrrd/NrrdIEPlugin.h>
-//#include <Core/Util/sci_system.h>
-
-//#include <sys/stat.h>
 #include <Core/ImportExport/GenericIEPlugin.h>
-
-//#ifdef _WIN32
-//#include <process.h> // for getpid
-//#endif
 
 using namespace SCIRun;
 using namespace SCIRun::Modules::DataIO;
@@ -297,8 +288,6 @@ ReadNrrd::write_tmpfile(const std::string& filename, std::string* tmpfilename,
 void
 ReadNrrd::execute()
 {
-  update_state(NeedData);
-
   if (needToExecute())
   {
     auto nrrd = read_nrrd();
@@ -328,7 +317,5 @@ ReadNrrd::execute()
 #endif
 
     sendOutput(Output_Data, nrrd);
-
-    update_state(Completed);
   }
 }

@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #include <Modules/Legacy/Fields/GetFieldBoundary.h>
 #include <Core/Datatypes/Matrix.h>
@@ -47,11 +47,9 @@ void
 GetFieldBoundary::execute()
 {
   auto field = getRequiredInput(InputField);
-  
+
   if (needToExecute())
   {
-    update_state(Executing);
-
     auto output = algo().run(withInputData((InputField, field)));
 
     sendOutputFromAlgorithm(BoundaryField, output);

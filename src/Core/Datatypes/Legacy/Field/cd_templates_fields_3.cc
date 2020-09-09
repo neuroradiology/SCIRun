@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,8 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
+
 /// @todo Documentation Core/Datatypes/Legacy/Field/cd_templates_fields_3.cc
 
 #include <Core/Persistent/PersistentSTL.h>
@@ -54,6 +55,7 @@ typedef ConstantBasis<Vector>                CFDVectorBasis;
 typedef ConstantBasis<double>                CFDdoubleBasis;
 typedef ConstantBasis<complex>				       CFDcomplexBasis;
 typedef ConstantBasis<float>                 CFDfloatBasis;
+typedef ConstantBasis<complex>               CFDcomplexBasis;
 typedef ConstantBasis<int>                   CFDintBasis;
 typedef ConstantBasis<long long>             CFDlonglongBasis;
 typedef ConstantBasis<short>                 CFDshortBasis;
@@ -205,6 +207,7 @@ typedef TetQuadraticLgn<Tensor>                TQFDTensorBasis;
 typedef TetQuadraticLgn<Vector>                TQFDVectorBasis;
 typedef TetQuadraticLgn<double>                TQFDdoubleBasis;
 typedef TetQuadraticLgn<float>                 TQFDfloatBasis;
+typedef TetQuadraticLgn<complex>               TQFDcomplexBasis;
 typedef TetQuadraticLgn<int>                   TQFDintBasis;
 typedef TetQuadraticLgn<long long>             TQFDlonglongBasis;
 typedef TetQuadraticLgn<short>                 TQFDshortBasis;
@@ -222,6 +225,7 @@ template class GenericField<QTVMesh, TQFDTensorBasis, std::vector<Tensor> >;
 template class GenericField<QTVMesh, TQFDVectorBasis, std::vector<Vector> >;
 template class GenericField<QTVMesh, TQFDdoubleBasis, std::vector<double> >;
 template class GenericField<QTVMesh, TQFDfloatBasis,  std::vector<float> >;
+template class GenericField<QTVMesh, TQFDcomplexBasis, std::vector<complex> >;
 template class GenericField<QTVMesh, TQFDintBasis,    std::vector<int> >;
 template class GenericField<QTVMesh, TQFDlonglongBasis,std::vector<long long> >;
 template class GenericField<QTVMesh, TQFDshortBasis,  std::vector<short> >;

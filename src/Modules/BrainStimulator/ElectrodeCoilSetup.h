@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,8 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
+
 ///@file ElectrodeCoilSetup
 ///@brief With this module the user is able to position tDCS electrodes and TMS coils to setup a simulation scenario.
 ///
@@ -64,18 +65,18 @@ class SCISHARE ElectrodeCoilSetup : public SCIRun::Dataflow::Networks::Module,
   public:
     ElectrodeCoilSetup();
 
-    virtual void execute();
-    virtual void setStateDefaults();
+    virtual void execute() override;
+    virtual void setStateDefaults() override;
 
     virtual bool hasDynamicPorts() const override { return true; }
 
-    INPUT_PORT(0, SCALP_SURF, LegacyField);
+    INPUT_PORT(0, SCALP_SURF, Field);
     INPUT_PORT(1, LOCATIONS, Matrix);
-    INPUT_PORT_DYNAMIC(2, ELECTRODECOILPROTOTYPES, LegacyField);
+    INPUT_PORT_DYNAMIC(2, ELECTRODECOILPROTOTYPES, Field);
     OUTPUT_PORT(0, ELECTRODE_SPONGE_LOCATION_AVR, Matrix);
-    OUTPUT_PORT(1, MOVED_ELECTRODES_FIELD, LegacyField);
-    OUTPUT_PORT(2, FINAL_ELECTRODES_FIELD, LegacyField);
-    OUTPUT_PORT(3, COILS_FIELD, LegacyField);
+    OUTPUT_PORT(1, MOVED_ELECTRODES_FIELD, Field);
+    OUTPUT_PORT(2, FINAL_ELECTRODES_FIELD, Field);
+    OUTPUT_PORT(3, COILS_FIELD, Field);
 
     NEW_BRAIN_STIMULATOR_MODULE
 

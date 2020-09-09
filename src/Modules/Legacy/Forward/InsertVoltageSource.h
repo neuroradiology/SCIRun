@@ -1,12 +1,10 @@
-
 /*
    For more information, please see: http://software.sci.utah.edu
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -27,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef MODULES_LEGACY_FORWARD_InsertVoltageSource_H__
 #define MODULES_LEGACY_FORWARD_InsertVoltageSource_H__
 
@@ -43,12 +42,12 @@ namespace SCIRun {
       {
       public:
         InsertVoltageSource();
-        virtual void setStateDefaults();
-        virtual void execute();
+        void setStateDefaults() override;
+        void execute() override;
 
-        INPUT_PORT(0, InputFEMesh, LegacyField);
-        INPUT_PORT(1, VoltageSource, LegacyField);
-        OUTPUT_PORT(0, OutputFEMesh, LegacyField);
+        INPUT_PORT(0, InputFEMesh, Field);
+        INPUT_PORT(1, VoltageSource, Field);
+        OUTPUT_PORT(0, OutputFEMesh, Field);
         OUTPUT_PORT(1, OutputDirichletMatrix, DenseMatrix);
 
         LEGACY_BIOPSE_MODULE

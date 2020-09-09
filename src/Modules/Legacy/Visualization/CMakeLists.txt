@@ -3,9 +3,8 @@
 #
 #  The MIT License
 #
-#  Copyright (c) 2015 Scientific Computing and Imaging Institute,
+#  Copyright (c) 2020 Scientific Computing and Imaging Institute,
 #  University of Utah.
-#
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a
 #  copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,7 @@
 #  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 #  DEALINGS IN THE SOFTWARE.
 #
+
 
 # CMakeLists.txt for Dataflow/Modules/Visualization
 
@@ -89,6 +89,8 @@ TARGET_LINK_LIBRARIES(Modules_Legacy_Visualization
   #Core_Persistent
   #Core_Thread
   Core_Util_Legacy
+  Graphics_Widgets
+  Graphics_Datatypes
   #${SCI_TEEM_LIBRARY}
 )
 

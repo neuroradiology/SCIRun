@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,8 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
+
 /// @todo Documentation Modules/Legacy/Math/AddKnownsToLinearSystem.h
 
 #ifndef MODULES_LEGACY_Math_AddKnownsToLinearSystem_H__
@@ -43,8 +44,8 @@ namespace SCIRun {
       {
       public:
         AddKnownsToLinearSystem();
-        virtual void setStateDefaults() {}
-        virtual void execute();
+        virtual void setStateDefaults() override {}
+        virtual void execute() override;
 
         INPUT_PORT(0, LHS_Matrix, SparseRowMatrix);
         INPUT_PORT(1, RHS_Vector, DenseMatrix);

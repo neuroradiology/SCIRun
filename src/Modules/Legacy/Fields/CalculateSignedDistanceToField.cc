@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #include <Modules/Legacy/Fields/CalculateSignedDistanceToField.h>
 #include <Core/Datatypes/Legacy/Field/Field.h>
@@ -52,11 +52,9 @@ void CalculateSignedDistanceToField::execute()
   FieldHandle object = getRequiredInput(ObjectField);
 
   bool value_connected = oport_connected(ValueField);
-   
+
   if (needToExecute())
   {
-    update_state(Executing);
-
     auto inputs = make_input((InputField, input)(ObjectField, object));
 
     algo().set(CalculateSignedDistanceFieldAlgo::OutputValueField, value_connected);

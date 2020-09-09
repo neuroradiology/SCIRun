@@ -1,30 +1,30 @@
 /*
-For more information, please see: http://software.sci.utah.edu
+   For more information, please see: http://software.sci.utah.edu
 
-The MIT License
+   The MIT License
 
-Copyright (c) 2015 Scientific Computing and Imaging Institute,
-University of Utah.
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
+   University of Utah.
 
-License for the specific language governing rights and limitations under
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the "Software"),
-to deal in the Software without restriction, including without limitation
-the rights to use, copy, modify, merge, publish, distribute, sublicense,
-and/or sell copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following conditions:
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the "Software"),
+   to deal in the Software without restriction, including without limitation
+   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+   and/or sell copies of the Software, and to permit persons to whom the
+   Software is furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included
-in all copies or substantial portions of the Software.
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
 */
+
 
 #include <Modules/BrainStimulator/ElectrodeCoilSetup.h>
 #include <Interface/Modules/BrainStimulator/ElectrodeCoilSetupDialog.h>
@@ -38,7 +38,6 @@ using namespace SCIRun::Gui;
 using namespace SCIRun::Dataflow::Networks;
 using namespace SCIRun::Core::Algorithms;
 using namespace SCIRun::Core::Algorithms::BrainStimulator;
-using namespace boost;
 
 ElectrodeCoilSetupDialog::ElectrodeCoilSetupDialog(const std::string& name, ModuleStateHandle state,
   QWidget* parent /* = 0 */)
@@ -72,10 +71,10 @@ ElectrodeCoilSetupDialog::ElectrodeCoilSetupDialog(const std::string& name, Modu
   connect(invertNormalsCheckBox_, SIGNAL(stateChanged(int)), this, SLOT(updateInvertNormals()));
   connect(ProtoTypeInputCheckbox_, SIGNAL(stateChanged(int)), this, SLOT(togglePrototypeColumnReadOnly(int)));
   connect(ProtoTypeInputComboBox_, SIGNAL(currentIndexChanged(int)), this, SLOT(updatePrototypeColumnValues(int)));
-  
+
   connect(PutElectrodesOnScalpCheckBox_, SIGNAL(stateChanged(int)), this, SLOT(toggleThicknessColumnReadOnly(int)));
   connect(electrodethicknessCheckBox_, SIGNAL(stateChanged(int)), this, SLOT(toggleThicknessColumnReadOnly(int)));
-  
+
   connect(electrodethicknessSpinBox_, SIGNAL(valueChanged(double)), this, SLOT(updateThicknessColumnValues(double)));
 }
 
@@ -88,41 +87,41 @@ void ElectrodeCoilSetupDialog::updateInvertNormals()
    float NX=std::numeric_limits<float>::quiet_NaN(), NY=std::numeric_limits<float>::quiet_NaN(), NZ=std::numeric_limits<float>::quiet_NaN();
    try
    {
-    NX=lexical_cast<float>((electrode_coil_tableWidget->item(j,6)->text()).toStdString());
+    NX=boost::lexical_cast<float>((electrode_coil_tableWidget->item(j,6)->text()).toStdString());
    }
-   catch(bad_lexical_cast &)
+   catch(boost::bad_lexical_cast &)
    {
    }
-   
+
    try
    {
-    NY=lexical_cast<float>((electrode_coil_tableWidget->item(j,7)->text()).toStdString());
+    NY= boost::lexical_cast<float>((electrode_coil_tableWidget->item(j,7)->text()).toStdString());
    }
-   catch(bad_lexical_cast &)
+   catch(boost::bad_lexical_cast &)
    {
    }
-   
+
    try
    {
-    NZ=lexical_cast<float>((electrode_coil_tableWidget->item(j,8)->text()).toStdString());
+    NZ= boost::lexical_cast<float>((electrode_coil_tableWidget->item(j,8)->text()).toStdString());
    }
-   catch(bad_lexical_cast &)
+   catch(boost::bad_lexical_cast &)
    {
    }
-  
+
    if(!(IsNan(NX) || IsNan(NY) || IsNan(NZ)))
    {
-   
-     if (NX<0) NX=fabs(NX); 
-       else 
+
+     if (NX<0) NX=fabs(NX);
+       else
          if (NX>0) NX=-1 * fabs(NX);
-	 
-     if (NY<0) NY=fabs(NY); 
-       else 
+
+     if (NY<0) NY=fabs(NY);
+       else
          if (NY>0) NY=-1 * fabs(NY);
-   
-     if (NZ<0) NZ=fabs(NZ); 
-       else 
+
+     if (NZ<0) NZ=fabs(NZ);
+       else
          if (NZ>0) NZ=-1 * fabs(NZ);
 
      auto item_NX = electrode_coil_tableWidget->item(j, 6);
@@ -131,12 +130,12 @@ void ElectrodeCoilSetupDialog::updateInvertNormals()
      electrode_coil_tableWidget->blockSignals(true);
      if (j==0)
         electrode_coil_tableWidget->scrollToItem(electrode_coil_tableWidget->item(0, 6));
-	
+
      item_NX->setText(QString::fromStdString(str(boost::format("%.3f") % NX)));
      item_NY->setText(QString::fromStdString(str(boost::format("%.3f") % NY)));
      item_NZ->setText(QString::fromStdString(str(boost::format("%.3f") % NZ)));
      electrode_coil_tableWidget->blockSignals(false);
-     
+
      push();
    }
  }
@@ -176,10 +175,10 @@ std::vector<Variable> ElectrodeCoilSetupDialog::validate_numerical_input(int i)
   {
    try
    {
-    lexical_cast<double>((electrode_coil_tableWidget->item(i,j)->text()).toStdString());
+     boost::lexical_cast<double>((electrode_coil_tableWidget->item(i,j)->text()).toStdString());
     values.push_back(Variable(ElectrodeCoilSetupAlgorithm::columnNames[j], electrode_coil_tableWidget->item(i,j)->text().toStdString()));
    }
-   catch(bad_lexical_cast &)
+   catch(boost::bad_lexical_cast &)
    {
     values.push_back(Variable(ElectrodeCoilSetupAlgorithm::columnNames[j], unknown));
    }
@@ -259,8 +258,8 @@ void ElectrodeCoilSetupDialog::initialize_comboboxes(int i, std::vector<Algorith
     int prototype_from_state=-1;
     try
     {
-     prototype_from_state = lexical_cast<int>(row[0].toString());
-    } catch(bad_lexical_cast &)
+     prototype_from_state = boost::lexical_cast<int>(row[0].toString());
+    } catch(boost::bad_lexical_cast &)
     {
      prototype_from_state=-1;
     }
@@ -271,8 +270,8 @@ void ElectrodeCoilSetupDialog::initialize_comboboxes(int i, std::vector<Algorith
     int stimtype_from_state=-1;
     try
     {
-     stimtype_from_state = lexical_cast<int>(row[1].toString());
-    } catch(bad_lexical_cast &)
+     stimtype_from_state = boost::lexical_cast<int>(row[1].toString());
+    } catch(boost::bad_lexical_cast &)
     {
      stimtype_from_state=-1;
     }

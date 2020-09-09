@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #ifndef MOCK_MODULE_H
 #define MOCK_MODULE_H
@@ -47,12 +47,12 @@ namespace SCIRun {
           MOCK_METHOD0(execute, void());
           MOCK_METHOD0(executeWithSignals, bool());
           MOCK_METHOD0(get_state, ModuleStateHandle());
-          MOCK_CONST_METHOD0(get_state, const ModuleStateHandle());
-          MOCK_METHOD1(set_state, void(ModuleStateHandle));
+          MOCK_CONST_METHOD0(cstate, const ModuleStateHandle());
+          MOCK_METHOD1(setState, void(ModuleStateHandle));
           MOCK_METHOD2(send_output_handle, void(const PortId&, SCIRun::Core::Datatypes::DatatypeHandle));
           MOCK_METHOD1(get_input_handle, SCIRun::Core::Datatypes::DatatypeHandleOption(const PortId&));
           MOCK_METHOD1(get_dynamic_input_handles, std::vector<SCIRun::Core::Datatypes::DatatypeHandleOption>(const PortId&));
-          MOCK_CONST_METHOD0(get_module_name, std::string());
+          MOCK_CONST_METHOD0(name, std::string());
           MOCK_CONST_METHOD1(getOutputPort, OutputPortHandle(const PortId&));
           MOCK_CONST_METHOD1(hasOutputPort, bool(const PortId&));
           MOCK_CONST_METHOD1(findOutputPortsWithName, std::vector<OutputPortHandle>(const std::string&));
@@ -61,16 +61,19 @@ namespace SCIRun {
           MOCK_METHOD1(getInputPort, InputPortHandle(const PortId&));
           MOCK_CONST_METHOD1(findInputPortsWithName, std::vector<InputPortHandle>(const std::string&));
           MOCK_CONST_METHOD0(inputPorts, std::vector<InputPortHandle>());
-          MOCK_CONST_METHOD0(num_input_ports, size_t());
-          MOCK_CONST_METHOD0(num_output_ports, size_t());
-          MOCK_CONST_METHOD0(get_id, ModuleId());
-          MOCK_CONST_METHOD0(has_ui, bool());
+          MOCK_CONST_METHOD0(numInputPorts, size_t());
+          MOCK_CONST_METHOD0(numOutputPorts, size_t());
+          MOCK_CONST_METHOD0(id, ModuleId());
+          MOCK_CONST_METHOD0(hasUI, bool());
+          MOCK_CONST_METHOD0(isDeprecated, bool());
           MOCK_CONST_METHOD0(hasDynamicPorts, bool());
           MOCK_CONST_METHOD0(metadata, const MetadataMap&());
           MOCK_CONST_METHOD0(helpPageUrl, std::string());
+          MOCK_CONST_METHOD0(newHelpPageUrl, std::string());
+          MOCK_CONST_METHOD0(replacementModuleName, std::string());
           MOCK_METHOD1(setUiVisible, void(bool));
-          MOCK_METHOD1(set_id, void(const std::string&));
-          MOCK_CONST_METHOD0(get_info, const ModuleLookupInfo&());
+          MOCK_METHOD1(setId, void(const std::string&));
+          MOCK_CONST_METHOD0(info, const ModuleLookupInfo&());
           MOCK_METHOD1(setLogger, void(SCIRun::Core::Logging::LoggerHandle));
           MOCK_CONST_METHOD0(getLogger, SCIRun::Core::Logging::LoggerHandle());
           MOCK_CONST_METHOD0(getUpdaterFunc, SCIRun::Core::Algorithms::AlgorithmStatusReporter::UpdaterFunc());
@@ -87,12 +90,16 @@ namespace SCIRun {
           MOCK_METHOD1(addPortConnection, void(const boost::signals2::connection&));
           MOCK_CONST_METHOD0(getReexecutionStrategy, ModuleReexecutionStrategyHandle());
           MOCK_METHOD1(setReexecutionStrategy, void(ModuleReexecutionStrategyHandle));
-          MOCK_METHOD0(enqueueExecuteAgain, void());
+          MOCK_METHOD1(enqueueExecuteAgain, void(bool));
           MOCK_METHOD1(connectExecuteSelfRequest, boost::signals2::connection(const ExecutionSelfRequestSignalType::slot_type&));
           MOCK_METHOD1(setExecutionDisabled, void(bool));
           MOCK_CONST_METHOD0(executionDisabled, bool(void));
           MOCK_CONST_METHOD0(legacyPackageName, std::string());
           MOCK_CONST_METHOD0(legacyModuleName, std::string());
+          MOCK_CONST_METHOD0(isImplementationDisabled, bool());
+          MOCK_METHOD1(setProgrammableInputPortEnabled, void(bool));
+          MOCK_CONST_METHOD1(checkForVirtualConnection, bool(const ModuleInterface&));
+          MOCK_CONST_METHOD0(description, std::string());
         };
 
         typedef boost::shared_ptr<MockModule> MockModulePtr;
@@ -101,15 +108,16 @@ namespace SCIRun {
         {
         public:
           MockModuleFactory() : moduleCounter_(0) {}
-          virtual ModuleDescription lookupDescription(const ModuleLookupInfo& info) const;
-          virtual ModuleHandle create(const ModuleDescription& info);
-          virtual void setStateFactory(ModuleStateFactoryHandle stateFactory);
-          virtual void setAlgorithmFactory(Core::Algorithms::AlgorithmFactoryHandle algoFactory);
-          virtual void setReexecutionFactory(ReexecuteStrategyFactoryHandle reexFactory);
-          virtual const ModuleDescriptionMap& getAllAvailableModuleDescriptions() const;
-          virtual const DirectModuleDescriptionLookupMap& getDirectModuleDescriptionLookupMap() const { throw "not implemented"; }
+          ModuleDescription lookupDescription(const ModuleLookupInfo& info) const override;
+          ModuleHandle create(const ModuleDescription& info) const override;
+          void setStateFactory(ModuleStateFactoryHandle stateFactory) override;
+          void setAlgorithmFactory(Core::Algorithms::AlgorithmFactoryHandle algoFactory) override;
+          void setReexecutionFactory(ReexecuteStrategyFactoryHandle reexFactory) override;
+          const ModuleDescriptionMap& getAllAvailableModuleDescriptions() const override;
+          const DirectModuleDescriptionLookupMap& getDirectModuleDescriptionLookupMap() const override { throw "not implemented"; }
+          bool moduleImplementationExists(const std::string& name) const override { throw "not implemented"; }
         private:
-          size_t moduleCounter_;
+          mutable size_t moduleCounter_;
           ModuleStateFactoryHandle stateFactory_;
         };
       }

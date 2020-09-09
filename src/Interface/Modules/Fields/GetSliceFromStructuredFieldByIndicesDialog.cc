@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #include <Interface/Modules/Fields/GetSliceFromStructuredFieldByIndicesDialog.h>
 #include <Modules/Legacy/Fields/GetSliceFromStructuredFieldByIndices.h>
@@ -46,23 +46,108 @@ GetSliceFromStructuredFieldByIndicesDialog::GetSliceFromStructuredFieldByIndices
   addSpinBoxManager(jAxisSpinBox_, Index_j);
   addSpinBoxManager(kAxisSpinBox_, Index_k);
   addRadioButtonGroupManager({ iAxisRadioButton_, jAxisRadioButton_, kAxisRadioButton_ }, Axis_ijk);
+  addCheckBoxManager(spinBoxExecuteCheckBox_, SpinBoxReexecute);
+  addCheckBoxManager(axisExecuteCheckBox_, AxisReexecute);
+  addCheckBoxManager(sliderExecuteCheckBox_, SliderReexecute);
 
-  //TODO: test whether users want live execution for this module
-  //createExecuteInteractivelyToggleAction();
-  //connect(iAxisHorizontalSlider_, SIGNAL(valueChanged(int)), this, SIGNAL(executeFromStateChangeTriggered()));
-  //connect(jAxisHorizontalSlider_, SIGNAL(valueChanged(int)), this, SIGNAL(executeFromStateChangeTriggered()));
-  //connect(kAxisHorizontalSlider_, SIGNAL(valueChanged(int)), this, SIGNAL(executeFromStateChangeTriggered()));
+  connect(iAxisHorizontalSlider_, SIGNAL(sliderReleased()), this, SLOT(sliderIndexChanged()));
+  connect(jAxisHorizontalSlider_, SIGNAL(sliderReleased()), this, SLOT(sliderIndexChanged()));
+  connect(kAxisHorizontalSlider_, SIGNAL(sliderReleased()), this, SLOT(sliderIndexChanged()));
+  connect(iAxisSpinBox_, SIGNAL(valueChanged(int)), this, SLOT(spinBoxClicked(int)));
+  connect(jAxisSpinBox_, SIGNAL(valueChanged(int)), this, SLOT(spinBoxClicked(int)));
+  connect(kAxisSpinBox_, SIGNAL(valueChanged(int)), this, SLOT(spinBoxClicked(int)));
+  connect(iAxisRadioButton_, SIGNAL(clicked()), this, SLOT(axisButtonClicked()));
+  connect(jAxisRadioButton_, SIGNAL(clicked()), this, SLOT(axisButtonClicked()));
+  connect(kAxisRadioButton_, SIGNAL(clicked()), this, SLOT(axisButtonClicked()));
 }
 
 void GetSliceFromStructuredFieldByIndicesDialog::pullSpecial()
 {
   using namespace Parameters;
 
-  iAxisSpinBox_->setMaximum(state_->getValue(Dim_i).toInt());
-  jAxisSpinBox_->setMaximum(state_->getValue(Dim_j).toInt());
-  kAxisSpinBox_->setMaximum(state_->getValue(Dim_k).toInt());
+  auto iMax = state_->getValue(Dim_i).toInt() - 1;
+  auto jMax = state_->getValue(Dim_j).toInt() - 1;
+  auto kMax = state_->getValue(Dim_k).toInt() - 1;
 
-  iAxisHorizontalSlider_->setMaximum(state_->getValue(Dim_i).toInt());
-  jAxisHorizontalSlider_->setMaximum(state_->getValue(Dim_j).toInt());
-  kAxisHorizontalSlider_->setMaximum(state_->getValue(Dim_k).toInt());
+  iAxisSpinBox_->setMaximum(iMax);
+  iAxisSpinBox_->setEnabled(iAxisRadioButton_->isChecked());
+  jAxisSpinBox_->setMaximum(jMax);
+  jAxisSpinBox_->setEnabled(jAxisRadioButton_->isChecked());
+  kAxisSpinBox_->setMaximum(kMax);
+  kAxisSpinBox_->setEnabled(kAxisRadioButton_->isChecked());
+
+  iAxisHorizontalSlider_->setMaximum(iMax);
+  iAxisHorizontalSlider_->setEnabled(iAxisRadioButton_->isChecked());
+  jAxisHorizontalSlider_->setMaximum(jMax);
+  jAxisHorizontalSlider_->setEnabled(jAxisRadioButton_->isChecked());
+  kAxisHorizontalSlider_->setMaximum(kMax);
+  kAxisHorizontalSlider_->setEnabled(kAxisRadioButton_->isChecked());
+}
+
+void GetSliceFromStructuredFieldByIndicesDialog::axisButtonClicked()
+{
+  auto axisButton = qobject_cast<QRadioButton*>(sender());
+
+  {
+    auto i = axisButton->objectName().contains("iAxis");
+    iAxisSpinBox_->setEnabled(i);
+    iAxisHorizontalSlider_->setEnabled(i);
+  }
+  {
+    auto j = axisButton->objectName().contains("jAxis");
+    jAxisSpinBox_->setEnabled(j);
+    jAxisHorizontalSlider_->setEnabled(j);
+  }
+  {
+    auto k = axisButton->objectName().contains("kAxis");
+    kAxisSpinBox_->setEnabled(k);
+    kAxisHorizontalSlider_->setEnabled(k);
+  }
+  if (axisExecuteCheckBox_->isChecked())
+    Q_EMIT executeFromStateChangeTriggered();
+}
+
+void GetSliceFromStructuredFieldByIndicesDialog::spinBoxClicked(int value)
+{
+  auto spinBox = qobject_cast<QSpinBox*>(sender());
+  bool reexecute = false;
+  if (spinBox->objectName().contains("iAxis"))
+    reexecute = iAxisRadioButton_->isChecked();
+  else if (spinBox->objectName().contains("jAxis"))
+    reexecute = jAxisRadioButton_->isChecked();
+  else if (spinBox->objectName().contains("kAxis"))
+    reexecute = kAxisRadioButton_->isChecked();
+
+  if (!pulling_ && spinBoxExecuteCheckBox_->isChecked() && reexecute)
+    Q_EMIT executeFromStateChangeTriggered();
+}
+
+void GetSliceFromStructuredFieldByIndicesDialog::sliderIndexChanged()
+{
+  auto slider = qobject_cast<QSlider*>(sender());
+  bool reexecute = false;
+  if (slider->objectName().contains("iAxis"))
+  {
+    ScopedWidgetSignalBlocker i(iAxisSpinBox_);
+    iAxisSpinBox_->setValue(slider->value());
+    state_->setValue(Parameters::Index_i, slider->value());
+    reexecute |= iAxisRadioButton_->isChecked();
+  }
+  else if (slider->objectName().contains("jAxis"))
+  {
+    ScopedWidgetSignalBlocker j(jAxisSpinBox_);
+    jAxisSpinBox_->setValue(slider->value());
+    state_->setValue(Parameters::Index_j, slider->value());
+    reexecute |= jAxisRadioButton_->isChecked();
+  }
+  else if (slider->objectName().contains("kAxis"))
+  {
+    ScopedWidgetSignalBlocker k(kAxisSpinBox_);
+    kAxisSpinBox_->setValue(slider->value());
+    state_->setValue(Parameters::Index_k, slider->value());
+    reexecute |= kAxisRadioButton_->isChecked();
+  }
+
+  if (sliderExecuteCheckBox_->isChecked() && reexecute)
+    Q_EMIT executeFromStateChangeTriggered();
 }

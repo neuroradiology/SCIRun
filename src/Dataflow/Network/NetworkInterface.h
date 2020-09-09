@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 /// @todo Documentation Dataflow/Network/NetworkInterface.h
 
 
@@ -35,9 +35,7 @@
 #include <Dataflow/Network/NetworkFwd.h>
 #include <Dataflow/Network/ModuleInterface.h>
 #include <Dataflow/Network/ModuleDescription.h>
-#include <string>
 #include <vector>
-#include <map>
 #include <Dataflow/Network/share.h>
 
 namespace SCIRun {
@@ -90,10 +88,12 @@ namespace Networks {
     virtual bool disconnect(const ConnectionId&) = 0;
     virtual size_t nconnections() const = 0;
     virtual void disable_connection(const ConnectionId&) = 0;
-    virtual ConnectionDescriptionList connections() const = 0;
+    virtual ConnectionDescriptionList connections(bool includeVirtual) const = 0;
     virtual void incrementErrorCode(const ModuleId& moduleId) = 0;
     virtual NetworkGlobalSettings& settings() = 0;
     virtual void setModuleExecutionState(ModuleExecutionState::Value state, ModuleFilter filter) = 0;
+    virtual std::vector<ModuleExecutionState::Value> moduleExecutionStates() const = 0;
+    virtual void setExpandedModuleExecutionState(ModuleExecutionState::Value state, ModuleFilter filter) = 0;
     virtual void clear() = 0;
 
     virtual boost::signals2::connection connectModuleInterrupted(ModuleInterruptedSignal::slot_function_type subscriber) const = 0;

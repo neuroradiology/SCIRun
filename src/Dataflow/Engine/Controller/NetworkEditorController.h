@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,8 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
+
 /// @todo Documentation Dataflow/Engine/Controller/NetworkEditorController.h
 
 #ifndef ENGINE_NETWORK_NETWORKEDITORCONTROLLER_H
@@ -104,7 +105,9 @@ namespace Engine {
     void interruptModule(const Networks::ModuleId& id);
 
     Networks::ModuleHandle duplicateModule(const Networks::ModuleHandle& module);
-    Networks::ModuleHandle connectNewModule(const Networks::PortDescriptionInterface* portToConnect, const std::string& newModuleName, const Networks::PortDescriptionInterface* portToConnectUponInsertion);
+    Networks::ModuleHandle connectNewModule(const Networks::PortDescriptionInterface* portToConnect, const std::string& newModuleName);
+    struct InsertInfo { std::string newModuleName, endModuleId, inputPortName, inputPortId; };
+    Networks::ModuleHandle insertNewModule(const Networks::PortDescriptionInterface* portToConnect, const InsertInfo& info);
 
     boost::optional<Networks::ConnectionId> requestConnection(const Networks::PortDescriptionInterface* from, const Networks::PortDescriptionInterface* to) override;
     void removeConnection(const Networks::ConnectionId& id);
@@ -138,11 +141,11 @@ namespace Engine {
     // headless hack
     void stopExecutionContextLoopWhenExecutionFinishes();
 
-    virtual void enableSignals() override;
-    virtual void disableSignals() override;
+    void enableSignals() override;
+    void disableSignals() override;
 
-    virtual Networks::NetworkHandle getNetwork() const override;
-    virtual void setNetwork(Networks::NetworkHandle nh) override;
+    Networks::NetworkHandle getNetwork() const override;
+    void setNetwork(Networks::NetworkHandle nh) override;
     Networks::NetworkGlobalSettings& getSettings();
 
     boost::shared_ptr<DisableDynamicPortSwitch> createDynamicPortSwitch();
@@ -161,6 +164,8 @@ namespace Engine {
     void cleanUpNetwork();
 
     const Networks::ModuleFactory& moduleFactory() const { return *moduleFactory_; }  //TOOD: lazy
+
+    std::vector<Dataflow::Networks::ModuleExecutionState::Value> moduleExecutionStates() const;
 
   private:
     void printNetwork() const;

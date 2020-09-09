@@ -1,30 +1,30 @@
 /*
- For more information, please see: http://software.sci.utah.edu
+   For more information, please see: http://software.sci.utah.edu
 
- The MIT License
+   The MIT License
 
- Copyright (c) 2015 Scientific Computing and Imaging Institute,
- University of Utah.
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
+   University of Utah.
 
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the "Software"),
+   to deal in the Software without restriction, including without limitation
+   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+   and/or sell copies of the Software, and to permit persons to whom the
+   Software is furnished to do so, subject to the following conditions:
 
- Permission is hereby granted, free of charge, to any person obtaining a
- copy of this software and associated documentation files (the "Software"),
- to deal in the Software without restriction, including without limitation
- the rights to use, copy, modify, merge, publish, distribute, sublicense,
- and/or sell copies of the Software, and to permit persons to whom the
- Software is furnished to do so, subject to the following conditions:
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Software.
 
- The above copyright notice and this permission notice shall be included
- in all copies or substantial portions of the Software.
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+*/
 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
- THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- DEALINGS IN THE SOFTWARE.
- */
 
 #ifdef BUILD_WITH_PYTHON
 #include <iostream>
@@ -34,9 +34,11 @@
 #include <QPointer>
 #include <QTextCursor>
 #include <QTextEdit>
+#include <QMimeData>
 #include <QScrollBar>
 #include <QVBoxLayout>
 
+#include <Interface/Application/NetworkEditor.h>
 #include <Core/Python/PythonInterpreter.h>
 #include <Interface/Application/PythonConsoleWidget.h>
 
@@ -49,7 +51,7 @@ typedef QPointer< PythonConsoleEdit > PythonConsoleEditQWeakPointer;
 class PythonConsoleEdit : public QTextEdit
 {
 public:
-  explicit PythonConsoleEdit(PythonConsoleWidget* parent);
+  PythonConsoleEdit(NetworkEditor* rootNetworkEditor, PythonConsoleWidget* parent);
 
   virtual void keyPressEvent(QKeyEvent* e);
   //virtual void focusOutEvent( QFocusEvent* e );
@@ -71,6 +73,8 @@ private:
   void print_errorImpl(const QString& text);
   void print_commandImpl(const QString& text);
 
+  NetworkEditor* rootNetworkEditor_;
+
 public:
   // The beginning of the area of interactive input, outside which
   // changes can't be made to the text edit contents.
@@ -87,8 +91,8 @@ public:
   //	static void PrintCommand( PythonConsoleEditQWeakPointer edit, const std::string& text );
 };
 
-PythonConsoleEdit::PythonConsoleEdit(PythonConsoleWidget* parent) :
-QTextEdit(parent)
+PythonConsoleEdit::PythonConsoleEdit(NetworkEditor* rootNetworkEditor, PythonConsoleWidget* parent) :
+QTextEdit(parent), rootNetworkEditor_(rootNetworkEditor)
 {
   this->interactive_position_ = this->document_end();
   this->setTabChangesFocus(false);
@@ -104,8 +108,9 @@ QTextEdit(parent)
   f.setFixedPitch(true);
 
   // Set the tab width to 4 spaces
-  QFontMetrics fm(f, this);
-  this->setTabStopWidth(fm.width("    "));
+  //TODO deprecated
+  // QFontMetrics fm(f, this);
+  // this->setTabStopWidth(fm.width("    "));
 
   QTextCharFormat format;
   format.setFont(f);
@@ -159,7 +164,7 @@ void PythonConsoleEdit::keyPressEvent(QKeyEvent* e)
   {
     if (!history_area)
     {
-      const QMimeData* const clipboard = QApplication::clipboard()->mimeData();
+      auto clipboard = QApplication::clipboard()->mimeData();
       const QString text = clipboard->text();
       if (!text.isNull())
       {
@@ -303,6 +308,7 @@ void PythonConsoleEdit::issue_command()
 
   this->interactive_position_ = this->document_end();
 
+  NetworkEditor::InEditingContext iec(rootNetworkEditor_);
   auto lines = command.split(QRegExp("[\r\n]"),QString::SkipEmptyParts);
   for (const auto& line : lines)
   {
@@ -390,14 +396,14 @@ public:
   PythonConsoleEdit* console_edit_;
 };
 
-PythonConsoleWidget::PythonConsoleWidget(QWidget* parent) :
+PythonConsoleWidget::PythonConsoleWidget(NetworkEditor* rootNetworkEditor, QWidget* parent) :
 QDockWidget(parent),
 private_(new PythonConsoleWidgetPrivate)
 {
-  this->private_->console_edit_ = new PythonConsoleEdit(this);
-  setWidget(this->private_->console_edit_);
+  private_->console_edit_ = new PythonConsoleEdit(rootNetworkEditor, this);
+  setWidget(private_->console_edit_);
 
-  this->setMinimumSize(500, 500);
+  setMinimumSize(500, 500);
 
   setWindowTitle("Python console");
 
@@ -406,7 +412,7 @@ private_(new PythonConsoleWidgetPrivate)
   PythonInterpreter::Instance().error_signal_.connect(boost::bind(&PythonConsoleEdit::print_error, private_->console_edit_, _1));
 
   showBanner();
-  PythonInterpreter::Instance().run_string("import SCIRunPythonAPI; from SCIRunPythonAPI import *");
+  PythonInterpreter::Instance().importSCIRunLibrary();
 }
 
 PythonConsoleWidget::~PythonConsoleWidget()
@@ -417,6 +423,15 @@ PythonConsoleWidget::~PythonConsoleWidget()
 void PythonConsoleWidget::showBanner()
 {
   PythonInterpreter::Instance().print_banner();
+}
+
+void PythonConsoleWidget::runWizardCommand(const QString& code)
+{
+  show();
+  activateWindow();
+  raise();
+  private_->console_edit_->replace_command_buffer(code);
+  private_->console_edit_->issue_command();
 }
 
 #endif

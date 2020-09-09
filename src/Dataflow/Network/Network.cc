@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 /// @todo Documentation Dataflow/Network/Network.cc
 
 #include <stdexcept>
@@ -40,6 +40,7 @@
 #include <Dataflow/Network/ModuleDescription.h>
 #include <Dataflow/Network/ModuleFactory.h>
 #include <Core/Utils/Exception.h>
+#include <Core/Logging/Log.h>
 
 using namespace SCIRun::Dataflow::Networks;
 using namespace SCIRun::Core::Algorithms;
@@ -69,7 +70,7 @@ ModuleHandle Network::add_module(const ModuleLookupInfo& info)
 
 bool Network::remove_module(const ModuleId& id)
 {
-  Modules::iterator loc = std::find_if(modules_.begin(), modules_.end(), boost::lambda::bind(&ModuleInterface::get_id, *boost::lambda::_1) == id);
+  Modules::iterator loc = std::find_if(modules_.begin(), modules_.end(), boost::lambda::bind(&ModuleInterface::id, *boost::lambda::_1) == id);
   if (loc != modules_.end())
   {
     // Inform the module that it is about to be erased from the network...
@@ -107,22 +108,23 @@ ConnectionId Network::connect(const ConnectionOutputPort& out, const ConnectionI
   }
 
   ConnectionId id = ConnectionId::create(ConnectionDescription(
-    OutgoingConnectionDescription(outputModule->get_id(), outputPortId),
-    IncomingConnectionDescription(inputModule->get_id(), inputPortId)));
+    OutgoingConnectionDescription(outputModule->id(), outputPortId),
+    IncomingConnectionDescription(inputModule->id(), inputPortId)));
   if (connections_.find(id) == connections_.end())
   {
     try
     {
-      ConnectionHandle conn(boost::make_shared<Connection>(outputModule->getOutputPort(outputPortId), inputModule->getInputPort(inputPortId), id));
-
-      connections_[id] = conn;
+      bool virtualConnection = outputModule->checkForVirtualConnection(*inputModule);
+      connections_[id] = boost::make_shared<Connection>(
+        outputModule->getOutputPort(outputPortId),
+        inputModule->getInputPort(inputPortId),
+        id, virtualConnection);
 
       return id;
     }
     catch (const SCIRun::Core::ExceptionBase& e)
     {
-      std::cout << "Caught exception making a connection: " << e.what() << std::endl;
-      ///????????
+      logCritical("Caught exception making a connection: {}", e.what());
       return ConnectionId(""); //??
     }
   }
@@ -160,7 +162,7 @@ ModuleHandle Network::module(size_t i) const
 
 ModuleHandle Network::lookupModule(const ModuleId& id) const
 {
-  Modules::const_iterator i = std::find_if(modules_.begin(), modules_.end(), boost::lambda::bind(&ModuleInterface::get_id, *boost::lambda::_1) == id);
+  Modules::const_iterator i = std::find_if(modules_.begin(), modules_.end(), boost::lambda::bind(&ModuleInterface::id, *boost::lambda::_1) == id);
   return i == modules_.end() ? nullptr : *i;
 }
 
@@ -194,18 +196,14 @@ std::string Network::toString() const
   return ostr.str();
 }
 
-struct Describe
+NetworkInterface::ConnectionDescriptionList Network::connections(bool includeVirtual) const
 {
-  ConnectionDescription operator()(const Network::Connections::value_type& p) const
-  {
-    return p.first.describe();
-  }
-};
-
-NetworkInterface::ConnectionDescriptionList Network::connections() const
-{
+  Connections toDescribe;
+  std::copy_if(connections_.begin(), connections_.end(), std::inserter(toDescribe, toDescribe.begin()),
+    [includeVirtual](const Connections::value_type& c) { return includeVirtual || !c.second->isVirtual(); });
   ConnectionDescriptionList conns;
-  std::transform(connections_.begin(), connections_.end(), std::back_inserter(conns), Describe());
+  std::transform(toDescribe.begin(), toDescribe.end(), std::back_inserter(conns),
+    [](const Connections::value_type& c) { return c.first.describe(); });
   return conns;
 }
 
@@ -227,10 +225,25 @@ NetworkGlobalSettings& Network::settings()
 
 void Network::setModuleExecutionState(ModuleExecutionState::Value state, ModuleFilter filter)
 {
-  for (ModuleHandle module : modules_ | boost::adaptors::filtered(filter))
+  for (auto module : modules_ | boost::adaptors::filtered(filter))
   {
     module->executionState().transitionTo(state);
   }
+}
+
+void Network::setExpandedModuleExecutionState(ModuleExecutionState::Value state, ModuleFilter filter)
+{
+  for (auto module : modules_ | boost::adaptors::filtered(filter))
+  {
+    module->executionState().setExpandedState(state);
+  }
+}
+
+std::vector<ModuleExecutionState::Value> Network::moduleExecutionStates() const
+{
+  std::vector<ModuleExecutionState::Value> values;
+  std::transform(modules_.begin(), modules_.end(), std::back_inserter(values), [](const ModuleHandle& m) { return m->executionState().expandedState(); });
+  return values;
 }
 
 void Network::clear()
@@ -241,7 +254,7 @@ void Network::clear()
 
 bool Network::containsViewScene() const
 {
-  return std::find_if(modules_.begin(), modules_.end(), [](ModuleHandle m) { return m->get_module_name() == "ViewScene"; }) != modules_.end();
+  return std::find_if(modules_.begin(), modules_.end(), [](ModuleHandle m) { return m->name() == "ViewScene"; }) != modules_.end();
 }
 
 boost::signals2::connection Network::connectModuleInterrupted(ModuleInterruptedSignal::slot_function_type subscriber) const

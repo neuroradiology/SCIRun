@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -24,7 +23,8 @@
    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
-   */
+*/
+
 
 #include <Python.h>
 #include <boost/python.hpp>
@@ -58,7 +58,7 @@ protected:
   #ifdef WIN32
   #ifndef DEBUG
     PythonInterpreter::Instance().initialize(false, "Core_Python_Tests", boost::filesystem::current_path().string());
-    PythonInterpreter::Instance().run_string("import SCIRunPythonAPI; from SCIRunPythonAPI import *");
+    PythonInterpreter::Instance().importSCIRunLibrary();
   #endif
   #else
     Py_Initialize();
@@ -140,8 +140,8 @@ protected:
 
   static std::vector<FieldHandle> fileExamples()
   {
-    return{ TetMesh1(), TetMesh2(), CreateTriSurfScalarOnNode(), CreateTriSurfVectorOnNode(), CreateTetMeshVectorOnNode(), 
-      CreateTetMeshScalarOnElem(), CreateTetMeshScalarOnNode(), CreateTetMeshTensorOnNode(), CreatePointCloudScalar(), 
+    return{ TetMesh1(), TetMesh2(), CreateTriSurfScalarOnNode(), CreateTriSurfVectorOnNode(), CreateTetMeshVectorOnNode(),
+      CreateTetMeshScalarOnElem(), CreateTetMeshScalarOnNode(), CreateTetMeshTensorOnNode(), CreatePointCloudScalar(),
       CreateCurveMeshElem(), CreateImageNode()
     };
   }

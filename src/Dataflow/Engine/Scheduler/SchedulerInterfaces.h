@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #ifndef ENGINE_SCHEDULER_SCHEDULER_INTERFACES_H
 #define ENGINE_SCHEDULER_SCHEDULER_INTERFACES_H
@@ -118,7 +118,7 @@ namespace Engine {
     catch (NetworkHasCyclesException&)
     {
       /// @todo: use real logger here--or just let this exception bubble up--needs testing.
-      SCIRun::Core::Logging::Log::get() << SCIRun::Core::Logging::ERROR_LOG << "Cannot schedule execution: network has cycles. Please break all cycles and try again." << std::endl;
+      logError("Cannot schedule execution: network has cycles. Please break all cycles and try again.");
       context.bounds().executeFinishes_(-1);
       return;
     }
@@ -137,6 +137,8 @@ namespace Engine {
     static const ModuleWaitingFilter& Instance();
   };
 
+  class ExecuteSingleModuleImpl;
+
   struct SCISHARE ExecuteSingleModule
   {
     ExecuteSingleModule(SCIRun::Dataflow::Networks::ModuleHandle mod,
@@ -144,9 +146,9 @@ namespace Engine {
     bool operator()(SCIRun::Dataflow::Networks::ModuleHandle) const;
   private:
     SCIRun::Dataflow::Networks::ModuleHandle module_;
-    const SCIRun::Dataflow::Networks::NetworkInterface& network_;
     std::map<std::string, int> components_;
     bool executeUpstream_;
+    boost::shared_ptr<ExecuteSingleModuleImpl> orderImpl_;
   };
 
   class SCISHARE WaitsForStartupInitialization

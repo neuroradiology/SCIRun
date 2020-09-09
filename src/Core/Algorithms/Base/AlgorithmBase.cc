@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #include <iostream>
 #include <vector>
@@ -54,13 +54,12 @@ using namespace SCIRun::Core::Thread;
 
 Name::Name(const std::string& name) : name_(name)
 {
-  if (!std::all_of(name.begin(), name.end(), isalnum))
+  if (!std::all_of(name.begin(), name.end(), [](char c) { return isalnum(c) || c == '_'; }))
   {
-    LOG_DEBUG("AlgorithmParameterName not accessible from Python: " << name << std::endl);
+    //Disabling this message since it messes up log creation order.
+    //LOG_DEBUG("AlgorithmParameterName not accessible from Python: {}", name);
   }
 }
-
-AlgorithmBase::~AlgorithmBase() {}
 
 namespace
 {
@@ -80,7 +79,7 @@ void Variable::setValue(const Value& val)
   value_ = val;
 
   {
-    if (boost::get<std::string>(&val))
+    if ("Filename" == name_.name() && boost::get<std::string>(&val))
     {
       auto stringPath = toString();
       {
@@ -149,7 +148,7 @@ boost::filesystem::path AlgorithmParameter::toFilename() const
     boost::this_thread::sleep(boost::posix_time::milliseconds(10));
     boost::filesystem::path::imbue( std::locale( "" ) );
     boost::filesystem::path dummy("boost bug workaround");
-    Log::get() << DEBUG_LOG << dummy.string() << std::endl;
+    LOG_DEBUG(dummy.string());
 #endif
   }
 
@@ -271,6 +270,16 @@ void AlgorithmLogger::status(const std::string& status) const
   logger_->status(status);
 }
 
+bool AlgorithmLogger::errorReported() const
+{
+  return logger_->errorReported();
+}
+
+void AlgorithmLogger::setErrorFlag(bool flag)
+{
+  logger_->setErrorFlag(flag);
+}
+
 AlgorithmParameterList::AlgorithmParameterList() {}
 
 bool AlgorithmParameterList::set(const AlgorithmParameterName& key, const AlgorithmParameter::Value& value)
@@ -381,10 +390,10 @@ bool AlgorithmParameterList::checkOption(const AlgorithmParameterName& key, cons
   return boost::iequals(value, currentValue);
 }
 
-void AlgorithmBase::dumpAlgoState() const
+void AlgorithmParameterList::dumpAlgoState() const
 {
   std::ostringstream ostr;
-  ostr << "Algorithm state for " << typeid(*this).name() << " id#" << id() << std::endl;
+  ostr << "Algorithm state for " << typeid(*this).name() << std::endl;
 
   auto range = std::make_pair(paramsBegin(), paramsEnd());
   BOOST_FOREACH(const ParameterMap::value_type& pair, range)

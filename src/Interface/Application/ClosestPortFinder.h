@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,8 +25,11 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef INTERFACE_APPLICATION_CLOSESTPORTFINDER_H
 #define INTERFACE_APPLICATION_CLOSESTPORTFINDER_H
+
+#include <functional>
 
 class QGraphicsScene;
 class QPointF;
@@ -40,10 +42,13 @@ namespace Gui {
   class ClosestPortFinder
   {
   public:
-    explicit ClosestPortFinder(QGraphicsScene* scene);
+    explicit ClosestPortFinder(QGraphicsProxyWidget* module);
+    explicit ClosestPortFinder(std::function<QGraphicsScene*()> sceneFunc);
     PortWidget* closestPort(const QPointF& pos);
   private:
-    QGraphicsScene* scene_;
+    QGraphicsProxyWidget* module_{ nullptr };
+    std::function<QGraphicsScene*()> func_;
+    QGraphicsScene* getScene() const;
     int distance(const QPointF& pos, PortWidget* port) const;
     bool lessPort(const QPointF& pos, PortWidget* lhs, PortWidget* rhs) const;
   };

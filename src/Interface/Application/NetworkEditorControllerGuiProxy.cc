@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #include <iostream>
 #include <Interface/Application/NetworkEditorControllerGuiProxy.h>
 #include <Dataflow/Engine/Controller/NetworkEditorController.h>
@@ -36,19 +36,31 @@
 using namespace SCIRun::Dataflow::Engine;
 using namespace SCIRun::Gui;
 using namespace SCIRun::Dataflow::Networks;
+using namespace SCIRun::Core::Logging;
 
-NetworkEditorControllerGuiProxy::NetworkEditorControllerGuiProxy(boost::shared_ptr<NetworkEditorController> controller)
-  : controller_(controller)
+NetworkEditorControllerGuiProxy::NetworkEditorControllerGuiProxy(boost::shared_ptr<NetworkEditorController> controller, NetworkEditor* editor)
+  : controller_(controller), editor_(editor)
 {
-  controller_->connectModuleAdded(boost::bind(&NetworkEditorControllerGuiProxy::moduleAdded, this, _1, _2, _3));
-  controller_->connectModuleRemoved(boost::bind(&NetworkEditorControllerGuiProxy::moduleRemoved, this, _1));
-  controller_->connectConnectionAdded(boost::bind(&NetworkEditorControllerGuiProxy::connectionAdded, this, _1));
-  controller_->connectConnectionRemoved(boost::bind(&NetworkEditorControllerGuiProxy::connectionRemoved, this, _1));
-  controller_->connectPortAdded(boost::bind(&NetworkEditorControllerGuiProxy::portAdded, this, _1, _2));
-  controller_->connectPortRemoved(boost::bind(&NetworkEditorControllerGuiProxy::portRemoved, this, _1, _2));
-  controller_->connectNetworkExecutionStarts([&]() { executionStarted(); });
-  controller_->connectNetworkExecutionFinished(boost::bind(&NetworkEditorControllerGuiProxy::executionFinished, this, _1));
-  controller_->connectNetworkDoneLoading(boost::bind(&NetworkEditorControllerGuiProxy::networkDoneLoading, this, _1));
+  connections_.emplace_back(controller_->connectModuleAdded(boost::bind(&NetworkEditorControllerGuiProxy::moduleAdded, this, _1, _2, _3)));
+  connections_.emplace_back(controller_->connectModuleRemoved(boost::bind(&NetworkEditorControllerGuiProxy::moduleRemoved, this, _1)));
+  connections_.emplace_back(controller_->connectConnectionAdded(boost::bind(&NetworkEditorControllerGuiProxy::connectionAdded, this, _1)));
+  connections_.emplace_back(controller_->connectConnectionRemoved(boost::bind(&NetworkEditorControllerGuiProxy::connectionRemoved, this, _1)));
+  connections_.emplace_back(controller_->connectPortAdded(boost::bind(&NetworkEditorControllerGuiProxy::portAdded, this, _1, _2)));
+  connections_.emplace_back(controller_->connectPortRemoved(boost::bind(&NetworkEditorControllerGuiProxy::portRemoved, this, _1, _2)));
+  connections_.emplace_back(controller_->connectNetworkExecutionStarts([&]() { executionStarted(); }));
+  connections_.emplace_back(controller_->connectNetworkExecutionFinished(boost::bind(&NetworkEditorControllerGuiProxy::executionFinished, this, _1)));
+  connections_.emplace_back(controller_->connectNetworkDoneLoading(boost::bind(&NetworkEditorControllerGuiProxy::networkDoneLoading, this, _1)));
+}
+
+NetworkEditorControllerGuiProxy::~NetworkEditorControllerGuiProxy()
+{
+  for (auto& c : connections_)
+    c.disconnect();
+}
+
+boost::shared_ptr<NetworkEditorControllerGuiProxy> NetworkEditorControllerGuiProxy::withSubnet(NetworkEditor* subnet) const
+{
+  return boost::make_shared<NetworkEditorControllerGuiProxy>(controller_, subnet);
 }
 
 void NetworkEditorControllerGuiProxy::addModule(const std::string& moduleName)
@@ -59,8 +71,7 @@ void NetworkEditorControllerGuiProxy::addModule(const std::string& moduleName)
   }
   catch (SCIRun::Core::InvalidArgumentException& e)
   {
-    qDebug() << "CAUGHT EXCEPTION";
-    Core::Logging::Log::get() << Core::Logging::ERROR_LOG << e.what() << std::endl;
+    logError("CAUGHT EXCEPTION: {}", e.what());
   }
 }
 
@@ -139,9 +150,14 @@ void NetworkEditorControllerGuiProxy::duplicateModule(const ModuleHandle& module
   controller_->duplicateModule(module);
 }
 
-void NetworkEditorControllerGuiProxy::connectNewModule(const PortDescriptionInterface* portToConnect, const std::string& newModuleName, const PortDescriptionInterface* portToConnectUponInsertion)
+void NetworkEditorControllerGuiProxy::connectNewModule(const PortDescriptionInterface* portToConnect, const std::string& newModuleName)
 {
-  controller_->connectNewModule(portToConnect, newModuleName, portToConnectUponInsertion);
+  controller_->connectNewModule(portToConnect, newModuleName);
+}
+
+void NetworkEditorControllerGuiProxy::insertNewModule(const PortDescriptionInterface* portToConnect, const QMap<QString, std::string>& info)
+{
+  controller_->insertNewModule(portToConnect, { info["moduleToAdd"], info["endModuleId"], info["inputPortName"], info["inputPortId"]});
 }
 
 const ModuleDescriptionMap& NetworkEditorControllerGuiProxy::getAllAvailableModuleDescriptions() const
@@ -157,4 +173,13 @@ boost::shared_ptr<DisableDynamicPortSwitch> NetworkEditorControllerGuiProxy::cre
 void NetworkEditorControllerGuiProxy::cleanUpNetwork()
 {
   controller_->cleanUpNetwork();
+}
+
+std::vector<ModuleExecutionState::Value> NetworkEditorControllerGuiProxy::moduleExecutionStates() const
+{
+  if (!controller_)
+  {
+    return {};
+  }
+  return controller_->moduleExecutionStates();
 }

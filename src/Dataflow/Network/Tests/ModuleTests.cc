@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,7 +25,9 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #include <Dataflow/Network/Module.h>
+#include <Dataflow/Network/ModuleBuilder.h>
 #include <gtest/gtest.h>
 
 using namespace SCIRun::Dataflow::Networks;
@@ -34,28 +35,28 @@ using namespace SCIRun::Dataflow::Networks;
 TEST(ModuleTests, CanBuildWithPorts)
 {
   Module::resetIdGenerator();
-  ModuleHandle module = Module::Builder().with_name("SolveLinearSystem")
+  ModuleHandle module = ModuleBuilder().with_name("SolveLinearSystem")
     .add_input_port(Port::ConstructionParams(PortId(0, "ForwardMatrix"), "Matrix", false))
     .add_input_port(Port::ConstructionParams(PortId(0, "RHS"), "Matrix", false))
     .add_output_port(Port::ConstructionParams(PortId(0, "Solution"), "Matrix", false))
     .build();
-  EXPECT_EQ(2, module->num_input_ports());
-  EXPECT_EQ(1, module->num_output_ports());
-  EXPECT_EQ("SolveLinearSystem", module->get_module_name());
-  EXPECT_EQ("SolveLinearSystem:0", module->get_id().id_);
+  EXPECT_EQ(2, module->numInputPorts());
+  EXPECT_EQ(1, module->numOutputPorts());
+  EXPECT_EQ("SolveLinearSystem", module->name());
+  EXPECT_EQ("SolveLinearSystem:0", module->id().id_);
   EXPECT_FALSE(module->findInputPortsWithName("RHS")[0]->isDynamic());
 }
 
 TEST(ModuleTests, CanBuildWithDynamicPorts)
 {
   Module::resetIdGenerator();
-  ModuleHandle module = Module::Builder().with_name("ViewScene")
+  ModuleHandle module = ModuleBuilder().with_name("ViewScene")
     .add_input_port(Port::ConstructionParams(PortId(0, "ForwardMatrix"), "Matrix", true))
     .build();
-  EXPECT_EQ(1, module->num_input_ports());
-  EXPECT_EQ(0, module->num_output_ports());
-  EXPECT_EQ("ViewScene", module->get_module_name());
-  EXPECT_EQ("ViewScene:0", module->get_id().id_);
+  EXPECT_EQ(1, module->numInputPorts());
+  EXPECT_EQ(0, module->numOutputPorts());
+  EXPECT_EQ("ViewScene", module->name());
+  EXPECT_EQ("ViewScene:0", module->id().id_);
   EXPECT_TRUE(module->findInputPortsWithName("ForwardMatrix")[0]->isDynamic());
 }
 

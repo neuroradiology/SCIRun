@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -26,11 +25,12 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef CORE_DATATYPES_DATATYPE_FWD_H
 #define CORE_DATATYPES_DATATYPE_FWD_H
 
 #include <vector>
-#include <boost/shared_ptr.hpp>
+#include <Core/Utils/SmartPointers.h>
 #include <boost/optional.hpp>
 // ReSharper disable once CppUnusedIncludeDirective
 #include <boost/make_shared.hpp>
@@ -45,16 +45,14 @@ namespace Datatypes {
   typedef SharedPointer<const Datatype> DatatypeConstHandle;
   typedef boost::optional<DatatypeHandle> DatatypeHandleOption;
 
-  template <typename T>
   class Scalar;
-
-  typedef Scalar<int> Int32;
-  typedef Scalar<double> Double;
-
+  class Double;
+  class Int32;
   class String;
   class GeometryObject;
   class ColorMap;
   class Bundle;
+  class MetadataObject;
 
   typedef SharedPointer<String> StringHandle;
   typedef SharedPointer<GeometryObject> GeometryBaseHandle;
@@ -64,12 +62,12 @@ namespace Datatypes {
 
   class Field;
   class Mesh;
-  typedef Core::Datatypes::SharedPointer<Field> FieldHandle;
-  typedef Core::Datatypes::SharedPointer<Mesh> MeshHandle;
+  typedef SharedPointer<Field> FieldHandle;
+  typedef SharedPointer<Mesh> MeshHandle;
   typedef std::vector<FieldHandle> FieldList;
 
   class NrrdData;
-  typedef Core::Datatypes::SharedPointer<NrrdData> NrrdDataHandle;
+  typedef SharedPointer<NrrdData> NrrdDataHandle;
 
   namespace Core {
   namespace Datatypes {

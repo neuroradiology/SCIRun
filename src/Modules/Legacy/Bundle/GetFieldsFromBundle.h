@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #ifndef MODULES_LEGACY_BUNDLE_GETFIELDSFROMBUNDLE_H__
 #define MODULES_LEGACY_BUNDLE_GETFIELDSFROMBUNDLE_H__
@@ -50,12 +50,12 @@ namespace SCIRun {
 
         INPUT_PORT(0, InputBundle, Bundle);
         OUTPUT_PORT(0, OutputBundle, Bundle);
-        OUTPUT_PORT(1, field1, LegacyField);
-        OUTPUT_PORT(2, field2, LegacyField);
-        OUTPUT_PORT(3, field3, LegacyField);
-        OUTPUT_PORT(4, field4, LegacyField);
-        OUTPUT_PORT(5, field5, LegacyField);
-        OUTPUT_PORT(6, field6, LegacyField);
+        OUTPUT_PORT(1, field1, Field);
+        OUTPUT_PORT(2, field2, Field);
+        OUTPUT_PORT(3, field3, Field);
+        OUTPUT_PORT(4, field4, Field);
+        OUTPUT_PORT(5, field5, Field);
+        OUTPUT_PORT(6, field6, Field);
 
         static const Core::Algorithms::AlgorithmParameterName FieldNameList;
         static const Core::Algorithms::AlgorithmParameterName FieldNames[];

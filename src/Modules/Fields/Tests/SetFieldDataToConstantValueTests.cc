@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #include <Modules/Legacy/Fields/SetFieldDataToConstantValue.h>
 #include <Core/Datatypes/Legacy/Field/Field.h>
@@ -55,18 +55,18 @@ class SetFieldDataToConstantValueModuleTests : public ModuleTest
 
 namespace
 {
-  FieldHandle CreateTriSurfScalarOnNode()
-  {
-    return loadFieldFromFile(TestResources::rootDir() / "Fields/tri_surf/data_defined_on_node/scalar/tri_scalar_on_node.fld");
-  }
+  // FieldHandle CreateTriSurfScalarOnNode()
+  // {
+  //   return loadFieldFromFile(TestResources::rootDir() / "Fields/tri_surf/data_defined_on_node/scalar/tri_scalar_on_node.fld");
+  // }
   FieldHandle CreateTetMeshScalarOnNode()
   {
     return loadFieldFromFile(TestResources::rootDir() / "Fields/tet_mesh/data_defined_on_node/scalar/tet_scalar_on_node.fld");
   }
-  FieldHandle CreatePointCloudeScalar()
-  {
-    return loadFieldFromFile(TestResources::rootDir() / "Fields/point_cloud/scalar/pts_scalar.fld");
-  }
+  // FieldHandle CreatePointCloudeScalar()
+  // {
+  //   return loadFieldFromFile(TestResources::rootDir() / "Fields/point_cloud/scalar/pts_scalar.fld");
+  // }
 }
 
 TEST_F(SetFieldDataToConstantValueModuleTests, TetMeshOnPortZero)

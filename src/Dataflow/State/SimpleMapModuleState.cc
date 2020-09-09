@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,8 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
+
 /// @todo Documentation Dataflow/State/SimpleMapModuleState.cc
 
 #include <Dataflow/State/SimpleMapModuleState.h>
@@ -102,7 +103,8 @@ void SimpleMapModuleState::setValue(const Name& parameterName, const SCIRun::Cor
 
   if (newValue)
   {
-    LOG_DEBUG("----signaling from state map: (" << parameterName.name_ << ", " << SCIRun::Core::to_string(value) << "), num_slots = " << stateChangedSignal_.num_slots() << std::endl);
+    LOG_DEBUG("----signaling from state map: ({}, {}), num_slots = {}", parameterName.name_,
+      SCIRun::Core::to_string(value), stateChangedSignal_.num_slots());
     stateChangedSignal_();
     auto specSig = specificStateChangeSignalMap_.find(parameterName);
     if (specSig != specificStateChangeSignalMap_.end())
@@ -113,7 +115,7 @@ void SimpleMapModuleState::setValue(const Name& parameterName, const SCIRun::Cor
 boost::signals2::connection SimpleMapModuleState::connectStateChanged(state_changed_sig_t::slot_function_type subscriber)
 {
   auto conn = stateChangedSignal_.connect(subscriber);
-  LOG_DEBUG("SimpleMapModuleState::connectStateChanged, num_slots = " << stateChangedSignal_.num_slots() << std::endl);
+  LOG_TRACE("SimpleMapModuleState::connectStateChanged, num_slots = {}", stateChangedSignal_.num_slots());
   return conn;
 }
 

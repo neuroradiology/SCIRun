@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #include <Interface/Modules/Visualization/ShowColorMapDialog.h>
 #include <Modules/Visualization/ShowColorMapModule.h>
@@ -54,14 +54,10 @@ ShowColorMapDialog::ShowColorMapDialog(const std::string& name, ModuleStateHandl
 
 	addSpinBoxManager(xTranslationSpin_, SCM::XTranslation);
 	addSpinBoxManager(yTranslationSpin_, SCM::YTranslation);
+  addLineEditManager(colorMapNameLineEdit_, SCM::ColorMapName);
 
-  connectButtonToExecuteSignal(leftRadioButton_);
-  connectButtonToExecuteSignal(bottomRadioButton_);
-  connectButtonToExecuteSignal(firstHalfRadioButton_);
-  connectButtonToExecuteSignal(fullRadioButton_);
-  connectButtonToExecuteSignal(secondHalfRadioButton_);
-
-  connect(textColorPushButton_,SIGNAL(clicked()),this,SLOT(getColor()));
+  connect(textColorPushButton_, SIGNAL(clicked()), this, SLOT(getColor()));
+  connectButtonsToExecuteSignal({ leftRadioButton_, bottomRadioButton_, firstHalfRadioButton_, fullRadioButton_, secondHalfRadioButton_, textColorPushButton_ } );
 
   addDoubleSpinBoxManager(&r_, SCM::TextRed);
   addDoubleSpinBoxManager(&g_, SCM::TextGreen);
@@ -104,13 +100,11 @@ void ShowColorMapDialog::pullSpecial()
 void ShowColorMapDialog::getColor()
 {
   text_color_ = QColorDialog::getColor(text_color_, this, "Choose text color");
-    std::stringstream ss;
-    ss << "background-color: rgb(" << text_color_.red() << ", " <<
-            text_color_.green() << ", " << text_color_.blue() << ");";
+  std::stringstream ss;
+  ss << "background-color: rgb(" << text_color_.red() << ", " <<
+    text_color_.green() << ", " << text_color_.blue() << ");";
   textColorDisplayLabel_->setStyleSheet(QString::fromStdString(ss.str()));
   r_.setValue(text_color_.redF());
   g_.setValue(text_color_.greenF());
   b_.setValue(text_color_.blueF());
-
-  Q_EMIT executeActionTriggered();
 }

@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef ALGORITHMS_BASE_ALGORITHMINTERFACES_H
 #define ALGORITHMS_BASE_ALGORITHMINTERFACES_H
 
@@ -36,22 +36,11 @@
 namespace SCIRun {
 namespace Core {
 namespace Algorithms {
-  
+
   class SCISHARE AlgorithmInterface : public HasIntegerId
   {
   public:
     virtual ~AlgorithmInterface() {}
-    
-    /*
- @todo idea: make it mockable
-  
-    virtual OutputDatatypeHandleOptions run(InputDatatypeHandleOptions, ModuleParameterState) = 0;
-
-      ModuleParameterState: essentially a map of GuiVars. but need hooks for undo/redo and serialization
-      Input: tuple/heterogeneous vector of Datatypes
-      Output: tuple of Datatypes, possibly delay-executed
-    */
-
     virtual AlgorithmOutput run(const AlgorithmInput& input) const = 0;
   };
 

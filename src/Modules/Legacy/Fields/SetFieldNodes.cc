@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,8 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
+
 /// @todo Documentation Modules/Legacy/Fields/SetFieldNodes.cc
 
 #include <Modules/Legacy/Fields/SetFieldNodes.h>
@@ -45,16 +46,12 @@ SetFieldNodes::SetFieldNodes()
 
 void SetFieldNodes::execute()
 {
-  FieldHandle field = getRequiredInput(InputField);
-  MatrixHandle matrix = getRequiredInput(MatrixNodes);
+  auto field = getRequiredInput(InputField);
+  auto matrix = getRequiredInput(MatrixNodes);
 
-  //inputs_changed_ ||  !oport_cached("Field")
   if (needToExecute())
   {
-    update_state(Executing);
-
     auto output = algo().run(withInputData((InputField, field)(MatrixNodes, matrix)));
-
     sendOutputFromAlgorithm(OutputField, output);
   }
 }

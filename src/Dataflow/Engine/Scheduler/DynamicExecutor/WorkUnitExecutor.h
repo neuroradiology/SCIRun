@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef ENGINE_SCHEDULER_DYNAMICEXECUTOR_WORKUNITEXECUTOR_H
 #define ENGINE_SCHEDULER_DYNAMICEXECUTOR_WORKUNITEXECUTOR_H
 
@@ -42,16 +42,15 @@ namespace SCIRun {
         struct SCISHARE ModuleExecutor
         {
           ModuleExecutor(Networks::ModuleHandle mod, const Networks::ExecutableLookup* lookup, ProducerInterfacePtr producer) :
-            module_(mod), lookup_(lookup), producer_(producer), shouldLog_(SCIRun::Core::Logging::Log::get().verbose())
+            module_(mod), lookup_(lookup), producer_(producer),
+            shouldLog_(false)//SCIRun::Core::Logging::Log::get().verbose())
           {
-            Core::Logging::Log::get("executor").setVerbose(shouldLog_);
+            //Core::Logging::Log::get("executor").setVerbose(shouldLog_);
           }
           void run()
           {
-            /// @todo: crashes on Mac
-            if (shouldLog_)
-              Core::Logging::Log::get("executor") << Core::Logging::DEBUG_LOG << "Module Executor: " << module_->get_id() << std::endl;
-            auto exec = lookup_->lookupExecutable(module_->get_id());
+            //log_->trace_if(shouldLog_, "Module Executor: {}", module_->get_id().id_);
+            auto exec = lookup_->lookupExecutable(module_->id());
             boost::signals2::scoped_connection s(exec->connectExecuteEnds(boost::bind(&ProducerInterface::enqueueReadyModules, boost::ref(*producer_))));
             exec->executeWithSignals();
           }
@@ -60,6 +59,7 @@ namespace SCIRun {
           const Networks::ExecutableLookup* lookup_;
           ProducerInterfacePtr producer_;
           bool shouldLog_;
+          //static Core::Logging::Logger2 log_;
         };
 
 

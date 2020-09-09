@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #include <Modules/Legacy/Fields/ApplyMappingMatrix.h>
 #include <Core/Algorithms/Legacy/Fields/Mapping/ApplyMappingMatrix.h>
@@ -58,8 +58,6 @@ void ApplyMappingMatrix::execute()
 
   if (needToExecute())
   {
-   update_state(Executing);
-
    auto out = algo().run(withInputData((Source, src)(Destination, dest)(Mapping, mapp)));
 
    sendOutputFromAlgorithm(Output, out);

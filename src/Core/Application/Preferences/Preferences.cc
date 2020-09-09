@@ -1,30 +1,30 @@
 /*
- For more information, please see: http://software.sci.utah.edu
+   For more information, please see: http://software.sci.utah.edu
 
- The MIT License
+   The MIT License
 
- Copyright (c) 2015 Scientific Computing and Imaging Institute,
- University of Utah.
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
+   University of Utah.
 
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the "Software"),
+   to deal in the Software without restriction, including without limitation
+   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+   and/or sell copies of the Software, and to permit persons to whom the
+   Software is furnished to do so, subject to the following conditions:
 
- Permission is hereby granted, free of charge, to any person obtaining a
- copy of this software and associated documentation files (the "Software"),
- to deal in the Software without restriction, including without limitation
- the rights to use, copy, modify, merge, publish, distribute, sublicense,
- and/or sell copies of the Software, and to permit persons to whom the
- Software is furnished to do so, subject to the following conditions:
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Software.
 
- The above copyright notice and this permission notice shall be included
- in all copies or substantial portions of the Software.
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+*/
 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
- THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- DEALINGS IN THE SOFTWARE.
- */
 
 #include <Core/Application/Preferences/Preferences.h>
 #include <Core/Logging/Log.h>
@@ -32,7 +32,11 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/classification.hpp>
+#ifdef BUILD_WITH_PYTHON
+#include <Core/Python/PythonInterpreter.h>
+#endif
 
 using namespace SCIRun::Core;
 using namespace SCIRun::Core::Logging;
@@ -49,29 +53,36 @@ Preferences::Preferences() :
   modulesSnapToGrid("modulesSnapToGrid", true),
   highlightPorts("highlightPorts", false),
   autoNotes("autoNotes", false),
+  highDPIAdjustment("highDPIAdjustment", false),
+  widgetSelectionCorrection("widgetSelectionCorrection", false),
+  autoRotateViewerOnMouseRelease("autoRotateViewerOnMouseRelease", false),
+  moduleExecuteDownstreamOnly("moduleExecuteDownstreamOnly", true),
+  forceGridBackground("forceGridBackground", false),
   modulesAreDockable("modulesAreDockable", true),
   networkBackgroundColor("backgroundColor", "#808080"),
-  postModuleAddScript_temporarySolution("postModuleAddScript_temporarySolution", ""),
-  postModuleAddScriptEnabled_temporarySolution("postModuleAddScriptEnabled_temporarySolution", false),
-  onNetworkLoadScript_temporarySolution("onNetworkLoadScript_temporarySolution", ""),
-  onNetworkLoadScriptEnabled_temporarySolution("onNetworkLoadScriptEnabled_temporarySolution", false)
+  postModuleAdd("postModuleAdd"),
+  onNetworkLoad("onNetworkLoad"),
+  applicationStart("applicationStart")
 {
 }
 
+TriggeredScriptInfo::TriggeredScriptInfo(const std::string& name) :
+  script(name + "_script", ""), enabled(name + "_enabled", false)
+{}
 
 boost::filesystem::path Preferences::dataDirectory() const
 {
   return dataDir_;
 }
 
-void Preferences::setDataDirectory(const boost::filesystem::path& path)
+void Preferences::setDataDirectory(const boost::filesystem::path& path, bool runPython)
 {
   dataDir_ = path;
 
   if (!boost::filesystem::exists(path))
-    Log::get() << WARN << "Data directory " << path << " does not exist." << std::endl;
+    logWarning("Data directory {} does not exist.", path.string());
   if (!boost::filesystem::is_directory(path))
-    Log::get() << WARN << "Data directory " << path << " is not a directory." << std::endl;
+    logWarning("Data directory {} is not a directory.", path.string());
 
   if (dataDir_.string().back() == boost::filesystem::path::preferred_separator)
   {
@@ -80,6 +91,15 @@ void Preferences::setDataDirectory(const boost::filesystem::path& path)
 
   AlgorithmParameterHelper::setDataDir(dataDir_);
   AlgorithmParameterHelper::setDataDirPlaceholder(dataDirectoryPlaceholder());
+
+#ifdef BUILD_WITH_PYTHON
+  if (runPython)
+  {
+    auto forwardSlashPath = boost::replace_all_copy(dataDir_.string(), "\\", "/");
+    auto setDataDir = "import os; os.environ[\"SCIRUNDATADIR\"] = \"" + forwardSlashPath + "\"";
+    PythonInterpreter::Instance().run_string(setDataDir);
+  }
+#endif
 }
 
 /// @todo: not sure where this should go.

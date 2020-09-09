@@ -3,9 +3,8 @@
 #
 #  The MIT License
 #
-#  Copyright (c) 2015 Scientific Computing and Imaging Institute,
+#  Copyright (c) 2020 Scientific Computing and Imaging Institute,
 #  University of Utah.
-#
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a
 #  copy of this software and associated documentation files (the "Software"),
@@ -26,19 +25,24 @@
 #  DEALINGS IN THE SOFTWARE.
 #
 
+
 # CMakeLists.txt for Packages/MatlabInterface/Dataflow/Modules/DataIO
 
 SET(Modules_Legacy_Matlab_DataIO_SRCS
   ImportDatatypesFromMatlab.cc
   ImportFieldsFromMatlab.cc
+  ImportMatricesFromMatlab.cc
   ExportFieldsToMatlab.cc
+  ExportMatricesToMatlab.cc
   #ExportDatatypesToMatlab.cc
 )
 
 SET(Modules_Legacy_Matlab_DataIO_HEADERS
   ImportDatatypesFromMatlab.h
   ImportFieldsFromMatlab.h
+  ImportMatricesFromMatlab.h
   ExportFieldsToMatlab.h
+  ExportMatricesToMatlab.h
   #ExportDatatypesToMatlab.h
   share.h
 )

@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,7 +25,8 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#include <QtGui>
+
+#include <Interface/qt_include.h>
 #include <iostream>
 #include <Interface/Application/NoteEditor.h>
 
@@ -49,8 +49,6 @@ NoteEditor::NoteEditor(const QString& moduleName, bool positionAdjustable, QWidg
     positionLabel_->setVisible(false);
   }
   connect(fontSizeComboBox_, SIGNAL(activated(const QString&)), this, SLOT(changeFontSize(const QString&)));
-  //TODO: sloppy.
-  //connect(alignmentComboBox_, SIGNAL(activated(const QString&)), this, SLOT(changeTextAlignment(const QString&)));
 
   connect(textEdit_, SIGNAL(textChanged()), this, SLOT(updateNote()));
 
@@ -58,23 +56,25 @@ NoteEditor::NoteEditor(const QString& moduleName, bool positionAdjustable, QWidg
   connect(buttonBox_->button(QDialogButtonBox::Ok), SIGNAL(clicked()), this, SLOT(ok()));
   connect(buttonBox_->button(QDialogButtonBox::Cancel), SIGNAL(clicked()), this, SLOT(cancel()));
 
-  label_2->setHidden(true);
-  alignmentComboBox_->setHidden(true);
-
   //TODO: settable notes
   previousColor_ = Qt::white;
-  position_ = Default;
+  position_ = NotePosition::Default;
 }
 
 void NoteEditor::changeNotePosition(int index)
 {
-  position_ = (NotePosition)index; //TODO: unit test;
+  position_ = static_cast<NotePosition>(index); //TODO: unit test;
   updateNote();
 }
 
 void NoteEditor::changeFontSize(const QString& text)
 {
-  textEdit_->setFontPointSize(text.toDouble());
+  double size;
+  if (text == "Default")
+    size = defaultNoteFontSize_;
+  else
+    size = text.toDouble();
+  textEdit_->setFontPointSize(size);
   textEdit_->setPlainText(textEdit_->toPlainText());
 }
 
@@ -96,8 +96,9 @@ void NoteEditor::changeTextAlignment(const QString& text)
 
 void NoteEditor::changeTextColor()
 {
-  auto newColor = QColorDialog::getColor(previousColor_, this, "Choose text color");
-  setNoteColor(newColor);
+  previousColor_ = currentColor_;
+  currentColor_ = QColorDialog::getColor(currentColor_, this, "Choose text color");
+  setNoteColor(currentColor_);
 }
 
 void NoteEditor::setNoteHtml(const QString& text)
@@ -120,6 +121,25 @@ void NoteEditor::setNoteFontSize(int size)
   fontSizeComboBox_->blockSignals(false);
 }
 
+void NoteEditor::setDefaultNoteFontSize(int size)
+{
+  callCount_++;
+  defaultNoteFontSize_ = size;
+
+  if (fontSizeComboBox_->currentText() == "Default")
+  {
+    textEdit_->blockSignals(true);
+
+    textEdit_->setFontPointSize(size);
+    textEdit_->setPlainText(textEdit_->toPlainText());
+    currentNote_.html_ = textEdit_->toHtml();
+    if (callCount_ > 1)
+      updateNote();
+
+    textEdit_->blockSignals(false);
+  }
+}
+
 void NoteEditor::setNoteColor(const QColor& color)
 {
   if (color.isValid())
@@ -128,6 +148,10 @@ void NoteEditor::setNoteColor(const QColor& color)
     textEdit_->setTextColor(color);
     textEdit_->setPlainText(textEdit_->toPlainText());
     updateNote();
+  }
+  else
+  {
+    currentColor_ = previousColor_;
   }
 }
 
@@ -141,7 +165,7 @@ void NoteEditor::resetTextColor()
   auto oldColor = textEdit_->textColor();
   textEdit_->setTextColor(previousColor_);
   textEdit_->setPlainText(textEdit_->toPlainText());
-  previousColor_ = oldColor;
+  previousColor_ = currentColor_ = oldColor;
 }
 
 void NoteEditor::ok()

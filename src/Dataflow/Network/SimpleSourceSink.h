@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 /// @todo Documentation Dataflow/Network/SimpleSourceSink.h
 
 #ifndef DATAFLOW_NETWORK_SIMPLESOURCESINK_H
@@ -42,21 +42,21 @@ namespace SCIRun
   {
     namespace Networks
     {
-      typedef boost::weak_ptr<Core::Datatypes::DatatypeHandle::element_type> WeakDatatypeHandle;
+      using WeakDatatypeHandle = boost::weak_ptr<Core::Datatypes::DatatypeHandle::element_type>;
 
       class SCISHARE SimpleSink : public DatatypeSinkInterface
       {
       public:
         SimpleSink();
         ~SimpleSink();
-        virtual void waitForData();
-        virtual SCIRun::Core::Datatypes::DatatypeHandleOption receive();
-        virtual DatatypeSinkInterface* clone() const;
-        virtual bool hasChanged() const;
+        void waitForData() override;
+        Core::Datatypes::DatatypeHandleOption receive() override;
+        DatatypeSinkInterface* clone() const override;
+        bool hasChanged() const override;
         void setData(Core::Datatypes::DatatypeHandle data);
-        virtual void invalidateProvider() { /*TODO*/ }
-        virtual boost::signals2::connection connectDataHasChanged(const DataHasChangedSignalType::slot_type& subscriber);
-        virtual void forceFireDataHasChanged() override;
+        void invalidateProvider() override { /*TODO*/ }
+        boost::signals2::connection connectDataHasChanged(const DataHasChangedSignalType::slot_type& subscriber) override;
+        void forceFireDataHasChanged() override;
 
         static bool globalPortCachingFlag();
         static void setGlobalPortCachingFlag(bool value);

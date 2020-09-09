@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #include <Core/Algorithms/Legacy/FiniteElements/BuildRHS/BuildFEVolRHS.h>
 #include <Core/Algorithms/Base/AlgorithmPreconditions.h>
@@ -761,7 +761,7 @@ DenseMatrixHandle BuildFEVolRHSAlgo::run(FieldHandle input) const
   }
  #endif
 
- LOG_DEBUG(" Note: The original SCIRun4 module looked for a field attribute ''conductivity_table'' of the second module input which could only be set outside of SCIRun4. This function is not available in SCIRun5. " << std::endl);
+ LOG_DEBUG(" Note: The original SCIRun4 module looked for a field attribute ''conductivity_table'' of the second module input which could only be set outside of SCIRun4. This function is not available in SCIRun5. ");
 
  FEMVolRHSBuilder builder(this);
 

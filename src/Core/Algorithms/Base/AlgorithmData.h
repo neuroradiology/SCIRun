@@ -1,36 +1,35 @@
 /*
-   For more information, please see: http://software.sci.utah.edu
+  For more information, please see: http://software.sci.utah.edu
 
-   The MIT License
+  The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
-   University of Utah.
+  Copyright (c) 2020 Scientific Computing and Imaging Institute,
+  University of Utah.
 
-   License for the specific language governing rights and limitations under
-   Permission is hereby granted, free of charge, to any person obtaining a
-   copy of this software and associated documentation files (the "Software"),
-   to deal in the Software without restriction, including without limitation
-   the rights to use, copy, modify, merge, publish, distribute, sublicense,
-   and/or sell copies of the Software, and to permit persons to whom the
-   Software is furnished to do so, subject to the following conditions:
+  Permission is hereby granted, free of charge, to any person obtaining a
+  copy of this software and associated documentation files (the "Software"),
+  to deal in the Software without restriction, including without limitation
+  the rights to use, copy, modify, merge, publish, distribute, sublicense,
+  and/or sell copies of the Software, and to permit persons to whom the
+  Software is furnished to do so, subject to the following conditions:
 
-   The above copyright notice and this permission notice shall be included
-   in all copies or substantial portions of the Software.
+  The above copyright notice and this permission notice shall be included
+  in all copies or substantial portions of the Software.
 
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-   DEALINGS IN THE SOFTWARE.
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+  THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+  DEALINGS IN THE SOFTWARE.
 */
+
 
 #ifndef ALGORITHMS_BASE_ALGORITHMDATA_H
 #define ALGORITHMS_BASE_ALGORITHMDATA_H
 
 #include <map>
-#include <boost/filesystem/path.hpp>
 #include <boost/any.hpp>
 #include <Core/Datatypes/DatatypeFwd.h>
 #include <Core/Algorithms/Base/Name.h>
@@ -44,7 +43,7 @@ namespace Algorithms {
   class SCISHARE AlgorithmData
   {
   public:
-    typedef std::map<Name, std::vector<Datatypes::DatatypeHandle>> Map;
+    using Map = std::map<Name, std::vector<Datatypes::DatatypeHandle>>;
     AlgorithmData() {}
     explicit AlgorithmData(const Map& m) : data_(m) {}
 
@@ -55,7 +54,7 @@ namespace Algorithms {
     {
       auto it = data_.find(name);
       /// @todo: log incorrect type if present but wrong type
-      return it == data_.end() ? boost::shared_ptr<T>() : boost::dynamic_pointer_cast<T>(it->second[0]);
+      return it == data_.end() ? nullptr : boost::dynamic_pointer_cast<T>(it->second[0]);
     }
 
     template <typename T>
@@ -81,11 +80,11 @@ namespace Algorithms {
     boost::any transient_;
   };
 
-  class SCISHARE AlgorithmInput : public AlgorithmData 
+  class SCISHARE AlgorithmInput : public AlgorithmData
   {
   public:
     AlgorithmInput() {}
-    AlgorithmInput(const Map& m) : AlgorithmData(m) {}
+    explicit AlgorithmInput(const Map& m) : AlgorithmData(m) {}
   };
 
   class SCISHARE AlgorithmOutput : public AlgorithmData
@@ -97,9 +96,9 @@ namespace Algorithms {
     VariableHandle additionalAlgoOutput_;
   };
 
-  typedef Datatypes::SharedPointer<AlgorithmInput> AlgorithmInputHandle;
-  typedef Datatypes::SharedPointer<AlgorithmOutput> AlgorithmOutputHandle;
-  
+  using AlgorithmInputHandle = SharedPointer<AlgorithmInput>;
+  using AlgorithmOutputHandle = SharedPointer<AlgorithmOutput>;
+
 }}}
 
 #endif

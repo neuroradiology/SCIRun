@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef INTERFACE_APPLICATION_MODULEPROXYWIDGET_H
 #define INTERFACE_APPLICATION_MODULEPROXYWIDGET_H
 
@@ -41,6 +41,18 @@ namespace SCIRun
   {
     class ModuleWidget;
 
+    class LoopDiamondPolygon : public QGraphicsPolygonItem
+    {
+    public:
+      explicit LoopDiamondPolygon(QGraphicsItem* parent = nullptr);
+      void mouseMoveEventPublic(QGraphicsSceneMouseEvent *event)
+      {
+        mouseMoveEvent(event);
+      }
+    private:
+      QPolygonF shape_;
+    };
+
     class ModuleProxyWidget : public QGraphicsProxyWidget, public NoteDisplayHelper
     {
 	    Q_OBJECT
@@ -52,6 +64,7 @@ namespace SCIRun
       void createStartupNote();
       void adjustHeight(int delta);
       void adjustWidth(int delta);
+      void setBackgroundPolygon(LoopDiamondPolygon* p);
 
       //TODO: move to utility
       static void ensureItemVisible(QGraphicsItem* item);
@@ -59,6 +72,7 @@ namespace SCIRun
     public Q_SLOTS:
       void highlightIfSelected();
       void setDefaultNotePosition(NotePosition position);
+      void setDefaultNoteSize(int size);
       void createPortPositionProviders();
       void snapToGrid();
       void highlightPorts(int state);
@@ -77,12 +91,13 @@ namespace SCIRun
       void hoverEnterEvent(QGraphicsSceneHoverEvent* event) override;
       void hoverLeaveEvent(QGraphicsSceneHoverEvent* event) override;
       QVariant itemChange(GraphicsItemChange change, const QVariant& value) override;
-      virtual void setNoteGraphicsContext() override;
     private Q_SLOTS:
       void disableModuleGUI(bool disabled);
       void loadAnimate(qreal val);
       void colorAnimate(qreal val);
+      void findInNetwork();
     private:
+      void showAndColorImpl(const QColor& color, int milliseconds);
       bool isSubwidget(QWidget* alienWidget) const;
       void updatePressedSubWidget(QGraphicsSceneMouseEvent* event);
 
@@ -96,8 +111,21 @@ namespace SCIRun
       int stackDepth_;
       QSizeF originalSize_;
       QTimeLine* timeLine_;
+      QGraphicsEffect* previousEffect_{nullptr};
+      LoopDiamondPolygon* backgroundShape_ {nullptr};
+    };
+
+    class SubnetPortsBridgeProxyWidget : public QGraphicsProxyWidget
+    {
+    public:
+      explicit SubnetPortsBridgeProxyWidget(class SubnetPortsBridgeWidget* ports, QGraphicsItem* parent = nullptr);
+      void updateConnections();
+    private:
+      class SubnetPortsBridgeWidget* ports_;
     };
   }
 }
+
+//#define MODULE_POSITION_LOGGING
 
 #endif

@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #ifndef MODULES_LEGACY_FIELDS_INTERFACEWITHTETGEN_H__
 #define MODULES_LEGACY_FIELDS_INTERFACEWITHTETGEN_H__
@@ -62,15 +62,19 @@ namespace SCIRun {
       public:
         InterfaceWithTetGen();
 
-        virtual void execute();
-        virtual void setStateDefaults();
-        virtual bool hasDynamicPorts() const override { return true; }
+        void execute() override;
+        void setStateDefaults() override;
+        bool hasDynamicPorts() const override { return true; }
 
-        INPUT_PORT(0, Main, LegacyField);
-        INPUT_PORT(1, Points, LegacyField);
-        INPUT_PORT(2, Region_Attribs, LegacyField);
-        INPUT_PORT_DYNAMIC(3, Regions, LegacyField);
-        OUTPUT_PORT(0, TetVol, LegacyField);
+        #ifndef WITH_TETGEN
+          DISABLED_WITHOUT_ABOVE_COMPILE_FLAG
+        #endif
+
+        INPUT_PORT(0, Main, Field);
+        INPUT_PORT(1, Points, Field);
+        INPUT_PORT(2, Region_Attribs, Field);
+        INPUT_PORT_DYNAMIC(3, Regions, Field);
+        OUTPUT_PORT(0, TetVol, Field);
 
         MODULE_TRAITS_AND_INFO(ModuleHasUI)
       };

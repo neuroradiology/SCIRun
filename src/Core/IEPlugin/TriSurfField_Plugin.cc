@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #include <Core/Datatypes/Legacy/Field/Field.h>
 #include <Core/Datatypes/Legacy/Field/VMesh.h>
 #include <Core/Datatypes/Legacy/Field/FieldInformation.h>
@@ -33,6 +33,8 @@
 #include <Core/IEPlugin/TriSurfField_Plugin.h>
 #include <Core/Utils/Legacy/StringUtil.h>
 #include <Core/Algorithms/Legacy/DataIO/VTKToTriSurfReader.h>
+#include <Core/Algorithms/Legacy/DataIO/TriSurfSTLASCIIConverter.h>
+#include <Core/Algorithms/Legacy/DataIO/TriSurfSTLBinaryConverter.h>
 
 #include <iostream>
 #include <fstream>
@@ -205,10 +207,7 @@ FieldHandle SCIRun::TextToTriSurfField_reader(LoggerHandle pr, const char *filen
   // STAGE 1 - SCAN THE FILE TO DETERMINE THE NUMBER OF NODES
   // AND CHECK THE FILE'S INTEGRITY.
 
-  bool has_header_pts = false;
   bool first_line_pts = true;
-
-  bool has_header = false;
   bool first_line = true;
 
   std::vector<double> values;
@@ -243,12 +242,10 @@ FieldHandle SCIRun::TextToTriSurfField_reader(LoggerHandle pr, const char *filen
           {
             if (line_ncols == 1)
             {
-              has_header_pts = true;
               num_nodes =  static_cast<int>(values[0]) + 1;
             }
             else if ((line_ncols == 3)||(line_ncols == 2))
             {
-              has_header_pts = false;
               first_line_pts = false;
               nrows++;
               ncols = line_ncols;
@@ -330,12 +327,10 @@ FieldHandle SCIRun::TextToTriSurfField_reader(LoggerHandle pr, const char *filen
           {
             if (line_ncols == 1)
             {
-              has_header = true;
               num_elems =  static_cast<int>(values[0]) + 1;
             }
             else if (line_ncols == 3)
             {
-              has_header = false;
               first_line = false;
               nrows++;
               ncols = line_ncols;
@@ -495,10 +490,8 @@ FieldHandle SCIRun::MToTriSurfField_reader(LoggerHandle pr, const char *filename
     std::string type;
     instr >> type;
     if (type[0] == '#') {
-      //cerr << "skipping comment line" << endl;
       char c = instr.get();
       while(c != '\n') {
-        //cerr << c << endl;
         c = instr.get();
       }
       line++;
@@ -510,8 +503,6 @@ FieldHandle SCIRun::MToTriSurfField_reader(LoggerHandle pr, const char *filename
       double x, y, z;
       instr >> x >> y >> z;
       mesh->add_point(Point(x,y,z));
-      //cerr << "Added point #"<< i <<": ("
-      //   << x << ", " << y << ", " << z << ")" << endl;
     } else if (type == "Face") {
       VMesh::Node::array_type n(3);
       unsigned int n1, n2, n3;
@@ -521,8 +512,6 @@ FieldHandle SCIRun::MToTriSurfField_reader(LoggerHandle pr, const char *filename
       n3 -= 1; n[2] = n3;
 
       mesh->add_elem(n);
-      //cerr << "Added face #"<< i <<": ("
-      //   << n1 << ", " << n2 << ", " << n3 << ")" << endl;
     } else {
       if (instr.eof()) break;
       std::ostringstream oss;
@@ -800,7 +789,7 @@ bool SCIRun::TriSurfFieldToM_writer(LoggerHandle pr, FieldHandle fh, const char 
     {
       Point p;
       mesh->get_center(p, *nodeIter);
-      outputfile << "Vertex " << count++ << " " << p.x() << " " << p.y() << " " << p.z() << std::endl;
+      outputfile << "Vertex " << count++ << " " << p.x() << " " << p.y() << " " << p.z() << '\n';
       ++nodeIter;
     }
 
@@ -813,9 +802,10 @@ bool SCIRun::TriSurfFieldToM_writer(LoggerHandle pr, FieldHandle fh, const char 
     mesh->begin(faceIter);
     mesh->end(faceIterEnd);
     count = 1;
-    while (faceIter != faceIterEnd) {
+    while (faceIter != faceIterEnd) 
+    {
       mesh->get_nodes(faceNodes, *faceIter);
-      outputfile << "Face " << count++ << " " << faceNodes[0] << " " << faceNodes[1] << " " << faceNodes[2] << std::endl;
+      outputfile << "Face " << count++ << " " << faceNodes[0] << " " << faceNodes[1] << " " << faceNodes[2] << '\n';
       ++faceIter;
     }
   }
@@ -866,9 +856,9 @@ bool SCIRun::TriSurfFieldToVtk_writer(LoggerHandle pr, FieldHandle fh, const cha
     ff |= outputfile.fixed; // write floating point values in fixed-point notation
     outputfile.flags(ff);
 
-    outputfile << "# vtk DataFile Version 3.0" << std::endl
-               << "vtk output\nASCII"<< std::endl
-              << "DATASET POLYDATA" << std::endl << std::endl;
+    outputfile << "# vtk DataFile Version 3.0" << '\n'
+               << "vtk output\nASCII"<< '\n'
+              << "DATASET POLYDATA" << '\n' << '\n';
 
     VMesh::Node::iterator nodeIter;
     VMesh::Node::iterator nodeIterEnd;
@@ -883,7 +873,7 @@ bool SCIRun::TriSurfFieldToVtk_writer(LoggerHandle pr, FieldHandle fh, const cha
     {
       Point p;
       mesh->get_center(p, *nodeIter);
-      outputfile << p.x() << " " << p.y() << " " << p.z() << std::endl;
+      outputfile << p.x() << " " << p.y() << " " << p.z() << '\n';
       ++nodeIter;
     }
 
@@ -897,9 +887,10 @@ bool SCIRun::TriSurfFieldToVtk_writer(LoggerHandle pr, FieldHandle fh, const cha
     mesh->end(faceIterEnd);
 
     outputfile << "POLYGONS " << faceSize << " " << faceSize * 4 << std::endl;
-    while (faceIter != faceIterEnd) {
+    while (faceIter != faceIterEnd) 
+    {
       mesh->get_nodes(faceNodes, *faceIter);
-      outputfile << "3 " << faceNodes[0] << " " << faceNodes[1] << " " << faceNodes[2] << std::endl;
+      outputfile << "3 " << faceNodes[0] << " " << faceNodes[1] << " " << faceNodes[2] << '\n';
       ++faceIter;
     }
   }
@@ -1107,4 +1098,55 @@ bool SCIRun::TriSurfFieldToExotxtBaseIndexOne_writer(LoggerHandle pr, FieldHandl
   fclose(f_out);
 
   return (true);
+}
+
+FieldHandle SCIRun::TriSurfFieldSTLASCII_reader(LoggerHandle pr, const char *filename)
+{
+  FieldHandle outputField;
+  TriSurfSTLASCIIConverter reader(pr);
+
+  if (!reader.read(filename, outputField))
+  {
+    if (pr)
+      pr->error("Convert ASCII STL file to SCIRun TriSurf field failed.");
+    return nullptr;
+  }
+  return outputField;
+}
+
+FieldHandle SCIRun::TriSurfFieldSTLBinary_reader(LoggerHandle pr, const char *filename)
+{
+  FieldHandle outputField;
+  TriSurfSTLBinaryConverter reader(pr);
+
+  if (!reader.read(filename, outputField))
+  {
+    if (pr)
+      pr->error("Convert Binary STL file to SCIRun TriSurf field failed.");
+    return nullptr;
+  }
+  return outputField;
+}
+
+bool SCIRun::TriSurfFieldSTLASCII_writer(LoggerHandle pr, FieldHandle fh, const char *filename)
+{
+  TriSurfSTLASCIIConverter writer(pr);
+  if (!writer.write(filename, fh))
+  {
+    if (pr)
+      pr->error("Convert SCIRun TriSurf field to ASCII STL file failed.");
+    return false;
+  }
+  return true;
+}
+
+bool SCIRun::TriSurfFieldSTLBinary_writer(LoggerHandle pr, FieldHandle fh, const char *filename)
+{
+  TriSurfSTLBinaryConverter writer(pr);
+  if (!writer.write(filename, fh))
+  {
+    if (pr) pr->error("Convert SCIRun TriSurf field to Binary STL file failed.");
+    return false;
+  }
+  return true;
 }

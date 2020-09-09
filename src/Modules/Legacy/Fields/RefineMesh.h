@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #ifndef MODULES_LEGACY_FIELDS_REFINEMESH_H__
 #define MODULES_LEGACY_FIELDS_REFINEMESH_H__
@@ -47,12 +47,12 @@ namespace SCIRun {
       public:
         RefineMesh();
 
-        virtual void execute();
-        virtual void setStateDefaults();
+        void execute() override;
+        void setStateDefaults() override;
 
-        INPUT_PORT(0, InputField, LegacyField);
+        INPUT_PORT(0, InputField, Field);
 				INPUT_PORT(1, IsoValueField, Double);
-        OUTPUT_PORT(0, OutputField, LegacyField);
+        OUTPUT_PORT(0, OutputField, Field);
 				//OUTPUT_PORT(1, Mapping ,Matrix);
 
         MODULE_TRAITS_AND_INFO(ModuleHasUIAndAlgorithm)

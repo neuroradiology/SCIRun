@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #include <gtest/gtest.h>
 
@@ -192,7 +192,7 @@ TEST(EigenDenseComplexMatrixTests, MinMax)
     Complex(3, 2), Complex(4, 4);
   B << Complex(4, 4), Complex(3, 2),
     Complex(2, 3), Complex(-1, -1);
-  C << Complex(0, 0), Complex(1, 0), Complex(-1, 0);
+  C << Complex(0, 0), Complex(1, 0), Complex(-1, 0), Complex(0.5,0.5);
 
   EXPECT_EQ(Complex(1, 1), A.minCoeff());
   EXPECT_EQ(Complex(4, 4), A.maxCoeff());

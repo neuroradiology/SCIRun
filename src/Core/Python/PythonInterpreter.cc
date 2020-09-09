@@ -1,30 +1,30 @@
 /*
- For more information, please see: http://software.sci.utah.edu
+   For more information, please see: http://software.sci.utah.edu
 
- The MIT License
+   The MIT License
 
- Copyright (c) 2015 Scientific Computing and Imaging Institute,
- University of Utah.
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
+   University of Utah.
 
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the "Software"),
+   to deal in the Software without restriction, including without limitation
+   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+   and/or sell copies of the Software, and to permit persons to whom the
+   Software is furnished to do so, subject to the following conditions:
 
- Permission is hereby granted, free of charge, to any person obtaining a
- copy of this software and associated documentation files (the "Software"),
- to deal in the Software without restriction, including without limitation
- the rights to use, copy, modify, merge, publish, distribute, sublicense,
- and/or sell copies of the Software, and to permit persons to whom the
- Software is furnished to do so, subject to the following conditions:
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Software.
 
- The above copyright notice and this permission notice shall be included
- in all copies or substantial portions of the Software.
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+*/
 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
- THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- DEALINGS IN THE SOFTWARE.
- */
 
 /// @todo Documentation Core/Python/PythonInterpreter.cc
 
@@ -53,13 +53,7 @@
 #include <Core/Python/PythonInterpreter.h>
 
 #include <Dataflow/Engine/Python/SCIRunPythonModule.h>
-
-
-//#ifdef _MSC_VER
-//#pragma warning( pop )
-//#endif
-
-//#include <Interface/PythonTestGui/Python/ToPythonConverters.h>
+#include <Core/Logging/Log.h>
 
 using namespace SCIRun::Core;
 
@@ -224,14 +218,11 @@ BOOST_PYTHON_MODULE( interpreter )
 CORE_SINGLETON_IMPLEMENTATION( PythonInterpreter );
 
 PythonInterpreter::PythonInterpreter() :
-	//Core::EventHandler(),
 	private_( new PythonInterpreterPrivate )
 {
 	this->private_->initialized_ = false;
 	this->private_->terminal_running_ = false;
 	this->private_->waiting_for_input_ = false;
-	//this->private_->action_context_.reset( new PythonActionContext );
-//  initialize_eventhandler();
 }
 
 PythonInterpreter::~PythonInterpreter()
@@ -243,8 +234,11 @@ PythonInterpreter::~PythonInterpreter()
 //#define PRINT_PY_INIT_DEBUG(n) std::cout << "ev " << (n) << std::endl;
 #define PRINT_PY_INIT_DEBUG(n)
 
-bool isOSXSCIRunTestExecutable(const std::string& commandLine)
+bool needsSpecialPythonPathTreatment(const std::string& commandLine)
 {
+#if defined(BUILD_HEADLESS) && defined(__APPLE__)
+  return true;
+#else
   const std::string TEST_EXECUTABLE_NAME = "SCIRun_test";
   const std::string UNIT_TEST_EXECUTABLE_NAME = "Engine_Python_Tests";
   return commandLine.find(TEST_EXECUTABLE_NAME) != std::string::npos
@@ -252,9 +246,10 @@ bool isOSXSCIRunTestExecutable(const std::string& commandLine)
   //TODO: this version is bugged if the test network name starts with a relative path: stem() returns the network name, not the executable name.
   //the full command line isn't normally a valid path object anyway.
   //  return 0 == boost::filesystem::path(commandLine).stem().string().compare(0, TEST_EXECUTABLE_NAME.size(), TEST_EXECUTABLE_NAME);
+#endif
 }
 
-void PythonInterpreter::initialize_eventhandler(const std::string& commandLine, const boost::filesystem::path& libPath)
+void PythonInterpreter::initialize_eventhandler(bool needsSpecialPythonPathTreatment, const boost::filesystem::path& libPath)
 {
   PRINT_PY_INIT_DEBUG(1);
 	using namespace boost::python;
@@ -298,7 +293,7 @@ void PythonInterpreter::initialize_eventhandler(const std::string& commandLine, 
   lib_path_list.push_back(lib_path.parent_path() / PYTHONPATH);
   PRINT_PY_INIT_DEBUG(lib_path_list.back());
 
-  if (isOSXSCIRunTestExecutable(commandLine))
+  if (needsSpecialPythonPathTreatment)
   {
     boost::filesystem::path full_lib_path(PYTHONLIBDIR);
     full_lib_path /= PYTHONLIB;
@@ -403,38 +398,85 @@ void PythonInterpreter::initialize_eventhandler(const std::string& commandLine, 
 	// Remove intermediate python variables
 	PyRun_SimpleString( "del (interpreter, __internal_compiler, __term_io, __term_err)\n" );
   PRINT_PY_INIT_DEBUG(12);
-	//this->private_->thread_condition_variable_.notify_one();
 
   this->private_->initialized_ = true;
   PRINT_PY_INIT_DEBUG(999);
 }
 
-void PythonInterpreter::initialize(bool needProgramName, const std::string& commandLine, const boost::filesystem::path& libPath)
+namespace
 {
-  if (needProgramName)
+  std::vector<std::string> argvFromFullString(const std::string& commandLine)
   {
     using namespace boost::algorithm;
-    std::string cmdline = commandLine;// Application::Instance().parameters()->entireCommandLine();
+    std::string cmdline = commandLine;
     trim_all(cmdline);
-    std::vector< std::string > argv;
+    std::vector<std::string> argv;
     split(argv, cmdline, is_any_of(" "));
+    return argv;
+  }
 
-    size_t name_len = strlen(argv[0].c_str());
-    std::vector< wchar_t > program_name(name_len + 1);
+  std::vector<std::vector<wchar_t>> wideArgvFromArgv(const std::vector<std::string>& argv)
+  {
+    std::vector<std::vector<wchar_t>> wideArgv(argv.size());
+    std::transform(argv.begin(), argv.end(), wideArgv.begin(), [](const std::string& arg)
+    {
+      std::vector<wchar_t> wide(arg.size() + 1);
+      mbstowcs(&wide[0], arg.c_str(), wide.size() + 1);
+      return wide;
+    });
+    return wideArgv;
+  }
+
+  std::vector<wchar_t*> wideArgvPtrsFromWideArgv(std::vector<std::vector<wchar_t>>& wideArgv)
+  {
+    std::vector<wchar_t*> wideArgvPtrs(wideArgv.size());
+    std::transform(wideArgv.begin(), wideArgv.end(), wideArgvPtrs.begin(), [](std::vector<wchar_t>& wide) { return &wide[0]; });
+    return wideArgvPtrs;
+  }
+
+  std::vector<wchar_t> getProgramName(const std::vector<std::string>& argv)
+  {
+    size_t name_len = argv[0].size();
+    std::vector<wchar_t> program_name(name_len + 1);
     mbstowcs(&program_name[0], argv[0].c_str(), name_len + 1);
+    return program_name;
+  }
 
-    //  SCIRun::Core::PythonInterpreter::Instance().run_string( "import " + module_name + "\n" );
-    //  SCIRun::Core::PythonInterpreter::Instance().run_string( "from " + module_name + " import *\n" );
+  void setPythonArgv(const std::vector<std::string>& argv)
+  {
+    auto wideArgv = wideArgvFromArgv(argv);
+    auto wideArgvPtrs = wideArgvPtrsFromWideArgv(wideArgv);
 
-    //std::cerr << "Initializing Python ..." << std::endl;
-    this->private_->setProgramName(program_name);
+    int argsOffset = 0;
+    auto scriptFlag1 = std::find(argv.begin(), argv.end(), "-s");
+    auto scriptFlag2 = std::find(argv.begin(), argv.end(), "--script");
+    if (scriptFlag1 != argv.end())
+    {
+      argsOffset = scriptFlag1 - argv.begin() + 1;
+    }
+    else if (scriptFlag2 != argv.end())
+    {
+      argsOffset = scriptFlag2 - argv.begin() + 1;
+    }
+
+    PySys_SetArgv(wideArgvPtrs.size() - argsOffset, &wideArgvPtrs[argsOffset]);
+  }
+}
+
+void PythonInterpreter::initialize(bool needProgramName, const std::string& commandLine, const boost::filesystem::path& libPath)
+{
+  const auto argv = argvFromFullString(commandLine);
+
+  if (needProgramName)
+  {
+    this->private_->setProgramName(getProgramName(argv));
     // TODO: remove debug print when confident python initialization is stable
     //std::wcerr << "initialize program name=" << this->private_->programName() << std::endl;
   }
-//  PythonInterpreterPrivate::lock_type lock( this->private_->get_mutex() );
-//  this->start_eventhandler();
 
-  initialize_eventhandler(commandLine, libPath);
+  initialize_eventhandler(needsSpecialPythonPathTreatment(commandLine), libPath);
+
+  setPythonArgv(argv);
 
   {
     auto out = [](const std::string& s)
@@ -447,24 +489,18 @@ void PythonInterpreter::initialize(bool needProgramName, const std::string& comm
     error_signal_.connect(error);
   }
 
-  //this->private_->thread_condition_variable_.wait( lock );
   this->private_->initialized_ = true;
-  //std::cerr << "Python initialized." << std::endl;
 }
 
 void PythonInterpreter::print_banner()
 {
-	//if ( !this->is_eventhandler_thread() )
-	//{
-	//	this->post_event( boost::bind( &PythonInterpreter::print_banner, this ) );
-	//	return;
-	//}
 	PyRun_SimpleString( "print('Python %s on %s' % (sys.version, sys.platform))\n" );
 	this->prompt_signal_( this->private_->prompt1_ );
 }
 
 bool PythonInterpreter::run_string( const std::string& command )
 {
+  LOG_DEBUG("Python::run_string( {} )", command);
 	{
 		PythonInterpreterPrivate::lock_type lock( this->private_->get_mutex() );
 		if ( !this->private_->initialized_ )
@@ -506,7 +542,6 @@ bool PythonInterpreter::run_string( const std::string& command )
 	// If compilation succeeded and the code object is not Py_None
 	else if ( code_obj )
 	{
-		//this->private_->action_context_->set_action_mode( PythonActionMode::INTERACTIVE_E );
 		try
 		{
 		  auto result = PyEval_EvalCode( code_obj.ptr(), this->private_->globals_.ptr(), nullptr );
@@ -542,6 +577,7 @@ bool PythonInterpreter::run_string( const std::string& command )
 
 void PythonInterpreter::run_script( const std::string& script )
 {
+  LOG_DEBUG("Python::run_script( {} )", script);
 	{
 		PythonInterpreterPrivate::lock_type lock( this->private_->get_mutex() );
 		if ( !this->private_->initialized_ )
@@ -549,13 +585,6 @@ void PythonInterpreter::run_script( const std::string& script )
 			throw std::logic_error( "The python interpreter hasn't been initialized!" );
 		}
 	}
-
-	//if ( !this->is_eventhandler_thread() )
-	//{
-	//	this->post_event( boost::bind( static_cast< void ( PythonInterpreter::* ) ( std::string ) >(
-	//		&PythonInterpreter::run_script ), this, script ) );
-	//	return;
-	//}
 
 	// Output the script to the console
 	//this->output_signal_( "Running script ...\n" );
@@ -579,7 +608,6 @@ void PythonInterpreter::run_script( const std::string& script )
 	// If compilation succeeded and the code object is not Py_None
 	else if ( code_obj )
 	{
-		//this->private_->action_context_->set_action_mode( PythonActionMode::REPLAY_E );
 		boost::python::dict local_var;
 		PyObject* result = PyEval_EvalCode( code_obj.ptr(), this->private_->globals_.ptr(), local_var.ptr() );
 		Py_XDECREF( result );
@@ -593,34 +621,9 @@ void PythonInterpreter::run_script( const std::string& script )
 	this->prompt_signal_( this->private_->prompt1_ );
 }
 
-//void PythonInterpreter::run_script( StringVectorConstHandle script )
-//{
-//	{
-//		PythonInterpreterPrivate::lock_type lock( this->private_->get_mutex() );
-//		if ( !this->private_->initialized_ )
-//		{
-//			throw std::logic_error( "The python interpreter hasn't been initialized!" );
-//		}
-//	}
-//
-//	//if ( !this->is_eventhandler_thread() )
-//	//{
-//	//	this->post_event( boost::bind( static_cast< void ( PythonInterpreter::* ) ( StringVectorConstHandle ) >(
-//	//		&PythonInterpreter::run_script ), this, script ) );
-//	//	return;
-//	//}
-//
-//	// Concatenate the strings into one single string
-//	std::string str;
-//	for ( size_t i = 0; i < script->size(); ++i )
-//	{
-//		str += script->at( i );
-//	}
-//	this->run_script( str );
-//}
-
-void PythonInterpreter::run_file( const std::string& file_name )
+bool PythonInterpreter::run_file( const std::string& file_name )
 {
+  LOG_DEBUG("Python::run_file( {} )", file_name);
 	{
 		PythonInterpreterPrivate::lock_type lock( this->private_->get_mutex() );
 		if ( !this->private_->initialized_ )
@@ -634,30 +637,23 @@ void PythonInterpreter::run_file( const std::string& file_name )
   if (fp2)
   {
     PyRun_SimpleFile(fp2, file);
+    return true;
   }
   else
   {
     this->error_signal_("Could not load python file: " + file_name);
+    return false;
   }
 }
 
 void PythonInterpreter::interrupt()
 {
-	//if ( !this->is_eventhandler_thread() )
-	//{
-	//	PyErr_SetInterrupt();
-	//	this->private_->thread_condition_variable_.notify_all();
-	//	this->post_event( boost::bind( &PythonInterpreter::interrupt, this ) );
-	//}
-	//else
-	//{
-		if ( PyErr_CheckSignals() != 0 )
-		{
-			this->error_signal_( "\nKeyboardInterrupt\n" );
-			this->private_->command_buffer_.clear();
-			this->prompt_signal_( this->private_->prompt1_ );
-		}
-	//}
+	if ( PyErr_CheckSignals() != 0 )
+	{
+		this->error_signal_( "\nKeyboardInterrupt\n" );
+		this->private_->command_buffer_.clear();
+		this->prompt_signal_( this->private_->prompt1_ );
+	}
 }
 
 void PythonInterpreter::start_terminal()
@@ -675,28 +671,10 @@ void PythonInterpreter::start_terminal()
 		}
 	}
 
-	//if ( !this->is_eventhandler_thread() )
-	//{
-	//	this->post_event( boost::bind( &PythonInterpreter::start_terminal, this ) );
-	//	return;
-	//}
-
 	PythonInterpreterPrivate::lock_type lock( this->private_->get_mutex() );
 	this->private_->terminal_running_ = true;
 	lock.unlock();
 
-	//PyRun_SimpleString("import sys\n");
-	//PyRun_SimpleString("import io\n");
-	//PyRun_SimpleString("sys.stdout=io.open('CONOUT$', 'wt')\n");
-	//PyObject* sys = PyImport_ImportModule("sys");
-	//PyObject* io = PyImport_ImportModule("io");
-	//PyObject* pystdout = PyObject_CallMethod(io, "open", "ss", "CONOUT$", "wt");
-	//if (-1 == PyObject_SetAttrString(sys, "stdout", pystdout)) {
-	//	/* Announce your error to the world */
-	//}
-	//Py_DECREF(sys);
-	//Py_DECREF(io);
-	//Py_DECREF(pystdout);
 	wchar_t** argv = new wchar_t*[ 2 ];
   argv[0] = const_cast< wchar_t* >(this->private_->programName());
 	argv[ 1 ] = 0;
@@ -707,19 +685,28 @@ void PythonInterpreter::start_terminal()
 	this->private_->terminal_running_ = false;
 }
 
-//PythonActionContextHandle PythonInterpreter::get_action_context()
-//{
-//	return this->private_->action_context_;
-//}
-//
-//PythonActionContextHandle PythonInterpreter::GetActionContext()
-//{
-//	return Instance()->get_action_context();
-//}
-
 std::string PythonInterpreter::EscapeSingleQuotedString( const std::string& str )
 {
 	static const boost::regex reg( "[\\\\']" );
 	return boost::regex_replace( str, reg, "\\\\$&", boost::regex_constants::format_default );
 }
+
+void PythonInterpreter::importSCIRunLibrary()
+{
+  run_string("import SCIRunPythonAPI; from SCIRunPythonAPI import *");
+
+#ifdef BUILD_TESTING
+  const std::string assertFuncCode =
+    "def scirun_assert(func, exit=False) :\n"
+    "\tif not func() :\n"
+    "\t\tscirun_add_module('ReadMatrix') # guarantee errored network\n"
+    "\t\tscirun_quit_after_execute()\n"
+    "\t\tscirun_execute_all()\n"
+    "\telse:\n"
+    "\t\tif exit:"
+    "\t\t\tscirun_force_quit() # SCIRun returns 0 to console\n";
+  run_string(assertFuncCode);
+#endif
+}
+
 #endif

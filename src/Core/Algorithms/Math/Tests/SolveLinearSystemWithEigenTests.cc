@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #include <Testing/Utils/SCIRunUnitTests.h>
 #include <fstream>
@@ -344,19 +344,19 @@ TEST(EigenSparseSolverTest, DISABLED_CanSolveBigSystem)
     ScopedTimer t("using algorithm object");
     SolveLinearSystemAlgorithm algo;
 
-    x = algo.run(boost::make_tuple(A, bCol), boost::make_tuple(1e-20, 4000));
-    MatrixHandle solution = x.get<0>();
+    x = algo.run(std::make_tuple(A, bCol), std::make_tuple(1e-20, 4000, "cg"));
+    MatrixHandle solution = std::get<0>(x);
 
     ASSERT_TRUE(solution.get() != nullptr);
-    std::cout << "error: " << x.get<1>() << std::endl;
-    std::cout << "iterations: " << x.get<2>() << std::endl;
+    std::cout << "error: " << std::get<1>(x) << std::endl;
+    std::cout << "iterations: " << std::get<2>(x) << std::endl;
   }
 
   {
     ScopedTimer t("comparing solutions.");
     auto xFileEigen = TestResources::rootDir() / "CGDarrell" / "xEigenNEW.txt";
     std::ofstream output(xFileEigen.string());
-    auto solution = *x.get<0>();
+    auto solution = *std::get<0>(x);
     output << std::setprecision(15) << solution << std::endl;
 
     auto xFileScirun = TestResources::rootDir() / "CGDarrell" / "xScirunColumn.mat";

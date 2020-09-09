@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,8 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
+
 /// @todo Documentation Modules/Fields/ReportFieldInfo.h
 
 #ifndef MODULES_FIELDS_REPORTFIELDINFO_H
@@ -45,7 +46,7 @@ namespace Fields {
     ReportFieldInfo();
     virtual void execute() override;
     virtual void setStateDefaults() override {}
-    INPUT_PORT(0, InputField, LegacyField);
+    INPUT_PORT(0, InputField, Field);
     OUTPUT_PORT(0, NumNodes, Int32);
     OUTPUT_PORT(1, NumElements, Int32);
     OUTPUT_PORT(2, NumData, Int32);

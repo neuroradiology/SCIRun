@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,8 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
+
 #include <Core/Datatypes/Legacy/Field/Field.h>
 #include <Core/Datatypes/Legacy/Field/VField.h>
 #include <Modules/Legacy/Fields/ConvertFieldBasis.h>
@@ -71,8 +72,6 @@ ConvertFieldBasis::execute()
 
   if (needToExecute())
   {
-    update_state(Executing);
-
     pushInputFieldInfo(input);
 
     setAlgoOptionFromState(Parameters::OutputType);
@@ -97,7 +96,7 @@ ConvertFieldBasis::execute()
   }
 }
 
-void ConvertFieldBasis::pushInputFieldInfo(FieldHandle input) const
+void ConvertFieldBasis::pushInputFieldInfo(FieldHandle input)
 {
   auto state = get_state();
   std::string name = input->properties().get_name();

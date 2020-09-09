@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,10 +25,12 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef INTERFACE_APPLICATION_PREFERENCES_H
 #define INTERFACE_APPLICATION_PREFERENCES_H
 
 #include "ui_Preferences.h"
+#include <functional>
 
 namespace SCIRun {
 namespace Gui {
@@ -39,10 +40,12 @@ namespace Gui {
 class PreferencesWindow : public QDialog, public Ui::PreferencesDialog
 {
 	Q_OBJECT
-	
+
 public:
-  explicit PreferencesWindow(NetworkEditor* editor, QWidget* parent = 0);
-  
+  PreferencesWindow(NetworkEditor* editor,
+    std::function<void()> writeSettings,
+    QWidget* parent = nullptr);
+
   bool saveBeforeExecute() const;
   void setSaveBeforeExecute(bool mode);
 
@@ -51,14 +54,28 @@ public:
 
   void setModuleErrorInlineMessages(bool showInlineErrors);
 
+  void setHighDPIAdjustment(bool highDPI);
+  void setModuleExecuteDownstreamOnly(bool mode);
+  void setAutoRotateViewerOnMouseRelease(bool mode);
+  void setWidgetSelectionCorrection(bool mode);
+
 public Q_SLOTS:
   void updateModuleErrorDialogOption(int state);
   void updateModuleErrorInlineMessagesOption(int state);
   void updateSaveBeforeExecuteOption(int state);
   void updateAutoNotesState(int state);
+  void updateHighDPIAdjust(int state);
+  void updateForceGridBackground(int state);
+  void updateWidgetSelectionCorrection(int state);
+  void updateAutoRotateViewer(int state);
+  void updateModuleExecuteDownstream(int state);
+
+protected:
+  void hideEvent(QHideEvent * event) override;
 
 private:
   NetworkEditor* networkEditor_;
+  std::function<void()> writeSettings_;
 };
 
 }

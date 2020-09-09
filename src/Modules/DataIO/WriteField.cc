@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,8 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
+
 /// @todo Documentation Modules/DataIO/WriteField.cc
 
 
@@ -52,6 +53,7 @@
 #include <Core/Logging/Log.h>
 
 using namespace SCIRun::Core::Algorithms;
+using namespace SCIRun::Core::Logging;
 using namespace SCIRun::Modules::DataIO;
 
 WriteField::WriteField()
@@ -65,7 +67,7 @@ WriteField::WriteField()
 
   FieldIEPluginManager mgr;
   auto types = makeGuiTypesListForExport(mgr);
-  get_state()->setValue(Variables::FileTypeList, types);
+  get_state()->setTransientValue(Variables::FileTypeList, types);
 }
 
 bool WriteField::call_exporter(const std::string& filename)
@@ -117,8 +119,8 @@ void WriteField::execute()
 
 bool WriteField::useCustomExporter(const std::string& filename) const
 {
-  auto ft = get_state()->getValue(Variables::FileTypeName).toString();
-  LOG_DEBUG("WriteField with filetype " << ft);
+  auto ft = cstate()->getValue(Variables::FileTypeName).toString();
+  LOG_DEBUG("WriteField with filetype {}", ft);
   auto ret = boost::filesystem::extension(filename) != ".fld";
 
   filetype_ = ft.find("SCIRun Field ASCII") != std::string::npos ? "ASCII" : "Binary";

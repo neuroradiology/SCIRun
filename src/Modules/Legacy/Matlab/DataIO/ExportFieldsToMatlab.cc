@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2009 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #include <Modules/Legacy/Matlab/DataIO/ExportFieldsToMatlab.h>
 #include <sstream>
@@ -63,6 +63,8 @@ ExportFieldsToMatlab::ExportFieldsToMatlab() : Module(staticInfo_)
 void ExportFieldsToMatlab::setStateDefaults()
 {
   get_state()->setValue(Variables::Filename, std::string());
+  get_state()->setValue(Parameters::FieldNames, Variable::List());
+  get_state()->setValue(Parameters::FieldFormats, Variable::List());
 }
 
 void ExportFieldsToMatlab::execute()
@@ -110,8 +112,6 @@ void ExportFieldsToMatlab::execute()
 
     if (!overwrite()) return;
 #endif
-
-    update_state(Executing);
 
     std::vector<std::string> fieldnames;
 

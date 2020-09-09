@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef MODULES_LEGACY_FIELDS_CalculateVectorMagnitudes_H__
 #define MODULES_LEGACY_FIELDS_CalculateVectorMagnitudes_H__
 
@@ -43,11 +43,11 @@ namespace SCIRun {
       public:
         CalculateVectorMagnitudes();
 
-        virtual void execute();
-        virtual void setStateDefaults() {}
+        virtual void execute() override;
+        virtual void setStateDefaults() override {}
 
-        INPUT_PORT(0, VectorField, LegacyField);
-        OUTPUT_PORT(0, ScalarField, LegacyField);
+        INPUT_PORT(0, VectorField, Field);
+        OUTPUT_PORT(0, ScalarField, Field);
         MODULE_TRAITS_AND_INFO(ModuleHasAlgorithm)
       };
 

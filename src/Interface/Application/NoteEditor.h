@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef INTERFACE_APPLICATION_NOTESEDITOR_H
 #define INTERFACE_APPLICATION_NOTESEDITOR_H
 
@@ -40,35 +40,38 @@ namespace Gui {
 class NoteEditor : public QDialog, public Ui::NoteEditor
 {
 	Q_OBJECT
-	
+
 public:
   explicit NoteEditor(const QString& moduleName, bool positionAdjustable = true, QWidget* parent = 0);
   void setNoteHtml(const QString& text);
-  void setNoteFontSize(int size);
 public Q_SLOTS:
   void changeNotePosition(int index);
+  void setNoteFontSize(int size);
+  void setDefaultNoteFontSize(int size);
 private Q_SLOTS:
   void changeTextColor();
   void changeFontSize(const QString& text);
   void changeTextAlignment(const QString& text);
   void resetText();
   void resetTextColor();
-  
+
   void ok();
   void cancel();
   void updateNote();
 Q_SIGNALS:
   void noteChanged(const Note& note);
 protected:
-  virtual void showEvent(QShowEvent* event);
+  void showEvent(QShowEvent* event) override;
 private:
   void setNoteColor(const QColor& color);
   QString moduleName_;
   Note currentNote_;
   QString noteHtmlBackup_;
   int fontSizeBackup_, positionBackup_;
-  QColor previousColor_;
+  QColor previousColor_, currentColor_;
   NotePosition position_;
+  int defaultNoteFontSize_{ 20 };
+  int callCount_{ 0 };
 };
 
 }

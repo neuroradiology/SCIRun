@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,12 +24,15 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
+
 /// @todo Documentation Core/Datatypes/MatrixFwd.h
 
 #ifndef CORE_DATATYPES_MATRIX_FWD_H
 #define CORE_DATATYPES_MATRIX_FWD_H
 
 #include <Core/Datatypes/Legacy/Base/TypeName.h>
+#include <Core/Utils/SmartPointers.h>
 // ReSharper disable once CppUnusedIncludeDirective
 #include <boost/shared_ptr.hpp>
 
@@ -41,19 +43,20 @@ namespace Datatypes {
   template <typename T>
   class MatrixBase;
 
-  typedef MatrixBase<double> Matrix;
+  using Matrix = MatrixBase<double>;
   using ComplexMatrix = MatrixBase<complex>;
-
-  template <typename T>
-  using SharedPointer = boost::shared_ptr<T>;
 
   typedef SharedPointer<Matrix> MatrixHandle;
   typedef SharedPointer<const Matrix> MatrixConstHandle;
+  template <typename T>
+  using MatrixHandleGeneric = SharedPointer<MatrixBase<T>>;
 
   typedef SharedPointer<ComplexMatrix> ComplexMatrixHandle;
 
   template <typename T>
   class DenseMatrixGeneric;
+  template <typename T>
+  using DenseMatrixHandleGeneric = SharedPointer<DenseMatrixGeneric<T>>;
 
   typedef DenseMatrixGeneric<double> DenseMatrix;
   using ComplexDenseMatrix = DenseMatrixGeneric<complex>;
@@ -64,14 +67,21 @@ namespace Datatypes {
 
   template <typename T>
   class DenseColumnMatrixGeneric;
+  template <typename T>
+  using DenseColumnMatrixHandleGeneric = SharedPointer<DenseColumnMatrixGeneric<T>>;
 
   typedef DenseColumnMatrixGeneric<double> DenseColumnMatrix;
+  using ComplexDenseColumnMatrix = DenseColumnMatrixGeneric<complex>;
 
   typedef SharedPointer<DenseColumnMatrix> DenseColumnMatrixHandle;
   typedef SharedPointer<const DenseColumnMatrix> DenseColumnMatrixConstHandle;
 
+  typedef SharedPointer<ComplexDenseColumnMatrix> ComplexDenseColumnMatrixHandle;
+
   template <typename T>
   class SparseRowMatrixGeneric;
+  template <typename T>
+  using SparseRowMatrixHandleGeneric = SharedPointer<SparseRowMatrixGeneric<T>>;
 
   typedef SparseRowMatrixGeneric<double> SparseRowMatrix;
   using ComplexSparseRowMatrix = SparseRowMatrixGeneric<complex>;

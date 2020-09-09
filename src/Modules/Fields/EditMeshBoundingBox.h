@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -24,22 +23,19 @@
    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
-   */
+*/
+
 
 #ifndef MODULES_FIELDS_EDITMESHBOUNDINGBOX_H
 #define MODULES_FIELDS_EDITMESHBOUNDINGBOX_H
 
-#include <Dataflow/Network/Module.h>
-#include <Modules/Fields/BoxWidgetTypes.h>
+#include <Dataflow/Network/GeometryGeneratingModule.h>
+#include <Graphics/Datatypes/GeometryImpl.h>
+#include <Graphics/Widgets/Widget.h>
 #include <Core/Datatypes/Geometry.h>
-#include <Core/GeometryPrimitives/BBox.h>
 #include <Modules/Fields/share.h>
 
 namespace SCIRun {
-
-  class BoxWidgetInterface;
-  typedef boost::shared_ptr<BoxWidgetInterface> BoxWidgetPtr;
-
   namespace Modules {
     namespace Fields {
 
@@ -51,10 +47,11 @@ namespace SCIRun {
       {
       public:
         EditMeshBoundingBox();
-        virtual void execute() override;
-        virtual void setStateDefaults() override;
+        void execute() override;
+        void setStateDefaults() override;
 
-        static const Core::Algorithms::AlgorithmParameterName Resetting;
+        static const Core::Algorithms::AlgorithmParameterName ResetSize;
+        static const Core::Algorithms::AlgorithmParameterName ResetCenter;
         //Input Field Attributes
         static const Core::Algorithms::AlgorithmParameterName InputCenterX;
         static const Core::Algorithms::AlgorithmParameterName InputCenterY;
@@ -63,8 +60,8 @@ namespace SCIRun {
         static const Core::Algorithms::AlgorithmParameterName InputSizeY;
         static const Core::Algorithms::AlgorithmParameterName InputSizeZ;
         //Output Field Atributes
-        static const Core::Algorithms::AlgorithmParameterName UseOutputCenter;
-        static const Core::Algorithms::AlgorithmParameterName UseOutputSize;
+        static const Core::Algorithms::AlgorithmParameterName SetOutputCenter;
+        static const Core::Algorithms::AlgorithmParameterName SetOutputSize;
         static const Core::Algorithms::AlgorithmParameterName OutputCenterX;
         static const Core::Algorithms::AlgorithmParameterName OutputCenterY;
         static const Core::Algorithms::AlgorithmParameterName OutputCenterZ;
@@ -73,6 +70,7 @@ namespace SCIRun {
         static const Core::Algorithms::AlgorithmParameterName OutputSizeZ;
         //Widget Scale/Mode
         static const Core::Algorithms::AlgorithmParameterName Scale;
+        static const Core::Algorithms::AlgorithmParameterName ScaleChanged;
         static const Core::Algorithms::AlgorithmParameterName NoTranslation;
         static const Core::Algorithms::AlgorithmParameterName XYZTranslation;
         static const Core::Algorithms::AlgorithmParameterName RDITranslation;
@@ -86,8 +84,8 @@ namespace SCIRun {
         static const Core::Algorithms::AlgorithmParameterName BoxMode;
         static const Core::Algorithms::AlgorithmParameterName BoxRealScale;
 
-        INPUT_PORT(0, InputField, LegacyField);
-        OUTPUT_PORT(0, OutputField, LegacyField);
+        INPUT_PORT(0, InputField, Field);
+        OUTPUT_PORT(0, OutputField, Field);
         OUTPUT_PORT(1, Transformation_Widget, GeometryObject);
         OUTPUT_PORT(2, Transformation_Matrix, Matrix);
 
@@ -97,18 +95,11 @@ namespace SCIRun {
         void executeImpl(FieldHandle f);
         void clear_vals();
         void update_input_attributes(FieldHandle);
-        void updateOutputAttributes(const Core::Geometry::BBox& box);
-        void build_widget(FieldHandle, bool reset);
-        bool isBoxEmpty() const;
-        void widget_moved(bool);
-        void createBoxWidget();
-        void setBoxRestrictions();
-        Core::Datatypes::GeometryBaseHandle buildGeometryObject();
+        void computeWidgetBox(const Core::Geometry::BBox& box) const;
+        Graphics::Datatypes::GeometryHandle buildGeometryObject();
         void processWidgetFeedback(const Core::Datatypes::ModuleFeedback& var);
         void adjustGeometryFromTransform(const Core::Geometry::Transform& transformMatrix);
-        SCIRun::Core::Geometry::BBox bbox_;
 
-        BoxWidgetPtr box_;
         boost::shared_ptr<EditMeshBoundingBoxImpl> impl_;
         bool widgetMoved_;
       };

@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 /// @todo Documentation Modules/Basic/DynamicPortTester.h
 
@@ -47,12 +47,12 @@ namespace Basic {
   {
   public:
     DynamicPortTester();
-    virtual void execute();
-    virtual void setStateDefaults() {}
-    virtual bool hasDynamicPorts() const { return true; }
+    void execute() override;
+    void setStateDefaults() override {}
+    bool hasDynamicPorts() const override { return true; }
 
     INPUT_PORT_DYNAMIC(0, DynamicMatrix, Matrix);
-    INPUT_PORT_DYNAMIC(1, DynamicField, LegacyField);
+    INPUT_PORT_DYNAMIC(1, DynamicField, Field);
     INPUT_PORT_DYNAMIC(2, DynamicString, String);
 
     OUTPUT_PORT(0, NumMatrices, Int32);

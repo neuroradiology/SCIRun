@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef MODULES_MATH_GETMATRIXSLICEMODULE_H
 #define MODULES_MATH_GETMATRIXSLICEMODULE_H
 
@@ -44,8 +44,8 @@ namespace Math {
 
   public:
     GetMatrixSlice();
-    virtual void execute();
-    virtual void setStateDefaults();
+    void execute() override;
+    void setStateDefaults() override;
     INPUT_PORT(0, InputMatrix, Matrix);
     INPUT_PORT(1, Current_Index, Int32);
     OUTPUT_PORT(0, OutputMatrix, Matrix);

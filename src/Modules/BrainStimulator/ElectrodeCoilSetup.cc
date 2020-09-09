@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,8 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
+
 #include <Modules/BrainStimulator/ElectrodeCoilSetup.h>
 #include <iostream>
 #include <Core/Datatypes/String.h>
@@ -86,7 +87,6 @@ void ElectrodeCoilSetup::execute()
    setAlgoBoolFromState(Parameters::InterpolateElectrodeShapeCheckbox);
    setAlgoDoubleFromState(Parameters::ElectrodethicknessSpinBox);
 
-   update_state(Executing);
    if(elc_coil_proto.size()>0)
     {
      get_state()->setValue(Parameters::NumberOfPrototypes, (int)elc_coil_proto.size());

@@ -1,30 +1,30 @@
 /*
- For more information, please see: http://software.sci.utah.edu
+   For more information, please see: http://software.sci.utah.edu
 
- The MIT License
+   The MIT License
 
- Copyright (c) 2015 Scientific Computing and Imaging Institute,
- University of Utah.
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
+   University of Utah.
 
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the "Software"),
+   to deal in the Software without restriction, including without limitation
+   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+   and/or sell copies of the Software, and to permit persons to whom the
+   Software is furnished to do so, subject to the following conditions:
 
- Permission is hereby granted, free of charge, to any person obtaining a
- copy of this software and associated documentation files (the "Software"),
- to deal in the Software without restriction, including without limitation
- the rights to use, copy, modify, merge, publish, distribute, sublicense,
- and/or sell copies of the Software, and to permit persons to whom the
- Software is furnished to do so, subject to the following conditions:
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Software.
 
- The above copyright notice and this permission notice shall be included
- in all copies or substantial portions of the Software.
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+*/
 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
- THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- DEALINGS IN THE SOFTWARE.
- */
 
 #include <boost/filesystem.hpp>
 
@@ -34,10 +34,11 @@
 #include <Modules/Factory/HardCodedModuleFactory.h>
 #include <Core/Algorithms/Factory/HardCodedAlgorithmFactory.h>
 #include <Dataflow/State/SimpleMapModuleState.h>
-#include <Dataflow/Network/Module.h>  //TODO move Reex
+#include <Dataflow/Network/ModuleReexecutionStrategies.h>
 #include <Dataflow/Engine/Scheduler/DesktopExecutionStrategyFactory.h>
 #include <Core/Command/GlobalCommandBuilderFromCommandLine.h>
 #include <Core/Logging/Log.h>
+#include <Core/Logging/ApplicationHelper.h>
 #include <Core/IEPlugin/IEPluginInit.h>
 #include <Core/Utils/Exception.h>
 #include <Core/Application/Session/Session.h>
@@ -47,6 +48,7 @@
 #include <Dataflow/Serialization/Network/XMLSerializer.h>
 #include <Dataflow/Serialization/Network/NetworkDescriptionSerialization.h>
 #include <boost/algorithm/string.hpp>
+#include <Core/Thread/Parallel.h>
 
 using namespace SCIRun::Core;
 using namespace SCIRun::Core::Logging;
@@ -62,9 +64,8 @@ namespace SCIRun
 {
   namespace Core
   {
-    class ApplicationPrivate
+    struct ApplicationPrivate
     {
-    public:
       CommandLineParser parser;
       boost::filesystem::path app_filepath_;
       boost::filesystem::path app_filename_;
@@ -83,7 +84,7 @@ Application::Application() :
   private_->app_filepath_ = boost::filesystem::current_path();
   //std::cout << "exec path set to: " << private_->app_filepath_ << std::endl;
   auto configDir = configDirectory();
-  Log::setLogDirectory(configDir);
+  LogSettings::Instance().setLogDirectory(configDir);
   SessionManager::Instance().initialize(configDir);
   SessionManager::Instance().session()->beginSession();
 }
@@ -96,18 +97,18 @@ Application::~Application()
 void Application::shutdown()
 {
   if (!private_)
-    Log::get() << NOTICE << "Application shutdown called with null internals" << std::endl;
+    logInfo("Application shutdown called with null internals");
   try
   {
     private_.reset();
   }
   catch (std::exception& e)
   {
-    Log::get() << EMERG << "Unhandled exception during application shutdown: " << e.what() << std::endl;
+    logCritical("Unhandled exception during application shutdown: {}", e.what());
   }
   catch (...)
   {
-    Log::get() << EMERG << "Unknown unhandled exception during application shutdown" << std::endl;
+    logCritical("Unknown unhandled exception during application shutdown");
   }
 }
 
@@ -153,7 +154,14 @@ void Application::readCommandLine(int argc, const char* argv[])
 
   private_->parameters_ = private_->parser.parse(argc, argv);
 
-  Logging::Log::get().setVerbose(parameters()->verboseMode());
+  //TODO: move this special logic somewhere else
+  {
+    auto maxCoresOption = private_->parameters_->developerParameters()->maxCores();
+    if (maxCoresOption)
+      Thread::Parallel::SetMaximumCores(*maxCoresOption);
+
+    LogSettings::Instance().setVerbose(parameters()->verboseMode());
+  }
 }
 
 namespace
@@ -172,8 +180,8 @@ namespace
 
       if (!script_.empty())
       {
-        PythonInterpreter::Instance().run_string("import SCIRunPythonAPI; from SCIRunPythonAPI import *");
-        PythonInterpreter::Instance().run_string(script_);
+        PythonInterpreter::Instance().importSCIRunLibrary();
+        PythonInterpreter::Instance().run_script(script_);
       }
       return true;
     }
@@ -191,9 +199,17 @@ namespace
       switch (type)
       {
       case NetworkEventCommands::PostModuleAdd:
-        return boost::make_shared<HardCodedPythonTestCommand>(prefs.postModuleAddScript_temporarySolution.val(), prefs.postModuleAddScriptEnabled_temporarySolution.val());
+        return boost::make_shared<HardCodedPythonTestCommand>(
+          prefs.postModuleAdd.script.val(),
+          prefs.postModuleAdd.enabled.val());
       case NetworkEventCommands::OnNetworkLoad:
-        return boost::make_shared<HardCodedPythonTestCommand>(prefs.onNetworkLoadScript_temporarySolution.val(), prefs.onNetworkLoadScriptEnabled_temporarySolution.val());
+        return boost::make_shared<HardCodedPythonTestCommand>(
+          prefs.onNetworkLoad.script.val(),
+          prefs.onNetworkLoad.enabled.val());
+      case NetworkEventCommands::ApplicationStart:
+        return boost::make_shared<HardCodedPythonTestCommand>(
+          prefs.applicationStart.script.val(),
+          prefs.applicationStart.enabled.val());
       }
       return nullptr;
     }
@@ -230,10 +246,6 @@ NetworkEditorControllerHandle Application::controller()
 
     /// @todo: sloppy way to initialize this but similar to v4, oh well
     IEPluginManager::Initialize();
-
-    /// @todo split out into separate piece
-    // TODO: turn off until Matlab services are converted.
-    // private_->start_eai();
   }
   return private_->controller_;
 }
@@ -287,6 +299,23 @@ std::string Application::moduleList()
     }
   }
   return ostr.str();
+}
+
+bool Application::moduleNameExists(const std::string& name)
+{
+  auto map = controller()->getAllAvailableModuleDescriptions();
+  for (const auto& p1 : map)
+  {
+    for (const auto& p2 : p1.second)
+    {
+      for (const auto& p3 : p2.second)
+      {
+        if (boost::iequals(name, p3.first))
+          return true;
+      }
+    }
+  }
+  return false;
 }
 
 boost::filesystem::path Application::configDirectory() const

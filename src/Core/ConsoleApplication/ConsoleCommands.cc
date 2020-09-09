@@ -1,30 +1,30 @@
 /*
-For more information, please see: http://software.sci.utah.edu
+   For more information, please see: http://software.sci.utah.edu
 
-The MIT License
+   The MIT License
 
-Copyright (c) 2015 Scientific Computing and Imaging Institute,
-University of Utah.
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
+   University of Utah.
 
-License for the specific language governing rights and limitations under
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the "Software"),
-to deal in the Software without restriction, including without limitation
-the rights to use, copy, modify, merge, publish, distribute, sublicense,
-and/or sell copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following conditions:
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the "Software"),
+   to deal in the Software without restriction, including without limitation
+   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+   and/or sell copies of the Software, and to permit persons to whom the
+   Software is furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included
-in all copies or substantial portions of the Software.
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
 */
+
 
 #include <Core/ConsoleApplication/ConsoleCommands.h>
 #include <Core/Algorithms/Base/AlgorithmVariableNames.h>
@@ -41,6 +41,7 @@ DEALINGS IN THE SOFTWARE.
 using namespace SCIRun::Core;
 using namespace Commands;
 using namespace Console;
+using namespace Logging;
 using namespace SCIRun::Dataflow::Networks;
 using namespace Algorithms;
 
@@ -55,7 +56,7 @@ namespace
   void quietModulesIfNotVerbose()
   {
     if (!Application::Instance().parameters()->verboseMode())
-      Module::defaultLogger_.reset(new SCIRun::Core::Logging::NullLogger);
+      DefaultModuleFactories::defaultLogger_.reset(new Logging::NullLogger);
   }
 }
 
@@ -170,21 +171,29 @@ bool InteractiveModeCommandConsole::execute()
 {
 #ifdef BUILD_WITH_PYTHON
   quietModulesIfNotVerbose();
-  PythonInterpreter::Instance().run_string("import SCIRunPythonAPI; from SCIRunPythonAPI import *");
+  PythonInterpreter::Instance().importSCIRunLibrary();
   std::string line;
 
+#ifndef WIN32
+  LOG_CONSOLE("\033[1; 31mEntering interactive mode, type quit or hit ^C to exit.\033[0m");
+#else
+  LOG_CONSOLE("Entering interactive mode, type quit or hit ^C to exit.");
+#endif
   while (true)
   {
     std::cout << "scirun5> " << std::flush;
     std::getline(std::cin, line);
-    if (line == "quit") // TODO: need fix for ^D entry || (!x.empty() && x[0] == '\004'))
+    if (line == "quit")
       break;
     if (std::cin.eof())
       break;
     if (!PythonInterpreter::Instance().run_string(line))
       break;
   }
-  std::cout << "\n[SCIRun] Goodbye!" << std::endl;
+  std::cout << std::endl;
+  LOG_CONSOLE("~~~~~~~");
+  LOG_CONSOLE("Goodbye!");
+  LOG_CONSOLE("~~~~~~~");
   exit(0);
 #endif
   return true;
@@ -194,26 +203,35 @@ bool RunPythonScriptCommandConsole::execute()
 {
   quietModulesIfNotVerbose();
 
-  auto script = Application::Instance().parameters()->pythonScriptFile();
+  auto& app = Application::Instance();
+  auto script = app.parameters()->pythonScriptFile();
   if (script)
   {
 #ifdef BUILD_WITH_PYTHON
     LOG_CONSOLE("RUNNING PYTHON SCRIPT: " << *script);
 
-    Application::Instance().controller()->clear();
-    PythonInterpreter::Instance().run_string("import SCIRunPythonAPI; from SCIRunPythonAPI import *");
-    PythonInterpreter::Instance().run_file(script->string());
+    app.controller()->clear();
+    PythonInterpreter::Instance().importSCIRunLibrary();
 
-    //TODO: not sure what else to do here. Probably wait on a condition variable, or just loop forever
-    if (!Application::Instance().parameters()->interactiveMode())
+    if (app.parameters()->quitAfterOneScriptedExecution())
     {
-      while (true)
-      {
-        LOG_CONSOLE("Running Python script.");
-        boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
-      }
+      app.controller()->connectNetworkExecutionFinished([](int code){ LOG_CONSOLE("Execution finished with code " << code); exit(code); });
+      app.controller()->stopExecutionContextLoopWhenExecutionFinishes();
     }
+
+    if (!PythonInterpreter::Instance().run_file(script->string()))
+    {
+      return false;
+    }
+
     LOG_CONSOLE("Done running Python script.");
+
+    if (!app.parameters()->quitAfterOneScriptedExecution())
+    {
+      InteractiveModeCommandConsole interactive;
+      return interactive.execute();
+    }
+
     return true;
 #else
     LOG_CONSOLE("Python disabled, cannot run script " << *script);
@@ -226,7 +244,7 @@ bool RunPythonScriptCommandConsole::execute()
 bool SetupDataDirectoryCommand::execute()
 {
   auto dir = Application::Instance().parameters()->dataDirectory().get();
-  LOG_DEBUG("Data dir set to: " << dir << std::endl);
+  LOG_DEBUG("Data dir set to: {}", dir.string());
 
   Preferences::Instance().setDataDirectory(dir);
   return true;

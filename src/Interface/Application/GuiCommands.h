@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #ifndef INTERFACE_APPLICATION_GUICOMMANDS_H
 #define INTERFACE_APPLICATION_GUICOMMANDS_H
@@ -105,7 +105,7 @@ namespace Gui {
   {
   public:
     NetworkFileProcessCommand();
-    virtual bool execute() override;
+    bool execute() override;
 
     Dataflow::Networks::NetworkFileHandle file_;
   protected:
@@ -116,29 +116,38 @@ namespace Gui {
 
   class FileOpenCommand : public NetworkFileProcessCommand
   {
+  public:
+    FileOpenCommand();
   protected:
-    virtual Dataflow::Networks::NetworkFileHandle processXmlFile(const std::string& filename) override;
+    Dataflow::Networks::NetworkFileHandle processXmlFile(const std::string& filename) override;
   };
 
   class FileImportCommand : public NetworkFileProcessCommand
   {
   public:
+    FileImportCommand();
     std::string logContents() const { return logContents_.str(); }
   protected:
-    virtual Dataflow::Networks::NetworkFileHandle processXmlFile(const std::string& filename) override;
+    Dataflow::Networks::NetworkFileHandle processXmlFile(const std::string& filename) override;
     std::ostringstream logContents_;
   };
 
   class NetworkSaveCommand : public Core::Commands::FileCommand<Core::Commands::GuiCommand>, public Core::Commands::SaveFileCommandHelper
   {
   public:
-    virtual bool execute() override;
+    bool execute() override;
   };
 
   class DisableViewScenesCommandGui : public Core::Commands::GuiCommand
   {
   public:
-    virtual bool execute() override;
+    bool execute() override;
+  };
+
+  class ToolkitUnpackerCommand : public Core::Commands::FileCommand<Core::Commands::GuiCommand>
+  {
+  public:
+    bool execute() override;
   };
 }
 }

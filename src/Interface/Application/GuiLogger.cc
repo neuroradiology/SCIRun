@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,32 +25,32 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#include <iostream>
+
 #include <Interface/Application/GuiLogger.h>
-#include <Core/Logging/LoggerInterface.h>
+#include <Core/Logging/Log.h>
 
 using namespace SCIRun::Gui;
 using namespace SCIRun::Core::Logging;
 
-CORE_SINGLETON_IMPLEMENTATION(GuiLogger)
-
-LoggerHandle GuiLogger::loggerImpl_;
-
-GuiLogger::GuiLogger() {}
-
-void SCIRun::Gui::GuiLogger::setInstance(LoggerHandle logger)
+GuiLog::GuiLog() : Log2("ui", Core::Logging::useLogCheckForWindows7())
 {
-  loggerImpl_ = logger;
 }
 
-void GuiLogger::logInfo(const QString& message) const
+void GuiLogger::logInfoQ(const QString& message)
 {
-  if (loggerImpl_)
-    loggerImpl_->status(message.toStdString());
+  auto log = GuiLog::Instance().get();
+  if (log)
+    log->info(message.toStdString());
+  if (LogSettings::Instance().verbose())
+    logInfo(message.toStdString().c_str());
 }
 
-void GuiLogger::logError(const QString& message) const
+void GuiLogger::logErrorQ(const QString& message)
 {
-  if (loggerImpl_)
-    loggerImpl_->error(message.toStdString());
+  auto log = GuiLog::Instance().get();
+  if (log)
+    log->error(message.toStdString());
+  logError(message.toStdString().c_str());
 }
+
+CORE_SINGLETON_IMPLEMENTATION(GuiLog)

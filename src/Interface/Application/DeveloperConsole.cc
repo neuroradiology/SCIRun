@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #include <QtGui>
 #include <iostream>
 #include <Interface/Application/DeveloperConsole.h>
@@ -39,6 +39,11 @@ DeveloperConsole::DeveloperConsole(QWidget* parent /* = 0 */) : QDockWidget(pare
   connect(parallelExecutionRadioButton_, SIGNAL(clicked()), this, SLOT(executorButtonClicked()));
   connect(improvedParallelExecutionRadioButton_, SIGNAL(clicked()), this, SLOT(executorButtonClicked()));
   connect(globalPortCacheButton_, SIGNAL(stateChanged(int)), this, SLOT(globalPortCacheButtonClicked()));
+}
+
+void DeveloperConsole::updateNetworkViewLog(const QString& s)
+{
+  networkViewPlainTextEdit_->setPlainText(networkViewPlainTextEdit_->toPlainText() + "\n" + s);
 }
 
 void DeveloperConsole::executorButtonClicked()

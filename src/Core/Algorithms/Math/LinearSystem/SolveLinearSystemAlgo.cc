@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 ///////////////////////////
 // PORTED SCIRUN v4 CODE //
@@ -1091,7 +1091,7 @@ bool SolveLinearSystemAlgo::run(SparseRowMatrixHandle A,
   ENSURE_POSITIVE_DOUBLE(tolerance, "Tolerance out of range!");
   ENSURE_POSITIVE_INT(maxIterations, "Max iterations out of range!");
 
-  if (!matrixIs::sparse(A))
+  if (false/*!matrixIs::sparse(A)*/)
   {
     THROW_ALGORITHM_INPUT_ERROR("Matrix A is not sparse");
 #ifdef SCIRUN4_CODE_TO_BE_ENABLED_LATER
@@ -1104,7 +1104,7 @@ bool SolveLinearSystemAlgo::run(SparseRowMatrixHandle A,
 #endif
   }
 
-  if (!matrixIs::dense(b) && !matrixIs::column(b))
+  if (false)
   {
     THROW_ALGORITHM_INPUT_ERROR("Matrix b is not a dense or column matrix");
 #ifdef SCIRUN4_CODE_TO_BE_ENABLED_LATER
@@ -1120,14 +1120,9 @@ bool SolveLinearSystemAlgo::run(SparseRowMatrixHandle A,
   if (!x0)
   {
     // create an x0 matrix
-    DenseColumnMatrixHandle temp(boost::make_shared<DenseColumnMatrix>(b->nrows()));
+    auto temp(boost::make_shared<DenseColumnMatrix>(b->nrows()));
     temp->setZero();
     x0 = temp;
-  }
-
-  if (!matrixIs::dense(x0) && !matrixIs::column(x0))
-  {
-    THROW_ALGORITHM_INPUT_ERROR("Matrix x0 is not a dense or column matrix");
   }
 
   if ((x0->ncols() != 1) || (b->ncols() != 1))
@@ -1217,7 +1212,7 @@ AlgorithmOutput SolveLinearSystemAlgo::run(const AlgorithmInput& input) const
   {
     BOOST_THROW_EXCEPTION(AlgorithmProcessingException() << ErrorMessage("SolveLinearSystem Algo returned false--need to improve error conditions so it throws before returning."));
   }
-  
+
   AlgorithmOutput output;
   output[Variables::Solution] = boost::make_shared<DenseMatrix>(solution->col(0));
   return output;

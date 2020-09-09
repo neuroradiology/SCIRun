@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef INTERFACE_APPLICATION_MAINWINDOWCOLLABORATORS_H
 #define INTERFACE_APPLICATION_MAINWINDOWCOLLABORATORS_H
 
@@ -34,7 +34,9 @@
 #include <Core/Logging/Log.h>
 #include <Core/Utils/Singleton.h>
 #include <set>
+#include <deque>
 #include <Interface/Application/NetworkEditor.h>  //TODO
+#include <Interface/Application/NetworkExecutionProgressBar.h>
 #endif
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
@@ -52,34 +54,28 @@ class QStatusBar;
 namespace SCIRun {
 namespace Gui {
 
-  class TextEditAppender : public Core::Logging::LegacyLoggerInterface, public Core::Logging::LogAppenderStrategy
+  class SCIRunMainWindow;
+  class ModuleDialogGeneric;
+
+  class TextEditAppender : public Core::Logging::LogAppenderStrategy
   {
   public:
-    explicit TextEditAppender(QTextEdit* text, bool regressionMode = false) :
-      text_(text), regressionMode_(regressionMode) {}
-
+    explicit TextEditAppender(QTextEdit* text) : text_(text) {}
     void log(const QString& message) const;
-
-    virtual void error(const std::string& msg) const override;
-    virtual void warning(const std::string& msg) const override;
-    virtual void remark(const std::string& msg) const override;
-    virtual void status(const std::string& msg) const override;
-
     virtual void log4(const std::string& message) const override;
   private:
     QTextEdit* text_;
     mutable QMutex mutex_;
-    bool regressionMode_;
   };
 
   class TreeViewModuleGetter : public CurrentModuleSelection
   {
   public:
     explicit TreeViewModuleGetter(QTreeWidget& tree) : tree_(tree) {}
-    virtual QString text() const override;
-    virtual QString clipboardXML() const override;
-    virtual bool isModule() const override;
-    virtual bool isClipboardXML() const override;
+    QString text() const override;
+    QString clipboardXML() const override;
+    bool isModule() const override;
+    bool isClipboardXML() const override;
   private:
     QTreeWidget& tree_;
   };
@@ -87,10 +83,12 @@ namespace Gui {
   class ComboBoxDefaultNotePositionGetter : public DefaultNotePositionGetter
   {
   public:
-    explicit ComboBoxDefaultNotePositionGetter(QComboBox& combo) : combo_(combo) {}
-    virtual NotePosition position() const override;
+    ComboBoxDefaultNotePositionGetter(QComboBox* positionCombo, QComboBox* sizeCombo) : positionCombo_(positionCombo), sizeCombo_(sizeCombo) {}
+    NotePosition position() const override;
+    int size() const override;
   private:
-    QComboBox& combo_;
+    QComboBox* positionCombo_;
+    QComboBox* sizeCombo_;
   };
 
   typedef boost::variant<QAction*, QWidget*> InputWidget;
@@ -140,7 +138,7 @@ namespace Gui {
     Q_OBJECT
 
   public:
-    explicit FileDownloader(QUrl imageUrl, QStatusBar* statusBar, QObject *parent = 0);
+    explicit FileDownloader(QUrl imageUrl, QStatusBar* statusBar, QObject *parent = nullptr);
     QByteArray downloadedData() const { return downloadedData_; }
 
   Q_SIGNALS:
@@ -148,7 +146,7 @@ namespace Gui {
 
   private Q_SLOTS:
     void fileDownloaded(QNetworkReply* reply);
-    void downloadProgress(qint64 received, qint64 total);
+    void downloadProgress(qint64 received, qint64 total) const;
   private:
     QNetworkAccessManager webCtrl_;
     QNetworkReply* reply_;
@@ -160,16 +158,16 @@ namespace Gui {
   {
     Q_OBJECT
   public:
-    explicit ToolkitDownloader(QObject* infoObject, QStatusBar* statusBar, QWidget* parent = 0);
+    explicit ToolkitDownloader(QObject* infoObject, QStatusBar* statusBar, QWidget* parent = nullptr);
   private Q_SLOTS:
     void showMessageBox();
-    void saveToolkit();
+    void saveToolkit() const;
 
   private:
     void downloadIcon(); //TODO: cache somehow
     FileDownloader* iconDownloader_;
     FileDownloader* zipDownloader_;
-    QString iconUrl_, fileUrl_, filename_;
+    QString iconUrl_, iconKey_, fileUrl_, filename_;
     QDir toolkitDir_;
     QStatusBar* statusBar_;
   };
@@ -194,6 +192,120 @@ namespace Gui {
     QWizardPage* createOtherSettingsPage();
     QLineEdit* pathWidget_;
     bool showPrefs_{ false };
+  };
+
+  class PythonWizard : public QWizard
+  {
+    Q_OBJECT
+  public:
+    enum {  Page_Home, Page_Create_Intro, Page_Save, Page_LatVol, Page_MeshBox, Page_Connection,
+            Page_CalcData, Page_Iso, Page_ShowField, Page_ViewScene, Page_Execute,
+            Page_Load_Intro, Page_Load,
+            Page_Wand_Intro, Page_Wand,
+            Page_Int_Intro, Page_Base, Page_IntPy, Page_SetPy};
+    explicit PythonWizard(std:: function<void(const QString&)> display, QWidget* parent);
+    ~PythonWizard();
+  public Q_SLOTS:
+    void setShowPrefs(int state);
+  private Q_SLOTS:
+    void updatePathLabel(const QString& dir);
+    void showPrefs();
+    void customClicked(int which);
+    void switchPage(QAbstractButton* button);
+
+
+  private:
+    QWizardPage* createIntroPage();
+    QWizardPage* createCreateIntroPage();
+    QWizardPage* createSaveNetworkPage();
+    QWizardPage* createLatVolPage();
+    QWizardPage* createEditMeshBoundingBoxPage();
+    QWizardPage* createConnectionPage();
+    QWizardPage* createCalculateFieldDataPage();
+    QWizardPage* createExtractIsosurfacePage();
+    QWizardPage* createShowFieldPage();
+    QWizardPage* createViewScenePage();
+    QWizardPage* createExecutePage();
+
+    QWizardPage* createLoadingNetworkIntroPage();
+    QWizardPage* createLoadNetworkPage();
+
+    QWizardPage* createWandIntroPage();
+    QWizardPage* createWandPage();
+
+    QWizardPage* createInterfaceIntroPage();
+    QWizardPage* createBaseNetworkPage();
+    QWizardPage* createAddIntPyPage();
+    QWizardPage* createSetPythonPage();
+
+    QLineEdit* pathWidget_;
+    bool showPrefs_{ false };
+    std::function<void(const QString&)> displayPython_;
+  };
+
+  struct ToolkitInfo
+  {
+    static const char* ToolkitIconURL;
+    static const char* ToolkitURL;
+    static const char* ToolkitFilename;
+
+    QString iconUrl, zipUrl, filename;
+
+    void setupAction(QAction* action, QObject* window) const;
+  };
+
+  class NetworkStatusImpl : public NetworkStatus
+  {
+  public:
+    explicit NetworkStatusImpl(NetworkEditor* ned) : ned_(ned) {}
+    size_t total() const override;
+    size_t waiting() const override;
+    size_t executing() const override;
+    size_t errored() const override;
+    size_t nonReexecuted() const override;
+    size_t finished() const override;
+    size_t unexecuted() const override;
+  private:
+    NetworkEditor* ned_;
+    size_t countState(Dataflow::Networks::ModuleExecutionState::Value val) const;
+  };
+
+  class NetworkEditorBuilder
+  {
+  public:
+    explicit NetworkEditorBuilder(SCIRunMainWindow* mainWindow) : mainWindow_(mainWindow) {}
+    void connectAll(NetworkEditor* editor);
+  private:
+    SCIRunMainWindow* mainWindow_;
+  };
+
+  class DockManager : public QObject
+  {
+    Q_OBJECT
+  public:
+    explicit DockManager(int& availableSize, QObject* parent);
+  public Q_SLOTS:
+    void requestShow(ModuleDialogGeneric* dialog);
+  private:
+    int& availableHeight_;
+    const std::set<ModuleDialogGeneric*>& currentDialogs_;
+    std::deque<ModuleDialogGeneric*> collapseQueue_;
+    int usedSpace() const;
+  };
+
+  QString networkBackgroundImage();
+  QString standardNetworkBackgroundImage();
+
+  //TODO: global function replacements for SCIRunMainWindow access. extract into new file/namespace
+  QString scirunStylesheet();
+  QMainWindow* mainWindowWidget();
+
+  class SCIRunGuiRunner
+  {
+  public:
+    explicit SCIRunGuiRunner(QApplication& app);
+    int returnCode();
+    static void reportIssue();
   };
 }
 }

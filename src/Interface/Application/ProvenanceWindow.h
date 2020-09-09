@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #ifndef INTERFACE_APPLICATION_PROVENANCEWINDOW_H
 #define INTERFACE_APPLICATION_PROVENANCEWINDOW_H
@@ -48,8 +48,9 @@ class ProvenanceWindow : public QDockWidget, public Ui::ProvenanceWindow
 	Q_OBJECT
 
 public:
-  explicit ProvenanceWindow(SCIRun::Dataflow::Engine::ProvenanceManagerHandle provenanceManager, QWidget* parent = 0);
+  explicit ProvenanceWindow(SCIRun::Dataflow::Engine::ProvenanceManagerHandle provenanceManager, QWidget* parent = nullptr);
   void showFile(SCIRun::Dataflow::Networks::NetworkFileHandle file);
+  int maxItems() const { return maxItems_; }
 public Q_SLOTS:
   void clear();
   void addProvenanceItem(SCIRun::Dataflow::Engine::ProvenanceItemHandle item);
@@ -57,6 +58,7 @@ public Q_SLOTS:
   void redo();
   void undoAll();
   void redoAll();
+  void setMaxItems(int max);
 private Q_SLOTS:
   void displayInfo(QListWidgetItem* item);
 Q_SIGNALS:
@@ -66,7 +68,7 @@ Q_SIGNALS:
   void networkModified();
 private:
   SCIRun::Dataflow::Engine::ProvenanceManagerHandle provenanceManager_;
-  int lastUndoRow_;
+  int lastUndoRow_, maxItems_{10};
   const SCIRun::Dataflow::Engine::ProvenanceManagerHandle::element_type::IOType* networkEditor_;
 
   void setUndoEnabled(bool enable);

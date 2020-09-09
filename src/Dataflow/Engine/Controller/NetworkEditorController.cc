@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,8 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
+
 /// @todo Documentation Dataflow/Engine/Controller/NetworkEditorController.cc
 
 #include <iostream>
@@ -85,6 +86,8 @@ NetworkEditorController::NetworkEditorController(ModuleFactoryHandle mf, ModuleS
 #ifdef BUILD_WITH_PYTHON
   NetworkEditorPythonAPI::setImpl(boost::make_shared<PythonImpl>(*this, cmdFactory_));
 #endif
+
+  eventCmdFactory_->create(NetworkEventCommands::ApplicationStart)->execute();
 }
 
 NetworkEditorController::NetworkEditorController(NetworkHandle network, ExecutionStrategyFactoryHandle executorFactory, NetworkEditorSerializationManager* nesm)
@@ -100,6 +103,7 @@ NetworkEditorController::~NetworkEditorController()
 #ifdef BUILD_WITH_PYTHON
   NetworkEditorPythonAPI::clearImpl();
 #endif
+  executionManager_.stop();
 }
 
 namespace
@@ -114,15 +118,17 @@ namespace
         return false;
       return label.front() == '[' && label.back() == ']';
     }
-    ModuleHandle create(const std::string& label)
+    ModuleHandle createSnippet(const std::string& label)
     {
       auto modsNeeded = parseModules(label);
 
       ModulePositions positions;
       int i = 0;
-      const double moduleVerticalSpacing = 110;
-      const double moduleHorizontalSpacing = 264;
-      const double moduleSpacingOffset = 10;
+      const double MODULE_VERTICAL_SPACING = 110;
+      const double MODULE_HORIZONTAL_SPACING = 50;
+      const double MODULE_SPACING_OFFSET = 10;
+      const std::pair<double,double> initialPosition = {-500, -500};
+      static double snippetSpacer = MODULE_SPACING_OFFSET;
       static int numSnips = 0;
       for (auto m : modsNeeded)
       {
@@ -133,12 +139,18 @@ namespace
           uiVisible = true;
         }
         auto mod = nec_.addModule(m);
-        if (mod->has_ui())
+        if (mod->hasUI())
           mod->setUiVisible(uiVisible);
         mods_.push_back(mod);
-        positions.modulePositions[mod->get_id().id_] = std::make_pair(moduleSpacingOffset + numSnips*moduleHorizontalSpacing, moduleVerticalSpacing * i++ + moduleSpacingOffset);
+        positions.modulePositions[mod->id().id_] =
+          { initialPosition.first + numSnips * MODULE_HORIZONTAL_SPACING + snippetSpacer,
+            initialPosition.second + MODULE_VERTICAL_SPACING * i++ + snippetSpacer };
       }
-      numSnips++;
+      numSnips = (numSnips + 1) % 3;
+      if (0 == numSnips)
+      {
+        snippetSpacer += MODULE_SPACING_OFFSET;
+      }
 
       auto connsNeeded = parseConnections(label);
       for (const auto& c : connsNeeded)
@@ -214,7 +226,7 @@ ModuleHandle NetworkEditorController::addModule(const std::string& name)
   SnippetHandler snippet(*this);
   if (snippet.isSnippetName(name))
   {
-    return snippet.create(name);
+    return snippet.createSnippet(name);
   }
 
   return addModule(ModuleLookupInfo(name, "Category TODO", "SCIRun"));
@@ -263,26 +275,43 @@ void NetworkEditorController::interruptModule(const ModuleId& id)
   ///*emit*/ networkInterrupted_();
 }
 
+namespace
+{
+  InputPortHandle getFirstAvailableDynamicPortWithName(ModuleHandle mod, const std::string& name)
+  {
+    auto ports = mod->findInputPortsWithName(name);
+    auto firstEmptyDynamicPortWithName = std::find_if(ports.begin(), ports.end(),
+      [](InputPortHandle iport) { return iport->nconnections() == 0; });
+    return firstEmptyDynamicPortWithName != ports.end() ? *firstEmptyDynamicPortWithName : nullptr;
+  }
+}
+
 ModuleHandle NetworkEditorController::duplicateModule(const ModuleHandle& module)
 {
   ENSURE_NOT_NULL(module, "Cannot duplicate null module");
-  auto id(module->get_id());
-  auto newModule = addModuleImpl(module->get_info());
-  newModule->set_state(module->get_state()->clone());
+  auto id(module->id());
+  auto newModule = addModuleImpl(module->info());
+  newModule->setState(module->get_state()->clone());
   static ModuleCounter dummy;
   moduleAdded_(id.name_, newModule, dummy);
 
   /// @todo: probably a pretty poor way to deal with what I think is a race condition with signaling the GUI to place the module widget.
   boost::this_thread::sleep(boost::posix_time::milliseconds(1));
 
-  for (const auto& input : module->inputPorts())
+  for (const auto& originalInputPort : module->inputPorts())
   {
-    if (input->nconnections() == 1)
+    if (originalInputPort->nconnections() == 1)
     {
-      auto conn = input->connection(0);
+      auto conn = originalInputPort->connection(0);
       auto source = conn->oport_;
-      /// @todo: this will work if we define PortId.id# to be 0..n, unique for each module. But what about gaps?
-      requestConnection(source.get(), newModule->getInputPort(input->id()).get());
+      if (!originalInputPort->isDynamic())
+        requestConnection(source.get(), newModule->getInputPort(originalInputPort->id()).get());
+      else
+      {
+        auto toConnect = getFirstAvailableDynamicPortWithName(newModule, originalInputPort->get_portname());
+        if (toConnect)
+          requestConnection(source.get(), toConnect.get());
+      }
     }
   }
 
@@ -294,7 +323,7 @@ ModuleHandle NetworkEditorController::duplicateModule(const ModuleHandle& module
   return newModule;
 }
 
-ModuleHandle NetworkEditorController::connectNewModule(const PortDescriptionInterface* portToConnect, const std::string& newModuleName, const PortDescriptionInterface* portToConnectUponInsertion)
+ModuleHandle NetworkEditorController::connectNewModule(const PortDescriptionInterface* portToConnect, const std::string& newModuleName)
 {
   auto newMod = addModule(newModuleName);
 
@@ -320,16 +349,53 @@ ModuleHandle NetworkEditorController::connectNewModule(const PortDescriptionInte
       if (p->get_typename() == portToConnect->get_typename())
       {
         requestConnection(p.get(), portToConnect);
-        if (portToConnectUponInsertion)
+        return newMod;
+      }
+    }
+  }
+  return newMod;
+}
+
+ModuleHandle NetworkEditorController::insertNewModule(const PortDescriptionInterface* portToConnect, const InsertInfo& info)
+{
+  auto newMod = connectNewModule(portToConnect, info.newModuleName);
+
+  auto endModule = theNetwork_->lookupModule(ModuleId(info.endModuleId));
+
+  auto newModOutputPorts = newMod->outputPorts();
+  auto firstMatchingOutputPort = std::find_if(newModOutputPorts.begin(), newModOutputPorts.end(),
+    [&](OutputPortHandle oport) { return oport->get_typename() == portToConnect->get_typename(); }
+    );
+
+  if (firstMatchingOutputPort != newModOutputPorts.end())
+  {
+    auto newOutputPortToConnectFrom = *firstMatchingOutputPort;
+
+    auto endModuleInputPortOptions = endModule->findInputPortsWithName(info.inputPortName);
+    if (!endModuleInputPortOptions.empty())
+    {
+      auto firstPort = endModuleInputPortOptions[0];
+
+      if (!firstPort->isDynamic())  // easy case
+      {
+        auto connId = firstPort->connection(0)->id_;
+        removeConnection(connId);
+        requestConnection(newOutputPortToConnectFrom.get(), firstPort.get());
+      }
+      else //dynamic: match portId exactly, remove, then retrieve list again to find first empty dynamic port of same name.
+      {
+        auto exactMatch = std::find_if(endModuleInputPortOptions.begin(), endModuleInputPortOptions.end(),
+          [&](InputPortHandle iport) { return iport->id().toString() == info.inputPortId; });
+        if (exactMatch != endModuleInputPortOptions.end())
         {
-          auto oports = newMod->outputPorts();
-          auto fromPort = std::find_if(oports.begin(), oports.end(), [portToConnectUponInsertion](OutputPortHandle out) { return out->get_typename() == portToConnectUponInsertion->get_typename(); });
-          if (fromPort != oports.end())
+          auto connId = (*exactMatch)->connection(0)->id_;
+          removeConnection(connId);
+          auto firstEmptyDynamicPortWithName = getFirstAvailableDynamicPortWithName(endModule, info.inputPortName);
+          if (firstEmptyDynamicPortWithName)
           {
-            requestConnection(fromPort->get(), portToConnectUponInsertion);
+            requestConnection(newOutputPortToConnectFrom.get(), firstEmptyDynamicPortWithName.get());
           }
         }
-        return newMod;
       }
     }
   }
@@ -342,7 +408,7 @@ void NetworkEditorController::printNetwork() const
   if (false)
   {
     if (theNetwork_)
-      LOG_DEBUG(theNetwork_->toString() << std::endl);
+      LOG_DEBUG(theNetwork_->toString());
   }
 }
 
@@ -370,7 +436,7 @@ boost::optional<ConnectionId> NetworkEditorController::requestConnection(const P
     return id;
   }
 
-  Log::get() << NOTICE << "Invalid Connection request: input port is full, or ports are different datatype or same i/o type, or on the same module." << std::endl;
+  logWarning("Invalid Connection request: input port is full, or ports are different datatype or same i/o type, or on the same module.");
   invalidConnection_(desc);
   return boost::none;
 }
@@ -378,7 +444,9 @@ boost::optional<ConnectionId> NetworkEditorController::requestConnection(const P
 void NetworkEditorController::removeConnection(const ConnectionId& id)
 {
   if (theNetwork_->disconnect(id))
+  {
     connectionRemoved_(id);
+  }
   printNetwork();
 }
 
@@ -471,7 +539,7 @@ void NetworkEditorController::loadNetwork(const NetworkFileHandle& xml)
       for (size_t i = 0; i < theNetwork_->nmodules(); ++i)
       {
         auto module = theNetwork_->module(i);
-        moduleAdded_(module->get_module_name(), module, modulesDone);
+        moduleAdded_(module->name(), module, modulesDone);
         networkDoneLoading_(static_cast<int>(i));
       }
 
@@ -479,7 +547,7 @@ void NetworkEditorController::loadNetwork(const NetworkFileHandle& xml)
         auto disable(createDynamicPortSwitch());
         //this is handled by NetworkXMLConverter now--but now the logic is convoluted.
         //They need to be signaled again after the modules are signaled to alert the GUI. Hence the disabling of DPM
-        for (const auto& cd : theNetwork_->connections())
+        for (const auto& cd : theNetwork_->connections(true))
         {
           auto id = ConnectionId::create(cd);
           connectionAdded_(cd);
@@ -487,23 +555,24 @@ void NetworkEditorController::loadNetwork(const NetworkFileHandle& xml)
       }
       if (serializationManager_)
       {
-        serializationManager_->updateModulePositions(xml->modulePositions, false);
         serializationManager_->updateModuleNotes(xml->moduleNotes);
         serializationManager_->updateConnectionNotes(xml->connectionNotes);
-        serializationManager_->updateModuleTags(xml->moduleTags);
         serializationManager_->updateDisabledComponents(xml->disabledComponents);
+        serializationManager_->updateSubnetworks(xml->subnetworks);
+        serializationManager_->updateModulePositions(xml->modulePositions, false);
+        serializationManager_->updateModuleTags(xml->moduleTags);
       }
       else
       {
 #ifndef BUILD_HEADLESS
-        Log::get() << INFO << "module position editor unavailable, module positions at default" << std::endl;
+        logInfo("module position editor unavailable, module positions at default");
 #endif
       }
       networkDoneLoading_(static_cast<int>(theNetwork_->nmodules()) + 1);
     }
     catch (ExceptionBase& e)
     {
-      Log::get() << ERROR_LOG << "File load failed: exception while processing xml network data: " << e.what() << std::endl;
+      logError("File load failed: exception while processing xml network data: {}", e.what());
       theNetwork_->clear();
       throw;
     }
@@ -513,7 +582,7 @@ void NetworkEditorController::loadNetwork(const NetworkFileHandle& xml)
 
 namespace
 {
-  const int xMoveIncrement = 300;
+  const int xMoveIncrement = 10;
   int xMoveIndex = 1;
   int yMoveIndex = 0;
   const int moveMod = 4;
@@ -539,7 +608,7 @@ void NetworkEditorController::appendToNetwork(const NetworkFileHandle& xml)
     {
       NetworkXMLConverter conv(moduleFactory_, stateFactory_, algoFactory_, reexFactory_, this);
 
-      auto originalConnections = theNetwork_->connections();
+      auto originalConnections = theNetwork_->connections(true);
 
       auto info = conv.appendXmlData(xml->network);
       auto startIndex = info.newModuleStartIndex;
@@ -547,14 +616,14 @@ void NetworkEditorController::appendToNetwork(const NetworkFileHandle& xml)
       for (size_t i = startIndex; i < theNetwork_->nmodules(); ++i)
       {
         auto module = theNetwork_->module(i);
-        moduleAdded_(module->get_module_name(), module, modulesDone);
+        moduleAdded_(module->name(), module, modulesDone);
       }
 
       {
         auto disable(createDynamicPortSwitch());
         //this is handled by NetworkXMLConverter now--but now the logic is convoluted.
         //They need to be signaled again after the modules are signaled to alert the GUI. Hence the disabling of DPM
-        for (const auto& cd : theNetwork_->connections())
+        for (const auto& cd : theNetwork_->connections(true))
         {
           if (std::find(originalConnections.begin(), originalConnections.end(), cd) == originalConnections.end())
           {
@@ -578,11 +647,11 @@ void NetworkEditorController::appendToNetwork(const NetworkFileHandle& xml)
         //TODO: need disabled here?
       }
       else
-        Log::get() << INFO << "module position editor unavailable, module positions at default" << std::endl;
+        logInfo("module position editor unavailable, module positions at default");
     }
     catch (ExceptionBase& e)
     {
-      Log::get() << ERROR_LOG << "File load failed: exception while processing xml network data: " << e.what() << std::endl;
+      logError("File load failed: exception while processing xml network data: {}", e.what());
       theNetwork_->clear();
       throw;
     }
@@ -591,7 +660,7 @@ void NetworkEditorController::appendToNetwork(const NetworkFileHandle& xml)
 
 void NetworkEditorController::clear()
 {
-  LOG_DEBUG("NetworkEditorController::clear()" << std::endl);
+  LOG_DEBUG("NetworkEditorController::clear()");
 }
 
 // TODO:
@@ -606,8 +675,17 @@ boost::shared_ptr<boost::thread> NetworkEditorController::executeAll(const Execu
 
 void NetworkEditorController::executeModule(const ModuleHandle& module, const ExecutableLookup* lookup, bool executeUpstream)
 {
-  ExecuteSingleModule filter(module, *theNetwork_, executeUpstream);
-  executeGeneric(lookup, filter);
+  try
+  {
+    ExecuteSingleModule filter(module, *theNetwork_, executeUpstream);
+    executeGeneric(lookup, filter);
+  }
+  catch (NetworkHasCyclesException&)
+  {
+    logError("Cannot schedule execution: network has cycles. Please break all cycles and try again.");
+    ExecutionContext::executionBounds_.executeFinishes_(-1);
+    return;
+  }
 }
 
 void NetworkEditorController::initExecutor()
@@ -624,7 +702,6 @@ boost::shared_ptr<boost::thread> NetworkEditorController::executeGeneric(const E
 {
   initExecutor();
   auto context = createExecutionContext(lookup, filter);
-
   return executionManager_.enqueueContext(context);
 }
 
@@ -744,4 +821,9 @@ void NetworkEditorController::cleanUpNetwork()
   }
 
   updateModulePositions(cleanedUp, false);
+}
+
+std::vector<ModuleExecutionState::Value> NetworkEditorController::moduleExecutionStates() const
+{
+  return theNetwork_ ? theNetwork_->moduleExecutionStates() : std::vector<ModuleExecutionState::Value>();
 }

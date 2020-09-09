@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,9 +25,12 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #include <Dataflow/Engine/Scheduler/SchedulerInterfaces.h>
 #include <Dataflow/Network/NetworkInterface.h>
 #include <boost/thread.hpp>
+#include <boost/lambda/core.hpp>
+#include <Core/Logging/Log.h>
 
 using namespace SCIRun::Dataflow::Engine;
 using namespace SCIRun::Dataflow::Networks;
@@ -58,6 +60,7 @@ const ExecutionBounds& ExecutionContext::bounds() const
 
 void ExecutionContext::preexecute()
 {
+  network.setExpandedModuleExecutionState(ModuleExecutionState::NotExecuted, boost::lambda::constant(true));
   network.setModuleExecutionState(ModuleExecutionState::Waiting, additionalFilter);
 }
 
@@ -67,9 +70,13 @@ void WaitsForStartupInitialization::waitForStartupInit(const ExecutableLookup& l
 {
   if (!waitedAlready_ && lookup.containsViewScene())
   {
-    std::cout << "Waiting for rendering system initialization...." << std::endl;
+    logWarning("Waiting for rendering system initialization....");
     boost::this_thread::sleep(boost::posix_time::milliseconds(800));
-    std::cout << "Done waiting." << std::endl;
+    logWarning("Done waiting.");
     waitedAlready_ = true;
+  }
+  else
+  {
+    //logWarning("NOT waiting for init");
   }
 }

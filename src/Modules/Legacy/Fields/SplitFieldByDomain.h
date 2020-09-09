@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #ifndef MODULES_LEGACY_FIELDS_SPLITFIELDBYDOMAIN_H__
 #define MODULES_LEGACY_FIELDS_SPLITFIELDBYDOMAIN_H__
@@ -46,17 +46,17 @@ namespace SCIRun {
         virtual void execute() override;
         virtual void setStateDefaults() override;
 
-        INPUT_PORT(0, InputField, LegacyField);
+        INPUT_PORT(0, InputField, Field);
         OUTPUT_PORT(0, All_Fields, Bundle);
         //TODO: dynamic output port!!!
-        OUTPUT_PORT(1, Field1, LegacyField);
-        OUTPUT_PORT(2, Field2, LegacyField);
-        OUTPUT_PORT(3, Field3, LegacyField);
-        OUTPUT_PORT(4, Field4, LegacyField);
-        OUTPUT_PORT(5, Field5, LegacyField);
-        OUTPUT_PORT(6, Field6, LegacyField);
-        OUTPUT_PORT(7, Field7, LegacyField);
-        OUTPUT_PORT(8, Field8, LegacyField);
+        OUTPUT_PORT(1, Field1, Field);
+        OUTPUT_PORT(2, Field2, Field);
+        OUTPUT_PORT(3, Field3, Field);
+        OUTPUT_PORT(4, Field4, Field);
+        OUTPUT_PORT(5, Field5, Field);
+        OUTPUT_PORT(6, Field6, Field);
+        OUTPUT_PORT(7, Field7, Field);
+        OUTPUT_PORT(8, Field8, Field);
 
         MODULE_TRAITS_AND_INFO(ModuleHasUIAndAlgorithm)
       };

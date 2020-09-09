@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #ifndef MOCK_PORTS_H
 #define MOCK_PORTS_H
@@ -79,6 +79,10 @@ namespace SCIRun {
           MOCK_METHOD1(connectDataOnPortHasChanged, boost::signals2::connection(const DataOnPortHasChangedSignalType::slot_type&));
           MOCK_CONST_METHOD0(firstConnectionId, boost::optional<ConnectionId>());
           MOCK_METHOD0(resendNewDataSignal, void());
+          MOCK_CONST_METHOD0(moduleState, ModuleStateHandle());
+          MOCK_CONST_METHOD0(connectedModuleId, boost::optional<std::string>());
+          MOCK_CONST_METHOD0(stateFromConnectedModule, ModuleStateHandle());
+          MOCK_CONST_METHOD0(hasConnectionCountIncreased, bool());
         };
 
         typedef boost::shared_ptr<MockInputPort> MockInputPortPtr;
@@ -106,6 +110,8 @@ namespace SCIRun {
           MOCK_METHOD1(connectConnectionFeedbackListener, boost::signals2::connection(const ConnectionFeedbackSignalType::slot_type&));
           MOCK_METHOD1(sendConnectionFeedback, void(const Core::Datatypes::ModuleFeedback&));
           MOCK_CONST_METHOD0(firstConnectionId, boost::optional<ConnectionId>());
+          MOCK_CONST_METHOD0(moduleState, ModuleStateHandle());
+          MOCK_CONST_METHOD0(hasConnectionCountIncreased, bool());
         };
 
         typedef boost::shared_ptr<MockOutputPort> MockOutputPortPtr;

@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,8 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
+
 /// @todo Documentation Core/Logging/Logger.cc
 
 #include <sstream>
@@ -36,24 +37,25 @@ using namespace SCIRun::Core::Logging;
 
 LegacyLoggerInterface::~LegacyLoggerInterface() {}
 
-ScopedTimeRemarker::ScopedTimeRemarker(LegacyLoggerInterface* log, const std::string& label) : log_(log), label_(label) 
+ScopedTimeRemarker::ScopedTimeRemarker(LegacyLoggerInterface* log, const std::string& label) : log_(log), label_(label)
 {}
 
 ScopedTimeRemarker::~ScopedTimeRemarker()
 {
   std::ostringstream perf;
   perf << label_ <<  " took " << timer_.elapsed() << " seconds." << std::endl;
-  log_->remark(perf.str());
+  log_->status(perf.str());
 }
 
 ScopedTimeLogger::ScopedTimeLogger(const std::string& label, bool shouldLog): label_(label), shouldLog_(shouldLog)
 {
   if (shouldLog_)
-    Log::get() << DEBUG_LOG << label_ << " starting.";
+    LOG_DEBUG("{} starting.", label_);
 }
 
 ScopedTimeLogger::~ScopedTimeLogger()
 {
+  auto time = timer_.elapsed();
   if (shouldLog_)
-    Log::get() << DEBUG_LOG << label_ << " took " << timer_.elapsed() << " seconds.";
+    LOG_DEBUG("{} took {} seconds.", label_, time);
 }

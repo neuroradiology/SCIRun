@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 /// @todo Documentation Dataflow/Network/PortInterface.h
 
@@ -70,6 +70,8 @@ namespace Networks {
     void incrementIndex() { setIndex(getIndex() + 1); }
     void decrementIndex() { setIndex(getIndex() - 1); }
     virtual void setId(const PortId& id) = 0;
+    virtual ModuleStateHandle moduleState() const = 0;
+    virtual bool hasConnectionCountIncreased() const = 0;
   };
 
   typedef boost::signals2::signal<void(const PortId&, Core::Datatypes::DatatypeHandle)> DataOnPortHasChangedSignalType;
@@ -85,6 +87,8 @@ namespace Networks {
     virtual bool hasChanged() const = 0;
     virtual boost::signals2::connection connectDataOnPortHasChanged(const DataOnPortHasChangedSignalType::slot_type& subscriber) = 0;
     virtual void resendNewDataSignal() = 0;
+    virtual boost::optional<std::string> connectedModuleId() const = 0;
+    virtual ModuleStateHandle stateFromConnectedModule() const = 0;
   };
 
   typedef boost::signals2::signal<void(const Core::Datatypes::ModuleFeedback&)> ConnectionFeedbackSignalType;

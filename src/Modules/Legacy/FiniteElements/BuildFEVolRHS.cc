@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,17 +25,18 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-////@file BuildFEVolRHS.h
-///@brief This module computes a volumetric right-hand-side. This module is needed for TMS simulations in the BrainStimulator package.
+
+//// @file BuildFEVolRHS.h
+/// @brief This module computes a volumetric right-hand-side. This module is needed for TMS simulations in the BrainStimulator package.
 ///
-///@author
-/// ported by Moritz Dannhauer (09/24/2014) from SCIRun4
+/// @author
+///  ported by Moritz Dannhauer (09/24/2014) from SCIRun4
 ///
-///@details
-/// Calculates the divergence of a vector field over the volume. It is designed to calculate the volume integral of the vector field 
-/// (gradient of the potential in electrical simulations). Builds the volume portion of the RHS of FE calculations where the RHS of 
-/// the function is GRAD dot F.
-/// Input: A FE mesh with field vectors distributed on the elements (constant basis). Output: The Grad dot F
+/// @details
+///  Calculates the divergence of a vector field over the volume. It is designed to calculate the volume integral of the vector field
+///  (gradient of the potential in electrical simulations). Builds the volume portion of the RHS of FE calculations where the RHS of
+///  the function is GRAD dot F.
+///  Input: A FE mesh with field vectors distributed on the elements (constant basis). Output: The Grad dot F
 
 #include <Modules/Legacy/FiniteElements/BuildFEVolRHS.h>
 #include <Core/Algorithms/Legacy/FiniteElements/BuildRHS/BuildFEVolRHS.h>
@@ -60,38 +60,37 @@ BuildFEVolRHS::BuildFEVolRHS()
 
 void BuildFEVolRHS::setStateDefaults()
 {
- 
+
 }
 
 void BuildFEVolRHS::execute()
 {
   auto mesh = getRequiredInput(Mesh);
- #ifdef SCIRUN4_CODE_TO_BE_ENABLED_LATER  
+ #ifdef SCIRUN4_CODE_TO_BE_ENABLED_LATER
   auto vtable = getRequiredInput(Vector_Table);
  #endif
   if (needToExecute())
   {
-    update_state(Executing);
     auto output = algo().run(make_input((Mesh, mesh)));
     sendOutputFromAlgorithm(RHS, output);
   }
- 
 
-#ifdef SCIRUN4_ESSENTIAL_CODE_TO_BE_PORTED  
+
+#ifdef SCIRUN4_ESSENTIAL_CODE_TO_BE_PORTED
   FieldHandle Field;
   MatrixHandle VectorTable;
   MatrixHandle RHSMatrix;
-  
+
   if (!(get_input_handle("Mesh",Field,true))) return;
   get_input_handle("Vector Table", VectorTable, false);
-  
+
   if (inputs_changed_ || gui_use_basis_.changed() || !oport_cached("RHS") )
   {
     algo_.set_bool("generate_basis",gui_use_basis_.get());
     if(!(algo_.run(Field,VectorTable,RHSMatrix))) return;
-    
+
     send_output_handle("RHS", RHSMatrix);
   }
-#endif  
+#endif
 
 }

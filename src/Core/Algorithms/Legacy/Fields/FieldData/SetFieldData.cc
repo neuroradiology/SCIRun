@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -24,10 +23,12 @@
    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
-   Author            : Moritz Dannhauer
-   Last modification : March 24 2014 (ported from SCIRun4)
+
+   Author:              Moritz Dannhauer
+   Last Modification:   March 24 2014 (ported from SCIRun4)
    TODO: Nrrd input
-   */
+*/
+
 
 #include <Core/Datatypes/DenseMatrix.h>
 #include <Core/Algorithms/Legacy/Fields/FieldData/SetFieldData.h>
@@ -399,7 +400,7 @@ FieldHandle SetFieldDataAlgo::runImplRealComplex(FieldHandle input_field, DenseM
     found = verify_input_data(input_field, realData->nrows(), realData->ncols(), numvals, fi);
   else if (complexData)
   {
-    found = verify_input_data(input_field, complexData->nrows(), complexData->ncols(), numvals, fi, "std::complex<double>");
+    found = verify_input_data(input_field, complexData->nrows(), complexData->ncols(), numvals, fi, "complex");
   }
 
   if (!found)

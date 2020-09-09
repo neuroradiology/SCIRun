@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef MODULES_LEGACY_FIELDS_MapFieldDataOntoNodes_H__
 #define MODULES_LEGACY_FIELDS_MapFieldDataOntoNodes_H__
 
@@ -45,13 +45,13 @@ namespace Fields {
   public:
     MapFieldDataOntoNodes();
 
-    virtual void execute();
-    virtual void setStateDefaults();
+    void execute() override;
+    void setStateDefaults() override;
 
-    INPUT_PORT(0, Source, LegacyField);
-    INPUT_PORT(1, Weights, LegacyField);
-    INPUT_PORT(2, Destination, LegacyField);
-    OUTPUT_PORT(0, OutputField, LegacyField);
+    INPUT_PORT(0, Source, Field);
+    INPUT_PORT(1, Weights, Field);
+    INPUT_PORT(2, Destination, Field);
+    OUTPUT_PORT(0, OutputField, Field);
 
     MODULE_TRAITS_AND_INFO(ModuleHasUIAndAlgorithm)
   };

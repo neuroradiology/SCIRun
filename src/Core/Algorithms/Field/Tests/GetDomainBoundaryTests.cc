@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
@@ -40,6 +40,7 @@
 
 using namespace SCIRun;
 using namespace SCIRun::Core::Datatypes;
+using namespace SCIRun::Core::Logging;
 using namespace SCIRun::Core::Geometry;
 using namespace SCIRun::Core::Algorithms::Fields;
 using namespace SCIRun::TestUtils;
@@ -52,7 +53,7 @@ class GetDomainBoundaryTests : public ::testing::Test
 protected:
   virtual void SetUp()
   {
-    SCIRun::Core::Logging::Log::get().setVerbose(true);
+    LogSettings::Instance().setVerbose(true);
   }
 
   void runTest(bool includeOuterBoundary, bool useRange, int domainValue,
@@ -152,7 +153,7 @@ TEST_F(GetDomainBoundaryTests, CanLogErrorMessage)
 using ::testing::Bool;
 using ::testing::Values;
 using ::testing::Combine;
-class GetDomainBoundaryTestsParameterized : public ::testing::TestWithParam < ::std::tr1::tuple<bool, bool, int, int, int> >
+class GetDomainBoundaryTestsParameterized : public ::testing::TestWithParam < std::tuple<bool, bool, int, int, int> >
 
 {
 public:
@@ -163,7 +164,7 @@ public:
   GetDomainBoundaryTestsParameterized()
   {
     latVol_ = loadFieldFromFile(TestResources::rootDir() / "Fields" / "latVolWithNormData.fld");
-    SCIRun::Core::Logging::Log::get().setVerbose(true);
+    LogSettings::Instance().setVerbose(true);
   }
 
 protected:
@@ -172,15 +173,15 @@ protected:
     ASSERT_TRUE(latVol_->vmesh()->is_latvolmesh());
 
     // How to set parameters on an algorithm (that come from the GUI)
-    algo_.set(Parameters::AddOuterBoundary, ::std::tr1::get<0>(GetParam()));
+    algo_.set(Parameters::AddOuterBoundary, std::get<0>(GetParam()));
 
     /// @todo: this logic matches the wacky module behavior
-    algo_.set(Parameters::UseRange, ::std::tr1::get<1>(GetParam()));
-    if (!::std::tr1::get<1>(GetParam()))///useRange)
+    algo_.set(Parameters::UseRange, std::get<1>(GetParam()));
+    if (!std::get<1>(GetParam()))///useRange)
     {
-      algo_.set(Parameters::Domain,   ::std::tr1::get<2>(GetParam()));
-      algo_.set(Parameters::MinRange, ::std::tr1::get<3>(GetParam()));
-      algo_.set(Parameters::MaxRange, ::std::tr1::get<3>(GetParam()));
+      algo_.set(Parameters::Domain,   std::get<2>(GetParam()));
+      algo_.set(Parameters::MinRange, std::get<3>(GetParam()));
+      algo_.set(Parameters::MaxRange, std::get<3>(GetParam()));
       algo_.set(Parameters::UseRange, true);
     }
 	//algo_.set(Parameters::InnerBoundaryOnly, ::std::tr1::get<3>(GetParam()));

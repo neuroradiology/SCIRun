@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,10 +25,11 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef INTERFACE_APPLICATION_MODULE_DIALOG_GENERIC_H
 #define INTERFACE_APPLICATION_MODULE_DIALOG_GENERIC_H
 
-#include <QtGui>
+#include <Interface/qt_include.h>
 #ifndef Q_MOC_RUN
 #include <Interface/Modules/Base/WidgetSlotManagers.h>
 #include <Dataflow/Network/ModuleStateInterface.h>
@@ -71,24 +71,27 @@ namespace Gui {
     Q_OBJECT
   public:
     virtual ~ModuleDialogGeneric();
-    bool isPulling() const { return pulling_; } //yuck
+    bool isPulling() const { return pulling_; }
     QAction* getExecuteAction() { return executeAction_; }
-    void setDockable(QDockWidget* dock) { dock_ = dock; } // to enable title changes
+    QAction* getExecuteDownstreamAction() { return executeDownstreamAction_; }
+    void setDockable(QDockWidget* dock);
     void updateWindowTitle(const QString& title);
+    void setButtonBarTitleVisible(bool visible);
+    void setupButtonBar();
+    bool isCollapsed() const { return collapsed_; }
     virtual void createStartupNote() {}
+    virtual void adjustToolbar() {}
     static void setExecutionDisablingServiceFunctionAdd(ExecutionDisablingServiceFunction add) { disablerAdd_ = add; }
     static void setExecutionDisablingServiceFunctionRemove(ExecutionDisablingServiceFunction remove) { disablerRemove_ = remove; }
-
-    //TODO: input state hookup?
-    //yeah: eventually replace int with generic dialog state object, but needs to be two-way (set/get)
-    //virtual int moduleExecutionTime() = 0;
-    //TODO: how to genericize this?  do we need to?
+    static const std::set<ModuleDialogGeneric*>& instances() { return instances_; }
   public Q_SLOTS:
     virtual void moduleExecuted() {}
     //need a better name: read/updateUI
     virtual void pull() final;
     void moduleSelected(bool selected);
     void toggleCollapse();
+    void collapse() { if (!collapsed_) toggleCollapse(); }
+    void expand() { if (collapsed_) toggleCollapse(); }
     virtual void updateFromPortChange(int numPorts, const std::string& portName, DynamicPortChange type) {}
   Q_SIGNALS:
     void pullSignal();
@@ -100,13 +103,20 @@ namespace Gui {
     void fatalError(const QString& message);
     void executionLoopStarted();
     void executionLoopHalted();
+    void closeButtonClicked();
+    void helpButtonClicked();
+    void findButtonClicked();
   protected:
     explicit ModuleDialogGeneric(SCIRun::Dataflow::Networks::ModuleStateHandle state, QWidget* parent = nullptr);
-    virtual void contextMenuEvent(QContextMenuEvent* e) override;
+    void contextMenuEvent(QContextMenuEvent* e) override;
+    void keyPressEvent(QKeyEvent* e) override;
     void fixSize();
     void connectButtonToExecuteSignal(QAbstractButton* button);
     void connectButtonsToExecuteSignal(std::initializer_list<QAbstractButton*> buttons);
     void connectComboToExecuteSignal(QComboBox* box);
+    void connectSpinBoxToExecuteSignal(QSpinBox* box);
+    void connectSpinBoxToExecuteSignal(QDoubleSpinBox* box);
+    void adjustToolbarForHighResolution(QToolBar* toolbar);
 
     void pullManagedWidgets();
     // Dialog classes should override this method to provide pull behavior not available from the widget managers.
@@ -148,15 +158,21 @@ namespace Gui {
 
     using TableWidgetMaker = std::function<QTableWidgetItem*()>;
     using WidgetMaker = std::function<QWidget*()>;
-    typedef std::map<int, TableWidgetMaker> TableItemMakerMap;
-    typedef std::map<int, WidgetMaker> WidgetItemMakerMap;
+    using TableItemMakerMap = std::map<int, TableWidgetMaker>;
+    using WidgetItemMakerMap = std::map<int, WidgetMaker>;
     void syncTableRowsWithDynamicPort(const std::string& portId, const std::string& type,
       QTableWidget* table, int lineEditIndex, DynamicPortChange portChangeType, const TableItemMakerMap& tableItems, const WidgetItemMakerMap& widgetItems = WidgetItemMakerMap());
     static std::tuple<std::string, int> getConnectedDynamicPortId(const std::string& portId, const std::string& type, bool isLoadingFile);
 
     void createExecuteInteractivelyToggleAction();
+    void createForceAlwaysExecuteToggleAction();
+    QColor colorFromState(const Core::Algorithms::AlgorithmParameterName& stateKey) const;
+    void colorToState(const Core::Algorithms::AlgorithmParameterName& stateKey, const QColor& color);
+    std::vector<QColor> colorsFromState(const Core::Algorithms::AlgorithmParameterName& stateKey) const;
+    void colorsToState(const Core::Algorithms::AlgorithmParameterName& stateKey, const std::vector<QColor>& colors);
   private Q_SLOTS:
     void executeInteractivelyToggled(bool toggle);
+    void forceAlwaysExecuteToggled(bool toggle);
   private:
     void addWidgetSlotManager(WidgetSlotManagerPtr ptr);
     void createExecuteAction();
@@ -167,18 +183,23 @@ namespace Gui {
     void disconnectStateChangeToExecute();
     std::vector<WidgetSlotManagerPtr> slotManagers_;
     boost::signals2::connection stateConnection_;
-    QAction* executeAction_;
-    QAction* executeDownstreamAction_;
-    QAction* shrinkAction_;
-    QAction* executeInteractivelyToggleAction_;
+    QAction* executeAction_{ nullptr };
+    QAction* executeDownstreamAction_{ nullptr };
+    QAction* shrinkAction_{ nullptr };
+    QAction* executeInteractivelyToggleAction_{ nullptr };
+    QAction* forceAlwaysExecuteToggleAction_{ nullptr };
     bool collapsed_;
     QString windowTitle_;
-    QDockWidget* dock_;
+    QDockWidget* dock_{ nullptr };
+    class ModuleButtonBar* buttonBox_{ nullptr };
     QSize oldSize_;
     std::vector<QWidget*> needToRemoveFromDisabler_;
     static ExecutionDisablingServiceFunction disablerAdd_;
     static ExecutionDisablingServiceFunction disablerRemove_;
+    static std::set<ModuleDialogGeneric*> instances_;
   };
+
+  SCISHARE QColor colorFromState(const Core::Algorithms::AlgorithmParameterName& stateKey);
 
   class SCISHARE ScopedWidgetSignalBlocker
   {
@@ -191,6 +212,7 @@ namespace Gui {
 
   SCISHARE void openUrl(const QString& url, const std::string& name);
   SCISHARE void openPythonAPIDoc();
+  SCISHARE std::vector<QString> toQStringVector(const std::vector<std::string>& strVec);
 }
 }
 

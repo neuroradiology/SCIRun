@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef MODULES_LEGACY_MATH_ReportColumnMatrixMisfit_H
 #define MODULES_LEGACY_MATH_ReportColumnMatrixMisfit_H
 
@@ -42,15 +42,16 @@ namespace SCIRun {
       {
       public:
         ReportColumnMatrixMisfit();
-        virtual void execute();
-        virtual void setStateDefaults();
+        virtual void execute() override;
+        virtual void setStateDefaults() override;
         INPUT_PORT(0, Vec1, Matrix);
         INPUT_PORT(1, Vec2, Matrix);
         OUTPUT_PORT(0, Error_Out, Double);
 
         MODULE_TRAITS_AND_INFO(ModuleHasUI)
       private:
-        void showGraph(const Core::Datatypes::DenseColumnMatrix& v1, const Core::Datatypes::DenseColumnMatrix& v2, double ccInv, double rmsRel) const;
+        void showGraph(const Core::Datatypes::DenseColumnMatrix& v1, const Core::Datatypes::DenseColumnMatrix& v2,
+          double ccInv, double rmsRel);
         bool containsInfiniteComponent(const Core::Datatypes::DenseColumnMatrix& v) const;
       };
 }}}

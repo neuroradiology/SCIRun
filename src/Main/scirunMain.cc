@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 //Uncomment line below to check for memory leaks (run in debug mode VS)
 //#define LOOK_FOR_MEMORY_LEAKS
 
@@ -33,6 +33,7 @@
 #include <Interface/Application/GuiApplication.h>
 #include <Core/ConsoleApplication/ConsoleApplication.h>
 #include <Core/Utils/Legacy/Environment.h>
+#include <iostream>
 
 #ifdef BUILD_WITH_PYTHON
 #include <Core/Python/PythonInterpreter.h>
@@ -56,11 +57,13 @@ int mainImpl(int argc, const char* argv[], char **environment)
   Application::Instance().readCommandLine(argc, argv);
 
 #ifdef BUILD_WITH_PYTHON
-  SCIRun::Core::PythonInterpreter::Instance().initialize(true, Application::Instance().parameters()->entireCommandLine(), Application::Instance().executablePath());
+  SCIRun::Core::PythonInterpreter::Instance().initialize(true,
+    Application::Instance().parameters()->entireCommandLine(),
+    Application::Instance().executablePath());
 #endif
 
   //TODO: must read --headless flag here, or try pushing command queue building all the way up here
-
+  //TODO: https://doc.qt.io/qt-5/qapplication.html#details
 #ifndef BUILD_HEADLESS
   return GuiApplication::run(argc, argv);
 #else

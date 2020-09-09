@@ -1,30 +1,30 @@
 /*
- For more information, please see: http://software.sci.utah.edu
+   For more information, please see: http://software.sci.utah.edu
 
- The MIT License
+   The MIT License
 
- Copyright (c) 2015 Scientific Computing and Imaging Institute,
- University of Utah.
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
+   University of Utah.
 
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the "Software"),
+   to deal in the Software without restriction, including without limitation
+   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+   and/or sell copies of the Software, and to permit persons to whom the
+   Software is furnished to do so, subject to the following conditions:
 
- Permission is hereby granted, free of charge, to any person obtaining a
- copy of this software and associated documentation files (the "Software"),
- to deal in the Software without restriction, including without limitation
- the rights to use, copy, modify, merge, publish, distribute, sublicense,
- and/or sell copies of the Software, and to permit persons to whom the
- Software is furnished to do so, subject to the following conditions:
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Software.
 
- The above copyright notice and this permission notice shall be included
- in all copies or substantial portions of the Software.
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+*/
 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
- THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- DEALINGS IN THE SOFTWARE.
- */
 
 /// @todo Documentation Core/Command/GlobalCommandBuilderFromCommandLine.cc
 
@@ -75,13 +75,32 @@ using namespace SCIRun::Core::Algorithms;
 
     if (!params->disableGui())
       q->enqueue(cmdFactory_->create(GlobalCommands::ShowMainWindow));
-    else
-      std::cout << "HEADLESS MODE" << std::endl;  /// @todo obviously
 
     if (params->dataDirectory())
       q->enqueue(cmdFactory_->create(GlobalCommands::SetupDataDirectory));
 
-    if (!params->inputFiles().empty() || params->loadMostRecentFile())
+    if (params->importNetworkFile())
+    {
+      auto import = cmdFactory_->create(GlobalCommands::ImportNetworkFile);
+      import->set(Variables::Filename, *params->importNetworkFile());
+
+      if (params->disableGui())
+        import->set(Core::Algorithms::AlgorithmParameterName("QuietMode"), true);
+
+      q->enqueue(import);
+      auto save = cmdFactory_->create(GlobalCommands::SaveNetworkFile);
+      save->set(Variables::Filename, (*params->importNetworkFile()) + "_imported.srn5");
+      q->enqueue(save);
+    }
+
+    if (params->pythonScriptFile())
+    {
+      if (params->executeNetworkAndQuit())
+        q->enqueue(cmdFactory_->create(GlobalCommands::SetupQuitAfterExecute));
+      q->enqueue(cmdFactory_->create(GlobalCommands::RunPythonScript));
+      std::cout << "Please note all args after script file name will be passed to python and not SCIRun!" << std::endl;
+    }
+    else if (!params->inputFiles().empty() || params->loadMostRecentFile())
     {
       const int last = 1;
       //TODO: support multiple files loaded--need to be able to execute and wait for each before loading next. See #825
@@ -104,11 +123,11 @@ using namespace SCIRun::Core::Algorithms;
         }
       }
     }
-    else if (params->pythonScriptFile())
+    else if (params->disableGui() && !params->interactiveMode())
     {
-      if (params->executeNetworkAndQuit())
-        q->enqueue(cmdFactory_->create(GlobalCommands::SetupQuitAfterExecute));
-      q->enqueue(cmdFactory_->create(GlobalCommands::RunPythonScript));
+      if (!params->importNetworkFile())
+        std::cout << "No input files: run with GUI or in interactive mode (-i)" << std::endl;
+      q->enqueue(cmdFactory_->create(GlobalCommands::QuitCommand));
     }
 
     if (params->interactiveMode())

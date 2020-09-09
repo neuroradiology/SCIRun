@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -26,9 +25,10 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-//    File   : GenerateStreamLines.cc
-//    Author : Allen R. Sanderson
-//    Date   : July 2006
+
+///  File   : GenerateStreamLines.cc
+///  Author : Allen R. Sanderson
+///  Date   : July 2006
 
 #include <Modules/Legacy/Visualization/GenerateStreamLines.h>
 #include <Core/Algorithms/Legacy/Fields/StreamLines/GenerateStreamLines.h>
@@ -61,6 +61,7 @@ void GenerateStreamLines::setStateDefaults()
   setStateStringFromAlgoOption(Parameters::StreamlineMethod);
   setStateBoolFromAlgo(Parameters::AutoParameters);
   setStateBoolFromAlgo(Parameters::RemoveColinearPoints);
+  setStateBoolFromAlgo(Parameters::UseMultithreading);
 }
 
 void GenerateStreamLines::execute()
@@ -70,8 +71,6 @@ void GenerateStreamLines::execute()
 
   if (needToExecute())
   {
-    update_state(Executing);
-
     setAlgoDoubleFromState(Parameters::StreamlineStepSize);
     setAlgoDoubleFromState(Parameters::StreamlineTolerance);
     setAlgoOptionFromState(Parameters::StreamlineDirection);
@@ -80,6 +79,7 @@ void GenerateStreamLines::execute()
     setAlgoBoolFromState(Parameters::RemoveColinearPoints);
     setAlgoBoolFromState(Parameters::AutoParameters);
     setAlgoOptionFromState(Parameters::StreamlineMethod);
+    setAlgoBoolFromState(Parameters::UseMultithreading);
 
     auto output = algo().run(withInputData((Vector_Field, input)(Seed_Points, seeds)));
 

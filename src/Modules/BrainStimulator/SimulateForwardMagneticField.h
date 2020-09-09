@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 ///@file SimulateForwardMagneticFieldModule.h
 ///@brief This module computes the magnetic vector potential for a given mesh.
@@ -56,16 +56,16 @@ class SCISHARE SimulateForwardMagneticField : public SCIRun::Dataflow::Networks:
   public:
     SimulateForwardMagneticField();
 
-    virtual void execute();
-    virtual void setStateDefaults();
+    virtual void execute() override;
+    virtual void setStateDefaults() override;
 
-    INPUT_PORT(0, ElectricField, LegacyField);
-    INPUT_PORT(1, ConductivityTensor, LegacyField);
-    INPUT_PORT(2, DipoleSources, LegacyField);
-    INPUT_PORT(3, DetectorLocations, LegacyField);
+    INPUT_PORT(0, ElectricField, Field);
+    INPUT_PORT(1, ConductivityTensor, Field);
+    INPUT_PORT(2, DipoleSources, Field);
+    INPUT_PORT(3, DetectorLocations, Field);
 
-    OUTPUT_PORT(0, MagneticField, LegacyField);
-    OUTPUT_PORT(1, MagneticFieldMagnitudes, LegacyField);
+    OUTPUT_PORT(0, MagneticField, Field);
+    OUTPUT_PORT(1, MagneticFieldMagnitudes, Field);
 
     LEGACY_BIOPSE_MODULE
 

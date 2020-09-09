@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,14 +25,18 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-/// @todo Documentation Core/Logging/LoggerFwd.h
 
 #ifndef CORE_LOGGING_LOGGERFWD_H
-#define CORE_LOGGING_LOGGERFWD_H 
+#define CORE_LOGGING_LOGGERFWD_H
 
 #include <boost/shared_ptr.hpp>
 
-namespace SCIRun 
+namespace spdlog
+{
+  class logger;
+}
+
+namespace SCIRun
 {
   namespace Core
   {
@@ -42,10 +45,15 @@ namespace SCIRun
       class LegacyLoggerInterface;
       typedef boost::shared_ptr<LegacyLoggerInterface> LoggerHandle;
 
-      class Log;
+      using Logger2 = std::shared_ptr<spdlog::logger>;
     }
   }
 }
 
+#ifdef WIN32
+#define LOG_FUNC __FUNCSIG__
+#else
+#define LOG_FUNC __PRETTY_FUNCTION__
+#endif
 
 #endif

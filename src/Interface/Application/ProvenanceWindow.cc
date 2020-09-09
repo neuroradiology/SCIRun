@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #include <QtGui>
 #include <iostream>
@@ -47,7 +47,8 @@ ProvenanceWindow::ProvenanceWindow(ProvenanceManagerHandle provenanceManager, QW
   networkEditor_(provenanceManager->networkIO())
 {
   setupUi(this);
-  networkXMLTextEdit_->setTabStopWidth(15);
+  // TODO deprecated
+  //networkXMLTextEdit_->setTabStopWidth(15);
 
   connect(provenanceListWidget_, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(displayInfo(QListWidgetItem*)));
   connect(provenanceListWidget_, SIGNAL(currentItemChanged(QListWidgetItem*, QListWidgetItem*)), this, SLOT(displayInfo(QListWidgetItem*)));
@@ -56,6 +57,8 @@ ProvenanceWindow::ProvenanceWindow(ProvenanceManagerHandle provenanceManager, QW
   connect(undoAllButton_, SIGNAL(clicked()), this, SLOT(undoAll()));
   connect(redoAllButton_, SIGNAL(clicked()), this, SLOT(redoAll()));
   connect(clearButton_, SIGNAL(clicked()), this, SLOT(clear()));
+  connect(itemMaxSpinBox_, SIGNAL(valueChanged(int)), this, SLOT(setMaxItems(int)));
+  setMaxItems(10);
   setUndoEnabled(false);
   setRedoEnabled(false);
 }
@@ -96,14 +99,14 @@ public:
     QFont f = font();
     f.setItalic(false);
     setFont(f);
-    setBackgroundColor(Qt::white);
+    setBackground(Qt::white);
   }
   void setAsRedo()
   {
     QFont f = font();
     f.setItalic(true);
     setFont(f);
-    setBackgroundColor(Qt::lightGray);
+    setBackground(Qt::lightGray);
   }
   QString xmlText() const
   {
@@ -123,8 +126,16 @@ void ProvenanceWindow::addProvenanceItem(ProvenanceItemHandle item)
   for (int i = provenanceListWidget_->count() - 1; i > lastUndoRow_; --i)
     delete provenanceListWidget_->takeItem(i);
 
+  if (provenanceListWidget_->count() == maxItems_)
+  {
+    delete provenanceListWidget_->takeItem(0);
+  }
+  else
+  {
+    lastUndoRow_++;
+  }
+
   new ProvenanceWindowListItem(item, provenanceListWidget_);
-  lastUndoRow_++;
   setRedoEnabled(false);
   setUndoEnabled(true);
 
@@ -150,6 +161,19 @@ void ProvenanceWindow::clear()
   setRedoEnabled(false);
 
   networkXMLTextEdit_->clear();
+}
+
+void ProvenanceWindow::setMaxItems(int max)
+{
+  if (maxItems_ == max)
+    return;
+
+  maxItems_ = max;
+  itemMaxSpinBox_->setValue(max);
+  for (int i = 0; i < provenanceListWidget_->count() - max; ++i)
+  {
+    delete provenanceListWidget_->takeItem(0);
+  }
 }
 
 void ProvenanceWindow::setUndoEnabled(bool enable)

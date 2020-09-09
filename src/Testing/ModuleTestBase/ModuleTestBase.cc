@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #include <Testing/ModuleTestBase/ModuleTestBase.h>
 #include <Dataflow/Network/Network.h>
 #include <Dataflow/Network/Tests/MockNetwork.h>
@@ -44,11 +44,13 @@
 #include <Core/GeometryPrimitives/Point.h>
 #include <Core/Logging/Log.h>
 #include <Dataflow/Network/SimpleSourceSink.h>
+#include <Dataflow/Network/ModuleBuilder.h>
 
 using namespace SCIRun;
 using namespace SCIRun::Core::Algorithms;
 using namespace SCIRun::Core::Datatypes;
 using namespace SCIRun::Core::Geometry;
+using namespace SCIRun::Core::Logging;
 using namespace SCIRun::Dataflow::Networks;
 using namespace SCIRun::Dataflow::Networks::Mocks;
 using namespace SCIRun::Dataflow::State;
@@ -106,15 +108,15 @@ ModuleTestBase::ModuleTestBase() : factory_(new HardCodedModuleFactory)
 
 void ModuleTestBase::initModuleParameters(bool verbose)
 {
-  Module::Builder::use_sink_type(boost::factory<StubbedDatatypeSink*>());
-  Module::Builder::use_source_type(boost::factory<TestSimpleSource*>());
-  Module::defaultAlgoFactory_.reset(new MockAlgorithmFactory(verbose));
+  ModuleBuilder::use_sink_type(boost::factory<StubbedDatatypeSink*>());
+  ModuleBuilder::use_source_type(boost::factory<TestSimpleSource*>());
+  DefaultModuleFactories::defaultAlgoFactory_.reset(new MockAlgorithmFactory(verbose));
   DefaultValue<AlgorithmParameterName>::Set(AlgorithmParameterName());
   DefaultValue<AlgorithmParameter>::Set(AlgorithmParameter());
   DefaultValue<const AlgorithmParameter&>::Set(algoParam_);
   DefaultValue<AlgorithmOutput>::Set(AlgorithmOutput());
   DefaultValue<AlgorithmInput>::Set(AlgorithmInput());
-  Core::Logging::Log::get().setVerbose(verbose);
+  LogSettings::Instance().setVerbose(verbose);
 }
 
 ModuleHandle ModuleTestBase::makeModule(const std::string& name)
@@ -124,7 +126,7 @@ ModuleHandle ModuleTestBase::makeModule(const std::string& name)
 
 void ModuleTestBase::stubPortNWithThisData(ModuleHandle module, size_t portNum, DatatypeHandle data)
 {
-  if (portNum < module->num_input_ports())
+  if (portNum < module->numInputPorts())
   {
     auto iport = module->inputPorts()[portNum];
     if (iport->nconnections() > 0)
@@ -132,7 +134,7 @@ void ModuleTestBase::stubPortNWithThisData(ModuleHandle module, size_t portNum, 
     iport->attach(nullptr);
     if (iport->isDynamic())
     {
-      Module::Builder builder;
+      ModuleBuilder builder;
       auto newPortId = builder.cloneInputPort(module, iport->id());
     }
     DatatypeHandleOption o = data;
@@ -142,7 +144,7 @@ void ModuleTestBase::stubPortNWithThisData(ModuleHandle module, size_t portNum, 
 
 DatatypeHandle ModuleTestBase::getDataOnThisOutputPort(ModuleHandle module, size_t portNum)
 {
-  if (portNum < module->num_output_ports())
+  if (portNum < module->numOutputPorts())
   {
     auto oport = module->outputPorts()[portNum];
     return boost::dynamic_pointer_cast<TestSimpleSource>(oport->source())->getDataForTesting();
@@ -152,7 +154,7 @@ DatatypeHandle ModuleTestBase::getDataOnThisOutputPort(ModuleHandle module, size
 
 void ModuleTestBase::connectDummyOutputConnection(Dataflow::Networks::ModuleHandle module, size_t portNum)
 {
-  if (portNum < module->num_output_ports())
+  if (portNum < module->numOutputPorts())
   {
     auto oport = module->outputPorts()[portNum];
     oport->attach(nullptr);
@@ -161,20 +163,20 @@ void ModuleTestBase::connectDummyOutputConnection(Dataflow::Networks::ModuleHand
 
 UseRealAlgorithmFactory::UseRealAlgorithmFactory()
 {
-  Module::defaultAlgoFactory_.reset(new HardCodedAlgorithmFactory);
+  DefaultModuleFactories::defaultAlgoFactory_.reset(new HardCodedAlgorithmFactory);
 }
 
 UseRealAlgorithmFactory::~UseRealAlgorithmFactory()
 {
-  Module::defaultAlgoFactory_.reset(new MockAlgorithmFactory(true));
+  DefaultModuleFactories::defaultAlgoFactory_.reset(new MockAlgorithmFactory(true));
 }
 
 UseRealModuleStateFactory::UseRealModuleStateFactory()
 {
-  Module::defaultStateFactory_.reset(new SimpleMapModuleStateFactory);
+  DefaultModuleFactories::defaultStateFactory_.reset(new SimpleMapModuleStateFactory);
 }
 
 UseRealModuleStateFactory::~UseRealModuleStateFactory()
 {
-  Module::defaultStateFactory_.reset();
+  DefaultModuleFactories::defaultStateFactory_.reset();
 }

@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,10 +25,12 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #include <Core/Datatypes/Scalar.h>
 #include <Modules/Basic/SendComplexScalar.h>
 #include <Core/Datatypes/DenseMatrix.h>
 #include <Core/Logging/Log.h>
+#include <spdlog/fmt/ostr.h>
 
 using namespace SCIRun::Modules::Basic;
 using namespace SCIRun::Core::Datatypes;
@@ -55,6 +56,6 @@ void SendComplexScalar::execute()
   }
   else
   {
-    LOG_DEBUG("Executing SendComplexMatrix with old value, not sending anything: " << data_);
+    LOG_DEBUG("Executing SendComplexMatrix with old value, not sending anything: {}", data_);
   }
 }

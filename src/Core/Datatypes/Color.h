@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 /// @todo Documentation Core/Datatypes/Color.h
 
@@ -49,8 +49,10 @@ namespace Datatypes {
   public:
     ColorRGB();
     explicit ColorRGB(const std::string& rgb);
+    explicit ColorRGB(double v);
     ColorRGB(double r, double g, double b);
     ColorRGB(double r, double g, double b, double a);
+    explicit ColorRGB(unsigned int rgbHexValue);
     //adjust alpha while copying
     //ColorRGB(const ColorRGB& color, double a);
 
@@ -82,6 +84,19 @@ namespace Datatypes {
   {
     Geometry::Transform transform;
     std::string selectionName;
+    std::tuple<int,int> windowSize;
+
+    bool matchesWithModuleId(const std::string& modId) const;
+  };
+
+  struct SCISHARE MeshComponentSelectionFeedback : ModuleFeedback
+  {
+    MeshComponentSelectionFeedback() {}
+    MeshComponentSelectionFeedback(const std::string& mod, const std::string& comp, bool sel) :
+      moduleId(mod), component(comp), selected(sel) {}
+    std::string moduleId;
+    std::string component;
+    bool selected {false};
   };
 
 }}}

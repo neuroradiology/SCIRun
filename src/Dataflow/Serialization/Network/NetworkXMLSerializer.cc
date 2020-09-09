@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 /// @todo Documentation Dataflow/Serialization/Network/NetworkXMLSerializer.cc
 
@@ -84,14 +84,17 @@ NetworkHandle NetworkXMLConverter::from_xml_data(const NetworkXML& data)
       try
       {
         auto module = controller_->addModule(modPair.second.module);
-        module->set_id(modPair.first);
+        module->setId(modPair.first);
         ModuleStateHandle state(new SimpleMapModuleState(std::move(modPair.second.state)));
-        module->set_state(state);
+        module->setState(state);
       }
       catch (Core::InvalidArgumentException& e)
       {
-        static std::ofstream missingModulesFile((Core::Logging::Log::logDirectory() / "missingModules.log").string());
+        static std::ofstream missingModulesFile(
+          (Core::Logging::LogSettings::Instance().logDirectory() / "missingModules.log").string(), std::ios_base::out | std::ios_base::app);
         missingModulesFile << "File load problem: " << e.what() << std::endl;
+        logCritical("File load problem: {}", e.what());
+        throw;
       }
     }
   }
@@ -107,7 +110,9 @@ NetworkHandle NetworkXMLConverter::from_xml_data(const NetworkXML& data)
       controller_->requestConnection(from->getOutputPort(conn.out_.portId_).get(), to->getInputPort(conn.in_.portId_).get());
     else
     {
-      Core::Logging::Log::get() << Core::Logging::ERROR_LOG << "File load error: connection not created between modules " << conn.out_.moduleId_ << " and " << conn.in_.moduleId_ << std::endl;
+      logError(
+        "File load error: connection not created between modules {} and {}.",
+        conn.out_.moduleId_.id_, conn.in_.moduleId_.id_);
     }
   }
 
@@ -134,9 +139,9 @@ NetworkXMLConverter::NetworkAppendInfo NetworkXMLConverter::appendXmlData(const 
 
       //std::cout << "setting module id to " << newId << std::endl;
       info.moduleIdMapping[modPair.first] = newId;
-      module->set_id(newId);
+      module->setId(newId);
       ModuleStateHandle state(new SimpleMapModuleState(std::move(modPair.second.state)));
-      module->set_state(state);
+      module->setState(state);
     }
   }
 
@@ -175,7 +180,7 @@ NetworkFileHandle NetworkToXML::to_xml_data(const NetworkHandle& network)
 NetworkFileHandle NetworkToXML::to_xml_data(const NetworkHandle& network, ModuleFilter modFilter, ConnectionFilter connFilter)
 {
   NetworkXML networkXML;
-  auto conns = network->connections();
+  auto conns = network->connections(true);
   for (const auto& desc : conns)
   {
     if (connFilter(desc))
@@ -188,7 +193,7 @@ NetworkFileHandle NetworkToXML::to_xml_data(const NetworkHandle& network, Module
     {
       auto state = module->get_state();
       auto stateXML = make_state_xml(state);
-      networkXML.modules[module->get_id()] = ModuleWithState(module->get_info(), stateXML ? *stateXML : SimpleMapModuleStateXML());
+      networkXML.modules[module->id()] = ModuleWithState(module->info(), stateXML ? *stateXML : SimpleMapModuleStateXML());
     }
   }
 
@@ -201,6 +206,7 @@ NetworkFileHandle NetworkToXML::to_xml_data(const NetworkHandle& network, Module
     file->connectionNotes = *nesm_->dumpConnectionNotes(connFilter);
     file->moduleTags = *nesm_->dumpModuleTags(modFilter);
     file->disabledComponents = *nesm_->dumpDisabledComponents(modFilter, connFilter);
+    file->subnetworks = *nesm_->dumpSubnetworks(modFilter);
   }
   return file;
 }

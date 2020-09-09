@@ -1,12 +1,10 @@
-
 /*
    For more information, please see: http://software.sci.utah.edu
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -27,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef MODULES_LEGACY_FORWARD_BuildBEMatrix_H__
 #define MODULES_LEGACY_FORWARD_BuildBEMatrix_H__
 
@@ -43,11 +42,11 @@ namespace SCIRun {
       {
       public:
         BuildBEMatrix();
-        virtual void setStateDefaults();
-        virtual void execute();
+        void setStateDefaults() override;
+        void execute() override;
         HAS_DYNAMIC_PORTS
 
-        INPUT_PORT_DYNAMIC(0, Surface, LegacyField);
+        INPUT_PORT_DYNAMIC(0, Surface, Field);
         OUTPUT_PORT(0, BEM_Forward_Matrix, Matrix);
 
         LEGACY_BIOPSE_MODULE

@@ -1,30 +1,31 @@
-//
-//  For more information, please see: http://software.sci.utah.edu
-//
-//  The MIT License
-//
-//  Copyright (c) 2015 Scientific Computing and Imaging Institute,
-//  University of Utah.
-//
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a
-//  copy of this software and associated documentation files (the "Software"),
-//  to deal in the Software without restriction, including without limitation
-//  the rights to use, copy, modify, merge, publish, distribute, sublicense,
-//  and/or sell copies of the Software, and to permit persons to whom the
-//  Software is furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included
-//  in all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-//  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-//  THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-//  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-//  DEALINGS IN THE SOFTWARE.
-//
+/*
+   For more information, please see: http://software.sci.utah.edu
+
+   The MIT License
+
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
+   University of Utah.
+
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the "Software"),
+   to deal in the Software without restriction, including without limitation
+   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+   and/or sell copies of the Software, and to permit persons to whom the
+   Software is furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+*/
+
+
 //    File   : NetworkIO.h
 //    Author : Martin Cole
 //    Date   : Tue Jan 24 11:28:22 2006
@@ -37,6 +38,7 @@
 #include <libxml/xmlreader.h>
 #include <map>
 #include <stack>
+#include <utility>
 
 #include <Dataflow/Serialization/Network/Importer/share.h>
 
@@ -44,9 +46,26 @@ namespace SCIRun {
 namespace Dataflow {
 namespace Networks {
 
-  typedef std::map<std::string, std::map<std::string, Core::Algorithms::Name>> NameLookup;
-  typedef boost::function<Core::Algorithms::AlgorithmParameter::Value(std::string)> ValueConverter;
-  typedef std::map<std::string, std::map<std::string, ValueConverter>> ValueConverterMap;
+  typedef boost::function<Core::Algorithms::AlgorithmParameter::Value(const std::string&)> ValueConverter;
+  struct NewNameAndValueConverter
+  {
+    Core::Algorithms::Name name;
+    ValueConverter valueConverter;
+  };
+  typedef std::map<std::string, NewNameAndValueConverter> OldStateNameConverterLookup;
+  typedef std::map<std::string, OldStateNameConverterLookup> StateConverterLookupByModule;
+
+  class LegacyNetworkStateConversion
+  {
+  public:
+    LegacyNetworkStateConversion();
+    void readImporterMap(std::istream& file);
+    boost::optional<NewNameAndValueConverter> getStateConverter(const std::string& moduleName, const std::string& oldStateName) const;
+  private:
+    StateConverterLookupByModule nameAndValLookup_;
+    //std::unique_ptr<std::string> v4MergeStateToV5_;  //??
+    //ValueConverter initState, appendState, useState;
+  };
 
   class SCISHARE LegacyNetworkIO
   {
@@ -54,6 +73,9 @@ namespace Networks {
     LegacyNetworkIO(const std::string& dtdPath, const Networks::ModuleFactory& modFactory,
       std::ostringstream& simpleLog);
     NetworkFileHandle load_net(const std::string& legacyNetworkFilename);
+
+    static std::string checkForModuleRename(const std::string& originalName);
+    static void initializeStateConverter(std::istream& file);
   private:
     bool done_writing() const { return done_writing_; }
 
@@ -145,7 +167,6 @@ namespace Networks {
     void gui_pop_subnet_ctx(const std::string& ctx);
 
     void listModuleIdMapping();
-    static std::string checkForModuleRename(const std::string& originalName);
 
     xmlNode* get_module_node(const std::string &id);
     xmlNode* get_connection_node(const std::string &id);
@@ -172,9 +193,10 @@ namespace Networks {
     const Networks::ModuleFactory& modFactory_;
     std::map<std::string, ModuleId> moduleIdMap_;
     std::map<std::string, std::string> connectionIdMap_;
+
+    static LegacyNetworkStateConversion legacyState_;
+
     static const std::map<std::string, std::string> moduleRenameMap_;
-    static NameLookup nameLookup_;
-    static ValueConverterMap valueConverter_;
   };
 
 }}} // end namespace SCIRun

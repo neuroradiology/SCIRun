@@ -1,30 +1,34 @@
 /*
- For more information, please see: http://software.sci.utah.edu
+   For more information, please see: http://software.sci.utah.edu
 
- The MIT License
+   The MIT License
 
- Copyright (c) 2015 Scientific Computing and Imaging Institute,
- University of Utah.
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
+   University of Utah.
 
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the "Software"),
+   to deal in the Software without restriction, including without limitation
+   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+   and/or sell copies of the Software, and to permit persons to whom the
+   Software is furnished to do so, subject to the following conditions:
 
- Permission is hereby granted, free of charge, to any person obtaining a
- copy of this software and associated documentation files (the "Software"),
- to deal in the Software without restriction, including without limitation
- the rights to use, copy, modify, merge, publish, distribute, sublicense,
- and/or sell copies of the Software, and to permit persons to whom the
- Software is furnished to do so, subject to the following conditions:
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Software.
 
- The above copyright notice and this permission notice shall be included
- in all copies or substantial portions of the Software.
-
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
- THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- DEALINGS IN THE SOFTWARE.
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
 */
+
+
+#ifdef __APPLE__
+#define GL_SILENCE_DEPRECATION
+#endif
 
 #include <glm/glm.hpp>
 #include <gl-platform/GLPlatform.hpp>
@@ -59,8 +63,8 @@
 #include "../comp/LightingUniforms.h"
 #include "../comp/ClippingPlaneUniforms.h"
 
-namespace es = CPM_ES_NS;
-namespace shaders = CPM_GL_SHADERS_NS;
+namespace es = spire;
+namespace shaders = spire;
 using namespace SCIRun::Graphics::Datatypes;
 
 // Every component is self contained. It only accesses the systems and
@@ -70,7 +74,7 @@ namespace SCIRun {
 namespace Render {
 
 class RenderBasicSysTrans :
-    public es::GenericSystem<true,
+    public spire::GenericSystem<true,
                              RenderBasicGeom,   // TAG class
                              SRRenderState,
                              RenderList,
@@ -101,7 +105,7 @@ public:
 
   bool isComponentOptional(uint64_t type) override
   {
-    return es::OptionalComponents<RenderList,
+    return spire::OptionalComponents<RenderList,
                                   ren::GLState,
                                   ren::StaticGLState,
                                   ren::CommonUniforms,
@@ -155,10 +159,26 @@ private:
     }
   };
 
+  GLuint addIBO(void* iboData, size_t iboDataSize)
+  {
+    GLuint glid;
+
+    GL(glGenBuffers(1, &glid));
+    GL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glid));
+    GL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(iboDataSize), iboData, GL_STATIC_DRAW));
+
+    return glid;
+  }
+
+  void removeIBO(GLuint glid)
+  {
+    GL(glDeleteBuffers(1, &glid));
+  }
+
   GLuint sortObjects(const Core::Geometry::Vector& dir,
-    const es::ComponentGroup<ren::IBO>& ibo,
-    const es::ComponentGroup<SpireSubPass>& pass,
-    const es::ComponentGroup<ren::StaticIBOMan>& iboMan)
+    const spire::ComponentGroup<ren::IBO>& ibo,
+    const spire::ComponentGroup<SpireSubPass>& pass,
+    const spire::ComponentGroup<ren::StaticIBOMan>& iboMan)
   {
     char* vbo_buffer = reinterpret_cast<char*>(pass.front().vbo.data->getBuffer());
     uint32_t* ibo_buffer = reinterpret_cast<uint32_t*>(pass.front().ibo.data->getBuffer());
@@ -188,9 +208,6 @@ private:
 
     std::sort(rel_depth.begin(), rel_depth.end());
 
-    // setup index buffers
-    int numPrimitives = pass.front().ibo.data->getBufferSize() / pass.front().ibo.indexSize;
-
     std::vector<char> sorted_buffer(pass.front().ibo.data->getBufferSize());
     char* ibuffer = reinterpret_cast<char*>(pass.front().ibo.data->getBuffer());
     char* sbuffer = !sorted_buffer.empty() ? reinterpret_cast<char*>(&sorted_buffer[0]) : 0;
@@ -205,38 +222,37 @@ private:
       }
 
       std::string transIBOName = pass.front().ibo.name + "trans";
-      result = iboMan.front().instance_->addInMemoryIBO(sbuffer, pass.front().ibo.data->getBufferSize(), ibo.front().primMode, ibo.front().primType,
-        numPrimitives, transIBOName);
+      result = addIBO(sbuffer, pass.front().ibo.data->getBufferSize());
     }
 
     return result;
   }
 
   void groupExecute(
-      es::ESCoreBase&, uint64_t /* entityID */,
-      const es::ComponentGroup<RenderBasicGeom>& geom,
-      const es::ComponentGroup<SRRenderState>& srstate,
-      const es::ComponentGroup<RenderList>& rlist,
-      const es::ComponentGroup<LightingUniforms>& lightUniforms,
-      const es::ComponentGroup<ClippingPlaneUniforms>& clippingPlaneUniforms,
-      const es::ComponentGroup<gen::Transform>& trafo,
-      const es::ComponentGroup<gen::StaticGlobalTime>& time,
-      const es::ComponentGroup<ren::VBO>& vbo,
-      const es::ComponentGroup<ren::IBO>& ibo,
-      const es::ComponentGroup<ren::Texture>& textures,
-      const es::ComponentGroup<ren::CommonUniforms>& commonUniforms,
-      const es::ComponentGroup<ren::VecUniform>& vecUniforms,
-      const es::ComponentGroup<ren::MatUniform>& matUniforms,
-      const es::ComponentGroup<ren::Shader>& shader,
-      const es::ComponentGroup<ren::GLState>& state,
-      const es::ComponentGroup<SpireSubPass>& pass,
-      const es::ComponentGroup<StaticWorldLight>& worldLight,
-      const es::ComponentGroup<StaticClippingPlanes>& clippingPlanes,
-      const es::ComponentGroup<gen::StaticCamera>& camera,
-      const es::ComponentGroup<ren::StaticGLState>& defaultGLState,
-      const es::ComponentGroup<ren::StaticVBOMan>& vboMan,
-      const es::ComponentGroup<ren::StaticIBOMan>& iboMan,
-      const es::ComponentGroup<ren::StaticTextureMan>& texMan) override
+      spire::ESCoreBase&, uint64_t /* entityID */,
+      const spire::ComponentGroup<RenderBasicGeom>& geom,
+      const spire::ComponentGroup<SRRenderState>& srstate,
+      const spire::ComponentGroup<RenderList>& rlist,
+      const spire::ComponentGroup<LightingUniforms>& lightUniforms,
+      const spire::ComponentGroup<ClippingPlaneUniforms>& clippingPlaneUniforms,
+      const spire::ComponentGroup<gen::Transform>& trafo,
+      const spire::ComponentGroup<gen::StaticGlobalTime>& time,
+      const spire::ComponentGroup<ren::VBO>& vbo,
+      const spire::ComponentGroup<ren::IBO>& ibo,
+      const spire::ComponentGroup<ren::Texture>& textures,
+      const spire::ComponentGroup<ren::CommonUniforms>& commonUniforms,
+      const spire::ComponentGroup<ren::VecUniform>& vecUniforms,
+      const spire::ComponentGroup<ren::MatUniform>& matUniforms,
+      const spire::ComponentGroup<ren::Shader>& shader,
+      const spire::ComponentGroup<ren::GLState>& state,
+      const spire::ComponentGroup<SpireSubPass>& pass,
+      const spire::ComponentGroup<StaticWorldLight>& worldLight,
+      const spire::ComponentGroup<StaticClippingPlanes>& clippingPlanes,
+      const spire::ComponentGroup<gen::StaticCamera>& camera,
+      const spire::ComponentGroup<ren::StaticGLState>& defaultGLState,
+      const spire::ComponentGroup<ren::StaticVBOMan>& vboMan,
+      const spire::ComponentGroup<ren::StaticIBOMan>& iboMan,
+      const spire::ComponentGroup<ren::StaticTextureMan>& texMan) override
   {
     /// \todo This needs to be moved to pre-execute.
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
@@ -261,9 +277,9 @@ private:
     bool drawLines = (ibo.front().primMode == static_cast<int>(SpireIBO::PRIMITIVE::LINES));
     GLuint iboID = ibo.front().glid;
 
-    Core::Geometry::Vector dir(camera.front().data.worldToView[0][2],
-                               camera.front().data.worldToView[1][2],
-                               camera.front().data.worldToView[2][2]);
+    Core::Geometry::Vector dir(camera.front().data.view[0][2],
+                               camera.front().data.view[1][2],
+                               camera.front().data.view[2][2]);
 
     if (!drawLines)
     {
@@ -298,7 +314,7 @@ private:
           {
             if (sortedObjects[index].mSortedID != 0)
             {
-              iboMan.front().instance_->removeInMemoryIBO(sortedObjects[index].mSortedID);
+              removeIBO(sortedObjects[index].mSortedID);
             }
             sortedObjects[index].prevDir = dir;
             sortedObjects[index].mSortedID = sortObjects(dir, ibo, pass, iboMan);
@@ -332,9 +348,9 @@ private:
               iboNegZID = it->glid;
           }
 
-          Core::Geometry::Vector absDir(abs(camera.front().data.worldToView[0][2]),
-                                        abs(camera.front().data.worldToView[1][2]),
-                                        abs(camera.front().data.worldToView[2][2]));
+          Core::Geometry::Vector absDir(fabs(camera.front().data.view[0][2]),
+                                        fabs(camera.front().data.view[1][2]),
+                                        fabs(camera.front().data.view[2][2]));
 
           double xORy = absDir.x() > absDir.y() ? absDir.x() : absDir.y();
           double orZ = absDir.z() > xORy ? absDir.z() : xORy;
@@ -483,10 +499,10 @@ private:
       // fairly dramatically.
 
       // Build BSerialize object.
-      CPM_BSERIALIZE_NS::BSerialize posDeserialize(
+      spire::BSerialize posDeserialize(
           rlist.front().data->getBuffer(), rlist.front().data->getBufferSize());
 
-      CPM_BSERIALIZE_NS::BSerialize colorDeserialize(
+      spire::BSerialize colorDeserialize(
           rlist.front().data->getBuffer(), rlist.front().data->getBufferSize());
 
       int64_t posSize     = 0;
@@ -583,7 +599,7 @@ private:
     {
       if (pass.front().renderState.mSortType == RenderState::TransparencySortType::CONTINUOUS_SORT)
       {
-        iboMan.front().instance_->removeInMemoryIBO(iboID);
+        removeIBO(iboID);
       }
     }
 
@@ -619,7 +635,7 @@ private:
   }
 };
 
-void registerSystem_RenderBasicTransGeom(CPM_ES_ACORN_NS::Acorn& core)
+void registerSystem_RenderBasicTransGeom(spire::Acorn& core)
 {
 	core.registerSystem<RenderBasicSysTrans>();
 }

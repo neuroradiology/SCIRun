@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,7 +25,8 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#include <QtGui>
+
+#include <Interface/qt_include.h>
 #include <Interface/Application/ClosestPortFinder.h>
 #include <Interface/Application/ModuleProxyWidget.h>
 #include <Interface/Application/ModuleWidget.h>
@@ -35,11 +35,13 @@
 
 using namespace SCIRun::Gui;
 
-ClosestPortFinder::ClosestPortFinder(QGraphicsScene* scene) : scene_(scene) {}
+ClosestPortFinder::ClosestPortFinder(QGraphicsProxyWidget* module) : module_(module) {}
+
+ClosestPortFinder::ClosestPortFinder(std::function<QGraphicsScene*()> sceneFunc) : func_(sceneFunc) {}
 
 PortWidget* ClosestPortFinder::closestPort(const QPointF& pos)
 {
-  Q_FOREACH (QGraphicsItem* item, scene_->items(pos))
+  Q_FOREACH(QGraphicsItem* item, getScene()->items(pos))
   {
     if (auto mpw = dynamic_cast<ModuleProxyWidget*>(item))
     {
@@ -49,7 +51,14 @@ PortWidget* ClosestPortFinder::closestPort(const QPointF& pos)
       return *std::min_element(ports.begin(), ports.end(), [=](PortWidget* lhs, PortWidget* rhs) {return lessPort(pos, lhs, rhs); });
     }
   }
-  return 0;
+  return nullptr;
+}
+
+QGraphicsScene* ClosestPortFinder::getScene() const
+{
+  if (module_)
+    return module_->scene();
+  return func_();
 }
 
 int ClosestPortFinder::distance(const QPointF& pos, PortWidget* port) const
@@ -61,4 +70,3 @@ bool ClosestPortFinder::lessPort(const QPointF& pos, PortWidget* lhs, PortWidget
 {
   return distance(pos, lhs) < distance(pos, rhs);
 }
-

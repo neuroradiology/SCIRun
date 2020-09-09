@@ -3,9 +3,8 @@
 #
 #  The MIT License
 #
-#  Copyright (c) 2015 Scientific Computing and Imaging Institute,
+#  Copyright (c) 2020 Scientific Computing and Imaging Institute,
 #  University of Utah.
-#
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a
 #  copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,7 @@
 #  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 #  DEALINGS IN THE SOFTWARE.
 #
+
 
 SET(Core_Algorithms_Legacy_Fields_HEADERS
   ClipMesh/ClipMeshBySelection.h
@@ -47,7 +47,7 @@ SET(Core_Algorithms_Legacy_Fields_HEADERS
   FieldData/SetFieldData.h
   FieldData/SetFieldDataToConstantValue.h
   FieldData/SwapFieldDataWithMatrixEntriesAlgo.h
-  #FieldData/SmoothVecFieldMedian.h
+  FieldData/SmoothVecFieldMedianAlgo.h
   Mapping/BuildMappingMatrixAlgo.h
   DomainFields/GetDomainBoundaryAlgo.h
   MeshDerivatives/GetFieldBoundaryAlgo.h
@@ -100,13 +100,19 @@ SET(Core_Algorithms_Legacy_Fields_HEADERS
   SampleField/GeneratePointSamplesFromField.h
   DistanceField/CalculateIsInsideField.h
   MeshData/GetMeshQualityFieldAlgo.h
-)
+  Cleanup/RemoveUnusedNodes.h
+  Cleanup/CleanupTetMesh.h
+  DistanceField/CalculateInsideWhichFieldAlgorithm.h
+  Cleanup/ReorderNormalCoherentlyAlgo.h
+  MeshDerivatives/CalculateMeshCenterAlgo.h
+  MeshDerivatives/GetCentroids.h
+  )
 
 SET(Core_Algorithms_Legacy_Fields_SRCS
   RegisterWithCorrespondences.cc
   MeshData/FlipSurfaceNormals.cc
-  #Cleanup/CleanupTetMesh.cc
-  #Cleanup/RemoveUnusedNodes.cc
+  Cleanup/RemoveUnusedNodes.cc
+  Cleanup/CleanupTetMesh.cc
   #ClipMesh/ClipMeshByIsovalue.cc
   ClipMesh/ClipMeshBySelection.cc
   ClipMesh/ClipMeshByIsovalue.cc
@@ -124,7 +130,7 @@ SET(Core_Algorithms_Legacy_Fields_SRCS
 
   DistanceField/CalculateDistanceField.cc
   DistanceField/CalculateIsInsideField.cc
-  #DistanceField/CalculateInsideWhichField.cc
+  DistanceField/CalculateInsideWhichFieldAlgorithm.cc
   DistanceField/CalculateSignedDistanceField.cc
   DomainFields/GetDomainBoundaryAlgo.cc
   #DomainFields/GetDomainStructure.cc
@@ -143,7 +149,7 @@ SET(Core_Algorithms_Legacy_Fields_SRCS
   #FieldData/ConvertMappingMatrixToFieldData.cc
   FieldData/SetFieldData.cc
   FieldData/SetFieldDataToConstantValue.cc
-  #FieldData/SmoothVecFieldMedian.cc
+  FieldData/SmoothVecFieldMedianAlgo.cc
   #FilterFieldData/DilateFieldData.cc
   #FilterFieldData/ErodeFieldData.cc
   #FilterFieldData/TriSurfPhaseFilter.cc
@@ -183,8 +189,8 @@ SET(Core_Algorithms_Legacy_Fields_SRCS
   #MeshData/GetSurfaceElemNormals.cc
   MeshData/GetMeshQualityFieldAlgo.cc
   #MeshDerivatives/CalculateMeshConnector.cc
-  #MeshDerivatives/CalculateMeshCenter.cc
-  #MeshDerivatives/GetCentroids.cc
+  MeshDerivatives/CalculateMeshCenterAlgo.cc
+  MeshDerivatives/GetCentroids.cc
   MeshDerivatives/GetFieldBoundaryAlgo.cc
   #MeshDerivatives/GetBoundingBox.cc
   MeshDerivatives/SplitByConnectedRegion.cc
@@ -211,6 +217,7 @@ SET(Core_Algorithms_Legacy_Fields_SRCS
   #TransformMesh/PolarProjectionTools.cc
   #TransformMesh/GeneratePolarProjectionImage.cc
   #TracePoints/TracePoints.cc
+  Cleanup/ReorderNormalCoherentlyAlgo.cc
 )
 
 SCIRUN_ADD_LIBRARY(Core_Algorithms_Legacy_Fields
@@ -229,14 +236,6 @@ TARGET_LINK_LIBRARIES(Core_Algorithms_Legacy_Fields
   Core_Basis
   Algorithms_Math
 )
-
-IF(FALSE)
-  IF(WITH_TETGEN)
-    TARGET_LINK_LIBRARIES(Core_Algorithms_Legacy_Fields
-      ${TETGEN_LIBRARY}
-    )
-  ENDIF()
-ENDIF()
 
 IF(BUILD_SHARED_LIBS)
   ADD_DEFINITIONS(-DBUILD_Core_Algorithms_Legacy_Fields)

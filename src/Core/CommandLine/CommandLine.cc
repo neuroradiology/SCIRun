@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #include <Core/CommandLine/CommandLine.h>
 #include <boost/program_options.hpp>
 #include <boost/make_shared.hpp>
@@ -45,7 +45,7 @@ namespace CommandLine {
 class CommandLineParserInternal
 {
 public:
-  CommandLineParserInternal() : desc_("SCIRun5 basic options")
+  CommandLineParserInternal() : desc_("SCIRun 5 command line options")
   {
       desc_.add_options()
       ("help,h", "prints usage information")
@@ -54,18 +54,22 @@ public:
       ("Execute,E", "executes the given network on startup and quits when done")
       ("datadir,d", po::value<std::string>(), "scirun data directory")
       ("regression,r", po::value<int>(), "regression test a network")
-      ("logfile,l", po::value<std::string>(), "add output messages to a logfile--TODO")
+      //("logfile,l", po::value<std::string>(), "add output messages to a logfile--TODO")
       ("most-recent,1", "load the most recently used file")
       ("interactive,i", "interactive mode")
-      ("headless,x", "disable GUI (Qt still needed, for now)")
+      ("save-images,z", "save all ViewScene images before quitting")
+      ("headless,x", "disable GUI")
       ("input-file", po::value<std::vector<std::string>>(), "SCIRun Network Input File")
-      ("script,s", po::value<std::string>(), "SCIRun Python Script")
-      ("no_splash", "Turn off splash screen")
+      ("script,s", po::value<std::string>(), "Python script--interpret and drop into embedded console")
+      ("Script,S", po::value<std::string>(), "Python script--interpret and quit after one SCIRun execution pass")
+      ("import", po::value<std::string>(), "Import a network from SCIRun 4.7")
+      ("no_splash,0", "Turn off splash screen")
       ("verbose", "Turn on debug log information")
-      ("threadMode", po::value<std::string>(), "network execution threading mode--DEVELOPER USE ONLY")
-      ("reexecuteMode", po::value<std::string>(), "network reexecution mode--DEVELOPER USE ONLY")
-      ("frameInitLimit", po::value<int>(), "ViewScene frame init limit--increase if renderer fails")
+      //("threadMode", po::value<std::string>(), "network execution threading mode--DEVELOPER USE ONLY")
+      //("reexecuteMode", po::value<std::string>(), "network reexecution mode--DEVELOPER USE ONLY")
+      //("frameInitLimit", po::value<int>(), "ViewScene frame init limit--increase if renderer fails")
       ("guiExpandFactor", po::value<double>(), "Expansion factor for high resolution displays")
+      ("max-cores", po::value<unsigned int>(), "Limit the number of cores used by multithreaded algorithms")
       ("list-modules", "print list of available modules")
       ;
 
@@ -114,33 +118,39 @@ public:
     const boost::optional<std::string>& reexecuteMode,
     const boost::optional<int>& frameInitLimit,
     const boost::optional<int>& regressionTimeout,
+    const boost::optional<unsigned int>& maxCores,
     const boost::optional<double>& guiExpandFactor
-  ) : threadMode_(threadMode), reexecuteMode_(reexecuteMode), frameInitLimit_(frameInitLimit),
-    regressionTimeout_(regressionTimeout), guiExpandFactor_(guiExpandFactor)
+    ) : threadMode_(threadMode), reexecuteMode_(reexecuteMode), frameInitLimit_(frameInitLimit),
+    regressionTimeout_(regressionTimeout), maxCores_(maxCores), guiExpandFactor_(guiExpandFactor)
   {}
-  virtual boost::optional<int> regressionTimeoutSeconds() const override
+  boost::optional<int> regressionTimeoutSeconds() const override
   {
     return regressionTimeout_;
   }
-  virtual boost::optional<std::string> threadMode() const  override
+  boost::optional<std::string> threadMode() const  override
   {
     return threadMode_;
   }
-  virtual boost::optional<std::string> reexecuteMode() const override
+  boost::optional<std::string> reexecuteMode() const override
   {
     return reexecuteMode_;
   }
-  virtual boost::optional<int> frameInitLimit() const override
+  boost::optional<int> frameInitLimit() const override
   {
     return frameInitLimit_;
   }
-  virtual boost::optional<double> guiExpandFactor() const override
+  boost::optional<unsigned int> maxCores() const override
+  {
+    return maxCores_;
+  }
+  boost::optional<double> guiExpandFactor() const override
   {
     return guiExpandFactor_;
   }
 private:
   boost::optional<std::string> threadMode_, reexecuteMode_;
   boost::optional<int> frameInitLimit_, regressionTimeout_;
+  boost::optional<unsigned int> maxCores_;
   boost::optional<double> guiExpandFactor_;
 };
 
@@ -157,107 +167,131 @@ public:
       bool disableSplash,
       bool isRegressionMode,
       bool interactiveMode,
+      bool saveImages,
+      bool quitAfterOneScriptedExecution,
       bool loadMostRecentFile,
       bool isVerboseMode,
       bool printModules) : help_(help), version_(version), executeNetwork_(executeNetwork),
       executeNetworkAndQuit_(executeNetworkAndQuit), disableGui_(disableGui),
       disableSplash_(disableSplash), isRegressionMode_(isRegressionMode),
       interactiveMode_(interactiveMode),
+      saveImages_(saveImages),
+      quitAfterOneScriptedExecution_(quitAfterOneScriptedExecution),
       loadMostRecentFile_(loadMostRecentFile),
       isVerboseMode_(isVerboseMode),
       printModules_(printModules)
     {}
-    bool help_, version_, executeNetwork_, executeNetworkAndQuit_, disableGui_, disableSplash_, isRegressionMode_, interactiveMode_, loadMostRecentFile_, isVerboseMode_, printModules_;
+    bool help_, version_, executeNetwork_, executeNetworkAndQuit_,
+      disableGui_, disableSplash_, isRegressionMode_, interactiveMode_,
+      saveImages_, quitAfterOneScriptedExecution_,
+      loadMostRecentFile_, isVerboseMode_, printModules_;
   };
   ApplicationParametersImpl(
     const std::string& entireCommandLine,
     std::vector<std::string>&& inputFiles,
     const boost::optional<boost::filesystem::path>& pythonScriptFile,
     const boost::optional<boost::filesystem::path>& dataDirectory,
+    const boost::optional<std::string>& networkToImport,
     DeveloperParametersPtr devParams,
     const Flags& flags
    ) : entireCommandLine_(entireCommandLine),
     inputFiles_(inputFiles), pythonScriptFile_(pythonScriptFile), dataDirectory_(dataDirectory),
+    networkToImport_(networkToImport),
     devParams_(devParams),
     flags_(flags)
   {}
 
-  virtual const std::vector<std::string>& inputFiles() const override
+  const std::vector<std::string>& inputFiles() const override
   {
     return inputFiles_;
   }
 
-  virtual boost::optional<boost::filesystem::path> pythonScriptFile() const override
+  boost::optional<boost::filesystem::path> pythonScriptFile() const override
   {
     return pythonScriptFile_;
   }
 
-  virtual boost::optional<boost::filesystem::path> dataDirectory() const override
+  boost::optional<boost::filesystem::path> dataDirectory() const override
   {
     return dataDirectory_;
   }
 
-  virtual bool help() const override
+  boost::optional<std::string> importNetworkFile() const override
+  {
+    return networkToImport_;
+  }
+
+  bool help() const override
   {
     return flags_.help_;
   }
 
-  virtual bool version() const override
+  bool version() const override
   {
     return flags_.version_;
   }
 
-  virtual bool executeNetwork() const override
+  bool executeNetwork() const override
   {
     return flags_.executeNetwork_;
   }
 
-  virtual bool executeNetworkAndQuit() const override
+  bool executeNetworkAndQuit() const override
   {
     return flags_.executeNetworkAndQuit_;
   }
 
-  virtual bool disableGui() const override
+  bool disableGui() const override
   {
     return flags_.disableGui_;
   }
 
-  virtual bool disableSplash() const override
+  bool disableSplash() const override
   {
     return flags_.disableSplash_;
   }
 
-  virtual bool isRegressionMode() const override
+  bool isRegressionMode() const override
   {
     return flags_.isRegressionMode_;
   }
 
-  virtual bool interactiveMode() const override
+  bool interactiveMode() const override
   {
     return flags_.interactiveMode_;
   }
 
-  virtual bool loadMostRecentFile() const override
+  bool saveViewSceneScreenshotsOnQuit() const override
+  {
+    return flags_.saveImages_;
+  }
+
+  bool quitAfterOneScriptedExecution() const override
+  {
+    return flags_.quitAfterOneScriptedExecution_;
+  }
+
+  bool loadMostRecentFile() const override
   {
     return flags_.loadMostRecentFile_;
   }
 
-  virtual DeveloperParametersPtr developerParameters() const override
+  DeveloperParametersPtr developerParameters() const override
   {
     return devParams_;
   }
 
-  virtual bool verboseMode() const override
+  bool verboseMode() const override
   {
     return flags_.isVerboseMode_;
   }
 
-  virtual bool printModuleList() const override
+  bool printModuleList() const override
   {
     return flags_.printModules_;
   }
 
-  virtual const std::string& entireCommandLine() const override
+  const std::string& entireCommandLine() const override
   {
     return entireCommandLine_;
   }
@@ -267,6 +301,7 @@ private:
   std::vector<std::string> inputFiles_;
   boost::optional<boost::filesystem::path> pythonScriptFile_;
   boost::optional<boost::filesystem::path> dataDirectory_;
+  boost::optional<std::string> networkToImport_;
   DeveloperParametersPtr devParams_;
   Flags flags_;
 };
@@ -303,10 +338,19 @@ ApplicationParametersHandle CommandLineParser::parse(int argc, const char* argv[
     {
       pythonScriptFile = boost::filesystem::path(parsed["script"].as<std::string>());
     }
+    else if (parsed.count("Script") != 0 && !parsed["Script"].empty() && !parsed["Script"].defaulted())
+    {
+      pythonScriptFile = boost::filesystem::path(parsed["Script"].as<std::string>());
+    }
     auto dataDirectory = boost::optional<boost::filesystem::path>();
     if (parsed.count("datadir") != 0 && !parsed["datadir"].empty() && !parsed["datadir"].defaulted())
     {
       dataDirectory = boost::filesystem::path(parsed["datadir"].as<std::string>());
+    }
+    auto importNetworkFile = boost::optional<std::string>();
+    if (parsed.count("import") != 0 && !parsed["import"].empty() && !parsed["import"].defaulted())
+    {
+      importNetworkFile = parsed["import"].as<std::string>();
     }
 
     return boost::make_shared<ApplicationParametersImpl>
@@ -314,11 +358,13 @@ ApplicationParametersHandle CommandLineParser::parse(int argc, const char* argv[
       std::move(inputFiles),
       pythonScriptFile,
       dataDirectory,
+      importNetworkFile,
       boost::make_shared<DeveloperParametersImpl>(
         parseOptionalArg<std::string>(parsed, "threadMode"),
         parseOptionalArg<std::string>(parsed, "reexecuteMode"),
         parseOptionalArg<int>(parsed, "frameInitLimit"),
         parseOptionalArg<int>(parsed, "regression"),
+        parseOptionalArg<unsigned int>(parsed, "max-cores"),
         parseOptionalArg<double>(parsed, "guiExpandFactor")
       ),
       ApplicationParametersImpl::Flags(
@@ -330,6 +376,8 @@ ApplicationParametersHandle CommandLineParser::parse(int argc, const char* argv[
         parsed.count("no_splash") != 0,
         parsed.count("regression") != 0,
         parsed.count("interactive") != 0,
+        parsed.count("save-images") != 0,
+        parsed.count("Script") != 0,
         parsed.count("most-recent") != 0,
         parsed.count("verbose") != 0,
         parsed.count("list-modules") != 0)

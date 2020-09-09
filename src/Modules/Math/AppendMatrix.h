@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #ifndef MODULES_MATH_APPENDMATRIX_H
 #define MODULES_MATH_APPENDMATRIX_H
@@ -45,14 +45,14 @@ namespace Math {
   {
   public:
     AppendMatrix();
-    virtual void execute();
-    virtual void setStateDefaults();
+    void execute() override;
+    void setStateDefaults() override;
     HAS_DYNAMIC_PORTS
 
-    INPUT_PORT(0, FirstMatrix, DenseMatrix);
-    INPUT_PORT(1, SecondMatrix, DenseMatrix);
-    INPUT_PORT_DYNAMIC(2, NextMatrix, DenseMatrix);
-    OUTPUT_PORT(0, ResultMatrix, DenseMatrix);
+    INPUT_PORT(0, FirstMatrix, Matrix);
+    INPUT_PORT(1, SecondMatrix, Matrix);
+    INPUT_PORT_DYNAMIC(2, InputMatrices, Matrix);
+    OUTPUT_PORT(0, ResultMatrix, Matrix);
     MODULE_TRAITS_AND_INFO(ModuleHasUIAndAlgorithm)
   };
 }}}

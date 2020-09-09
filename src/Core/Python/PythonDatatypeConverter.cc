@@ -1,30 +1,30 @@
 /*
- For more information, please see: http://software.sci.utah.edu
+   For more information, please see: http://software.sci.utah.edu
 
- The MIT License
+   The MIT License
 
- Copyright (c) 2015 Scientific Computing and Imaging Institute,
- University of Utah.
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
+   University of Utah.
 
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the "Software"),
+   to deal in the Software without restriction, including without limitation
+   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+   and/or sell copies of the Software, and to permit persons to whom the
+   Software is furnished to do so, subject to the following conditions:
 
- Permission is hereby granted, free of charge, to any person obtaining a
- copy of this software and associated documentation files (the "Software"),
- to deal in the Software without restriction, including without limitation
- the rights to use, copy, modify, merge, publish, distribute, sublicense,
- and/or sell copies of the Software, and to permit persons to whom the
- Software is furnished to do so, subject to the following conditions:
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Software.
 
- The above copyright notice and this permission notice shall be included
- in all copies or substantial portions of the Software.
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+*/
 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
- THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- DEALINGS IN THE SOFTWARE.
- */
 
 /// @todo Documentation Core/Python/PythonInterpreter.cc
 
@@ -41,6 +41,7 @@
 #include <Core/Datatypes/Legacy/Field/Field.h>
 #include <Core/Matlab/matlabarray.h>
 #include <Core/Matlab/matlabconverter.h>
+#include <Core/Datatypes/MatrixTypeConversions.h>
 
 using namespace SCIRun;
 using namespace SCIRun::Core::Python;
@@ -65,7 +66,7 @@ namespace
   }
 
   template <class T>
-  boost::python::list toPythonList(const SparseRowMatrixGeneric<T>& sparse)
+  boost::python::dict toPythonList(const SparseRowMatrixGeneric<T>& sparse)
   {
     boost::python::list rows, columns, values;
 
@@ -81,13 +82,35 @@ namespace
     {
       rows.append(sparse.outerIndexPtr()[i]);
     }
+    rows.append(sparse.nonZeros());
 
-    boost::python::list list;
-    list.append(rows);
-    list.append(columns);
-    list.append(values);
+    boost::python::dict list;
+    list["nrows"] = sparse.nrows();
+    list["ncols"] = sparse.ncols();
+    list["rows"] = rows;
+    list["columns"] = columns;
+    list["values"] = values;
     return list;
   }
+}
+
+boost::python::dict SCIRun::Core::Python::wrapDatatypesInMap(const std::vector<Datatypes::MatrixHandle>& matrices,
+  const std::vector<FieldHandle>& fields, const std::vector<Datatypes::StringHandle>& strings)
+{
+  boost::python::dict d;
+  int i = 0;
+  for (const auto& m : matrices)
+  {
+    if (auto dense = castMatrix::toDense(m))
+      d[i++] = convertMatrixToPython(dense);
+    else if (auto sparse = castMatrix::toSparse(m))
+      d[i++] = convertMatrixToPython(sparse);
+  }
+  for (const auto& f : fields)
+    d[i++] = convertFieldToPython(f);
+  for (const auto& s : strings)
+    d[i++] = convertStringToPython(s);
+  return d;
 }
 
 boost::python::dict SCIRun::Core::Python::convertFieldToPython(FieldHandle field)
@@ -148,7 +171,7 @@ boost::python::list SCIRun::Core::Python::convertMatrixToPython(DenseMatrixHandl
   return {};
 }
 
-boost::python::object SCIRun::Core::Python::convertMatrixToPython(SparseRowMatrixHandle matrix)
+boost::python::dict SCIRun::Core::Python::convertMatrixToPython(SparseRowMatrixHandle matrix)
 {
   if (matrix)
     return ::toPythonList(*matrix);
@@ -225,13 +248,91 @@ DatatypeHandle DenseMatrixExtractor::operator()() const
   return dense;
 }
 
+std::set<std::string> SparseRowMatrixExtractor::validKeys_ = {"rows", "columns", "values", "nrows", "ncols"};
+
 bool SparseRowMatrixExtractor::check() const
 {
-  return false;
+  boost::python::extract<boost::python::dict> e(object_);
+  if (!e.check())
+    return false;
+
+  auto dict = e();
+  auto length = len(dict);
+  if (validKeys_.size() != length)
+    return false;
+
+  auto keys = dict.keys();
+  auto values = dict.values();
+
+  for (int i = 0; i < length; ++i)
+  {
+    boost::python::extract<std::string> key_i(keys[i]);
+    if (!key_i.check())
+      return false;
+
+    if (validKeys_.find(key_i()) == validKeys_.end())
+      return false;
+
+    boost::python::extract<boost::python::list> value_i_list(values[i]);
+    boost::python::extract<size_t> value_i_int(values[i]);
+    if (!value_i_int.check() && !value_i_list.check())
+      return false;
+  }
+
+  return true;
 }
 
 DatatypeHandle SparseRowMatrixExtractor::operator()() const
 {
+  SparseRowMatrixHandle sparse;
+  std::vector<index_type> rows, columns;
+  std::vector<double> matrixValues;
+
+  boost::python::extract<boost::python::dict> e(object_);
+  auto pyMatlabDict = e();
+
+  auto length = len(pyMatlabDict);
+
+  auto keys = pyMatlabDict.keys();
+  auto values = pyMatlabDict.values();
+  size_t nrows, ncols;
+
+  for (int i = 0; i < length; ++i)
+  {
+    boost::python::extract<std::string> key_i(keys[i]);
+
+    boost::python::extract<boost::python::list> value_i_list(values[i]);
+    auto fieldName = key_i();
+    if (fieldName == "rows")
+    {
+      rows = to_std_vector<index_type>(value_i_list());
+    }
+    else if (fieldName == "columns")
+    {
+      columns = to_std_vector<index_type>(value_i_list());
+    }
+    else if (fieldName == "nrows")
+    {
+      boost::python::extract<size_t> e(values[i]);
+      nrows = e();
+    }
+    else if (fieldName == "ncols")
+    {
+      boost::python::extract<size_t> e(values[i]);
+      ncols = e();
+    }
+    else if (fieldName == "values")
+    {
+      matrixValues = to_std_vector<double>(value_i_list());
+    }
+  }
+
+  if (!rows.empty() && !columns.empty() && !matrixValues.empty())
+  {
+    auto nnz = matrixValues.size();
+    return boost::make_shared<SparseRowMatrix>(nrows, ncols, &rows[0], &columns[0], &matrixValues[0], nnz);
+  }
+
   return nullptr;
 }
 
@@ -388,13 +489,13 @@ Variable SCIRun::Core::Python::convertPythonObjectToVariable(const boost::python
       return makeDatatypeVariable(e);
     }
   }
-  //{
-  //  detail::SparseRowMatrixExtractor e(object);
-  //  if (e.check())
-  //  {
-  //    return makeDatatypeVariable(e);
-  //  }
-  //}
+  {
+    SparseRowMatrixExtractor e(object);
+    if (e.check())
+    {
+      return makeDatatypeVariable(e);
+    }
+  }
   //{
   //  detail::DenseColumnMatrixExtractor e(object);
   //  if (e.check())

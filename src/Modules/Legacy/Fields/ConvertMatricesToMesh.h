@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 ///
 ///@author
@@ -54,13 +54,13 @@ namespace SCIRun {
       {
       public:
         ConvertMatricesToMesh();
-        virtual void setStateDefaults();
-        virtual void execute();
+        virtual void setStateDefaults() override;
+        virtual void execute() override;
 
         INPUT_PORT(0, MeshElements, Matrix);
         INPUT_PORT(1, MeshPositions, Matrix);
         INPUT_PORT(2, MeshNormals, Matrix);
-        OUTPUT_PORT(0, OutputField, LegacyField);
+        OUTPUT_PORT(0, OutputField, Field);
 
         static const Core::Algorithms::AlgorithmParameterName InputFieldName;
         static const Core::Algorithms::AlgorithmParameterName InputFieldTypeName;

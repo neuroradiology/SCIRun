@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,46 +25,100 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #include <QtGui>
 #include <iostream>
 #include <Interface/Application/PreferencesWindow.h>
 #include <Interface/Application/NetworkEditor.h>
 #include <Core/Application/Preferences/Preferences.h>
-#include <Core/Logging/Log.h>
+#include <Interface/Application/GuiLogger.h>
 
 using namespace SCIRun::Gui;
+using namespace SCIRun::Core::Logging;
 
-PreferencesWindow::PreferencesWindow(NetworkEditor* editor, QWidget* parent /* = 0 */) : QDialog(parent), networkEditor_(editor)
+PreferencesWindow::PreferencesWindow(NetworkEditor* editor, std::function<void()> writeSettings,
+  QWidget* parent /* = 0 */) : QDialog(parent), networkEditor_(editor), writeSettings_(writeSettings)
 {
   setupUi(this);
   connect(saveBeforeExecuteCheckBox_, SIGNAL(stateChanged(int)), this, SLOT(updateSaveBeforeExecuteOption(int)));
   connect(moduleErrorDialogDisableCheckbox_, SIGNAL(stateChanged(int)), this, SLOT(updateModuleErrorDialogOption(int)));
   connect(autoModuleNoteCheckbox_, SIGNAL(stateChanged(int)), this, SLOT(updateAutoNotesState(int)));
   connect(errorGraphicItemsCheckBox_, SIGNAL(stateChanged(int)), this, SLOT(updateModuleErrorInlineMessagesOption(int)));
+  connect(highDPIAdjustCheckBox_, SIGNAL(stateChanged(int)), this, SLOT(updateHighDPIAdjust(int)));
+  connect(forceGridBackgroundCheckBox_, SIGNAL(stateChanged(int)), this, SLOT(updateForceGridBackground(int)));
+  connect(viewerWidgetSelectionCorrectionCheckbox_, SIGNAL(stateChanged(int)), this, SLOT(updateWidgetSelectionCorrection(int)));
+  connect(autoRotateViewerOnMouseReleaseCheckbox_, SIGNAL(stateChanged(int)), this, SLOT(updateAutoRotateViewer(int)));
+  connect(moduleExecuteDownstreamOnlyCheckBox_, SIGNAL(stateChanged(int)), this, SLOT(updateModuleExecuteDownstream(int)));
+}
+
+void PreferencesWindow::updateWidgetSelectionCorrection(int state)
+{
+  SCIRun::Core::Preferences::Instance().widgetSelectionCorrection.setValue(state != 0);
+}
+
+void PreferencesWindow::updateAutoRotateViewer(int state)
+{
+  SCIRun::Core::Preferences::Instance().autoRotateViewerOnMouseRelease.setValue(state != 0);
 }
 
 void PreferencesWindow::updateModuleErrorDialogOption(int state)
 {
-  SCIRun::Core::Preferences::Instance().showModuleErrorDialogs.setValue(state == 0);
-  LOG_DEBUG("showModuleErrorDialogs is " << (state == 0));
+  SCIRun::Core::Preferences::Instance().showModuleErrorDialogs.setValueWithSignal(state == 0);
 }
 
 void PreferencesWindow::updateSaveBeforeExecuteOption(int state)
 {
   SCIRun::Core::Preferences::Instance().saveBeforeExecute.setValue(state != 0);
-  LOG_DEBUG("saveBeforeExecute is " << (state != 0));
 }
 
 void PreferencesWindow::updateAutoNotesState(int state)
 {
   SCIRun::Core::Preferences::Instance().autoNotes.setValue(state != 0);
-  LOG_DEBUG("autoNotes is " << (state != 0));
+}
+
+void PreferencesWindow::updateHighDPIAdjust(int state)
+{
+  SCIRun::Core::Preferences::Instance().highDPIAdjustment.setValue(state != 0);
+}
+
+void PreferencesWindow::updateForceGridBackground(int state)
+{
+  SCIRun::Core::Preferences::Instance().forceGridBackground.setValueWithSignal(state != 0);
+}
+
+void PreferencesWindow::updateModuleExecuteDownstream(int state)
+{
+  SCIRun::Core::Preferences::Instance().moduleExecuteDownstreamOnly.setValueWithSignal(state != 0);
 }
 
 void PreferencesWindow::setSaveBeforeExecute(bool mode)
 {
   updateSaveBeforeExecuteOption(mode ? 1 : 0);
   saveBeforeExecuteCheckBox_->setChecked(mode);
+}
+
+void PreferencesWindow::setModuleExecuteDownstreamOnly(bool mode)
+{
+  updateModuleExecuteDownstream(mode ? 1 : 0);
+  moduleExecuteDownstreamOnlyCheckBox_->setChecked(mode);
+}
+
+void PreferencesWindow::setAutoRotateViewerOnMouseRelease(bool mode)
+{
+  updateAutoRotateViewer(mode ? 1 : 0);
+  autoRotateViewerOnMouseReleaseCheckbox_->setChecked(mode);
+}
+
+void PreferencesWindow::setWidgetSelectionCorrection(bool mode)
+{
+  updateWidgetSelectionCorrection(mode ? 1 : 0);
+  viewerWidgetSelectionCorrectionCheckbox_->setChecked(mode);
+}
+
+void PreferencesWindow::setHighDPIAdjustment(bool highDPI)
+{
+  updateHighDPIAdjust(highDPI ? 1 : 0);
+  highDPIAdjustCheckBox_->setChecked(highDPI);
 }
 
 void PreferencesWindow::setDisableModuleErrorDialogs(bool mode)
@@ -77,7 +130,6 @@ void PreferencesWindow::setDisableModuleErrorDialogs(bool mode)
 void PreferencesWindow::updateModuleErrorInlineMessagesOption(int state)
 {
   SCIRun::Core::Preferences::Instance().showModuleErrorInlineMessages.setValue(state != 0);
-  LOG_DEBUG("showModuleErrorInlineMessages is " << (state != 0));
 }
 
 void PreferencesWindow::setModuleErrorInlineMessages(bool mode)
@@ -94,4 +146,11 @@ bool PreferencesWindow::disableModuleErrorDialogs() const
 bool PreferencesWindow::saveBeforeExecute() const
 {
   return SCIRun::Core::Preferences::Instance().saveBeforeExecute;
+}
+
+void PreferencesWindow::hideEvent(QHideEvent * event)
+{
+  if (writeSettings_)
+    writeSettings_();
+  QDialog::hideEvent(event);
 }

@@ -3,9 +3,8 @@
 #
 #  The MIT License
 #
-#  Copyright (c) 2015 Scientific Computing and Imaging Institute,
+#  Copyright (c) 2020 Scientific Computing and Imaging Institute,
 #  University of Utah.
-#
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a
 #  copy of this software and associated documentation files (the "Software"),
@@ -24,6 +23,8 @@
 #  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 #  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 #  DEALINGS IN THE SOFTWARE.
+#
+
 
 IF(UNIX)
   # temporary - needed to make Travis CI build work
@@ -50,6 +51,10 @@ ENDIF()
 
 PROJECT(SCIRun)
 
+IF(GENERATE_COMPILATION_DATABASE)
+  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+ENDIF()
+
 ###############################################################################
 # Don't allow the user to build in the src directory...
 #
@@ -62,29 +67,11 @@ IF(${CMAKE_SOURCE_DIR} MATCHES ${CMAKE_BINARY_DIR})
   MESSAGE( FATAL_ERROR "Goodbye." )
 ENDIF()
 
-################################################################################
-# If building on Windows, make sure that the path to the bin directory is short.
-# TODO: Revisit if CPM module names get shorter.
-
-IF(WIN32)
-  STRING(LENGTH ${CMAKE_BINARY_DIR} BIN_DIR_LENGTH)
-  IF(${BIN_DIR_LENGTH} GREATER 15)
-    MESSAGE(WARNING "Binary directory is too long, the build may fail due to long path names.")
-  ENDIF()
-ENDIF()
-
 ########################################################################
 # Build shared libraries by default
 
 OPTION(BUILD_SHARED_LIBS "Build shared libraries" ON)
 MARK_AS_ADVANCED(BUILD_SHARED_LIBS)
-
-########################################################################
-# Headless build
-#
-#OPTION(BUILD_HEADLESS "Build headless version, without Qt" OFF)
-#MARK_AS_ADVANCED(BUILD_HEADLESS)
-
 
 ########################################################################
 # Set default CMAKE_BUILD_TYPE
@@ -108,6 +95,7 @@ get_git_head_revision(VERSION_REFSPEC VERSION_HASHVAR)
 
 IF(VERSION_TAG MATCHES "HEAD-HASH-NOTFOUND")
   FILE(READ ${CMAKE_CURRENT_SOURCE_DIR}/LATEST_TAG.txt VERSION_TAG)
+  STRING(STRIP ${VERSION_TAG} VERSION_TAG)
   MESSAGE(STATUS "Found tag file for version info: " "${VERSION_TAG}")
 ENDIF()
 
@@ -129,8 +117,8 @@ string(REGEX REPLACE "^v[0-9]+\\.[0-9]+\\-(beta.[A-Za-z0-9_]+)\\-?.*" "\\1" VERS
 #MESSAGE(STATUS "Git version patch name: " "${VERSION_PATCH}")
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/CMake/Modules/Version.cc.in
- ${CMAKE_CURRENT_SOURCE_DIR}/Core/Application/Version.cc)
-set(version_file "${CMAKE_CURRENT_SOURCE_DIR}/Core/Application/Version.cc")
+ ${CMAKE_CURRENT_BINARY_DIR}/Core/Application/Version.cc)
+set(version_file "${CMAKE_CURRENT_BINARY_DIR}/Core/Application/Version.cc")
 
 
 ########################################################################
@@ -218,6 +206,18 @@ IF(BUILD_TESTING)
 ENDIF()
 
 #########################################################################
+# Configure Spdlog
+set (cxxfeaturelist ${CMAKE_CXX_COMPILE_FEATURES})
+
+list (FIND cxxfeaturelist "cxx_thread_local" _index)
+if (${_index} GREATER -1)
+  #message("Found cxx_thread_local")
+else()
+  message(WARNING "Did NOT find cxx_thread_local--turning off feature of spdlog")
+  add_definitions(-DDISABLE_SPDLOG_TLS=1)
+endif()
+
+#########################################################################
 # External projects
 
 MACRO(CONFIG_STANDARD_EXTERNAL name config_file directory)
@@ -242,6 +242,9 @@ INCLUDE(${Teem_USE_FILE})
 CONFIG_STANDARD_EXTERNAL( Freetype FreetypeConfig.cmake ${Freetype_DIR} )
 INCLUDE(${FREETYPE_USE_FILE})
 
+CONFIG_STANDARD_EXTERNAL( Cleaver2 Cleaver2Config.cmake ${CLEAVER2_DIR} )
+INCLUDE(${CLEAVER2_USE_FILE})
+
 IF(BUILD_WITH_PYTHON)
   CONFIG_STANDARD_EXTERNAL( Python PythonConfig.cmake ${Python_DIR} )
   INCLUDE(${SCI_PYTHON_USE_FILE})
@@ -250,9 +253,30 @@ ENDIF()
 CONFIG_STANDARD_EXTERNAL( Boost BoostConfig.cmake ${Boost_DIR} )
 INCLUDE(${SCI_BOOST_USE_FILE})
 
+CONFIG_STANDARD_EXTERNAL( Tny TnyConfig.cmake ${TNY_DIR} )
+INCLUDE(${TNY_USE_FILE})
+
+CONFIG_STANDARD_EXTERNAL( LodePng LodePngConfig.cmake ${LODEPNG_DIR} )
+INCLUDE(${LODEPNG_USE_FILE})
+
 IF(WITH_TETGEN)
   CONFIG_STANDARD_EXTERNAL( Tetgen TetgenConfig.cmake ${Tetgen_DIR} )
   INCLUDE(${TETGEN_USE_FILE})
+ENDIF()
+
+IF(WITH_OSPRAY)
+  set(ospray_DIR ${Ospray_External_Dir}/install/ospray/lib/cmake/ospray-2.0.1)
+  find_package(ospray 2.0.0 REQUIRED HINTS ${Ospray_External_Dir}/install/ospray)
+ENDIF()
+
+IF(WIN32)
+  CONFIG_STANDARD_EXTERNAL( Glew GlewConfig.cmake ${GLEW_DIR} )
+  INCLUDE(${GLEW_USE_FILE})
+ENDIF()
+
+IF(NOT BUILD_HEADLESS)
+  CONFIG_STANDARD_EXTERNAL( Qwt QwtConfig.cmake ${QWT_DIR} )
+  INCLUDE(${QWT_USE_FILE})
 ENDIF()
 
 ########################################################################
@@ -272,6 +296,11 @@ IF(UNIX)
   ENDIF()
 
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_LANGUAGE_STANDARD_FLAG} -Wall")
+
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth=1024")
+  endif()
+
   IF(NOT APPLE)
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--no-as-needed -ldl -lrt")
   ENDIF()
@@ -294,13 +323,18 @@ IF(NOT GIT_FOUND)
   MESSAGE(FATAL_ERROR "Git not found.")
 ENDIF()
 
+OPTION(BUILD_BUNDLE "Build Mac bundle" FALSE)
+MARK_AS_ADVANCED(BUILD_BUNDLE)
+
 ########################################################################
 # Find and configure Awk & Sed  {(OS X only), needed to build App bundle
 
 # should be installed by default, searching system paths only
 IF(APPLE)
   FIND_PROGRAM(MACDEPLOYQT
+    HINTS ${Qt5_PATH} ${Qt5_PATH}/bin
     NAMES macdeployqt
+    NO_DEFAULT_PATH
   )
   MARK_AS_ADVANCED(MACDEPLOYQT)
 
@@ -317,7 +351,6 @@ IF(APPLE)
   )
   MARK_AS_ADVANCED(AWK)
 ENDIF()
-
 
 ########################################################################
 # Configure documentation
@@ -350,115 +383,21 @@ ENDIF()
 # ENDIF()
 
 ########################################################################
-# Configure tetgen module build
+# Configure ospray module build
 
-IF(WITH_TETGEN)
-  ADD_DEFINITIONS(-DWITH_TETGEN)
+IF(WITH_OSPRAY)
+  ADD_DEFINITIONS(-DWITH_OSPRAY)
+  SET(OSPRAY_LIBRARIES ospray)
 ENDIF()
 
 ########################################################################
-# Configure CPM and Spire - http://github.com/iauns/cpm
-# Configure CPM and Spire - http://github.com/CIBC-Internal/cpm
+# Detailed renderer logging
 
-MESSAGE(STATUS "Configuring CPMs")
-
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-# CPM Setup.
-set(CPM_DIR "${CMAKE_CURRENT_BINARY_DIR}/cpm" CACHE TYPE STRING)
-find_package(Git)
-if(NOT GIT_FOUND)
-  message(FATAL_ERROR "CPM requires Git.")
-endif()
-if (NOT EXISTS ${CPM_DIR}/CPM.cmake)
-  message(STATUS "Cloning repo (https://github.com/CIBC-Internal/cpm)")
-  execute_process(
-    COMMAND "${GIT_EXECUTABLE}" clone https://github.com/CIBC-Internal/cpm ${CPM_DIR}
-    RESULT_VARIABLE error_code
-    OUTPUT_QUIET ERROR_QUIET)
-  if(error_code)
-    message(FATAL_ERROR "CPM failed to get the hash for HEAD")
-  endif()
-endif()
-include(${CPM_DIR}/CPM.cmake)
-
-# TODO: Add tags for *all* of the CPM modules. This will allow upstream
-# flexibility. Once all versions are appropriately tagged, I will be able
-# to untag upstream and keep it moving forward.
-
-# ++ MODULE: GL Platform
-CPM_AddModule("gl_platform"
-  GIT_REPOSITORY "https://github.com/CIBC-Internal/cpm-gl-platform"
-  GIT_TAG "origin/master")
-
-# ++ MODULE: Arc-Look-At (Autoview Camera)
-CPM_AddModule("look_at"
-  GIT_REPOSITORY "https://github.com/CIBC-Internal/cpm-arc-look-at"
-  GIT_TAG "origin/SCIRun")
-
-# ++ MODULE: Entity System
-CPM_AddModule("es"
-  GIT_REPOSITORY "https://github.com/CIBC-Internal/cpm-entity-system"
-  GIT_TAG "origin/master"
-  USE_EXISTING_VER TRUE)
-
-# ++ MODULE: Entity system component serialization
-CPM_AddModule("es_cereal"
-  GIT_REPOSITORY "https://github.com/CIBC-Internal/cpm-es-cereal"
-  GIT_TAG "origin/master"
-  USE_EXISTING_VER TRUE)
-
-# ++ MODULE: Cereal support for GLM.
-CPM_AddModule("cereal_glm"
-  GIT_REPOSITORY "https://github.com/CIBC-Internal/cpm-cereal-glm"
-  GIT_TAG "origin/master"
-  USE_EXISTING_VER TRUE)
-
-# ++ MODULE: ES Systems
-CPM_AddModule("es_systems"
-  GIT_REPOSITORY "https://github.com/CIBC-Internal/cpm-es-systems"
-  GIT_TAG "origin/master"
-  USE_EXISTING_VER TRUE)
-
-# ++ MODULE: Async filesystem support
-CPM_AddModule("es_fs"
-  GIT_REPOSITORY "https://github.com/CIBC-Internal/cpm-es-fs"
-  GIT_TAG "origin/master"
-  USE_EXISTING_VER TRUE)
-
-# ++ MODULE: General transforms and components
-CPM_AddModule("es_general"
-  GIT_REPOSITORY "https://github.com/CIBC-Internal/cpm-es-general"
-  GIT_TAG "origin/master"
-  USE_EXISTING_VER TRUE)
-
-# ++ MODULE: Entity System Rendering.
-CPM_AddModule("es_render"
-  GIT_REPOSITORY "https://github.com/CIBC-Internal/cpm-es-render"
-  GIT_TAG "origin/FontTextures"
-  USE_EXISTING_VER TRUE)
-
-# ++ MODULE: Acorn
-CPM_AddModule("es_acorn"
-  GIT_REPOSITORY "https://github.com/CIBC-Internal/cpm-es-acorn"
-  GIT_TAG "origin/master"
-  USE_EXISTING_VER TRUE)
-
-# ++ MODULE: Var buffer
-CPM_AddModule("var_buffer"
-  GIT_REPOSITORY "https://github.com/CIBC-Internal/cpm-var-buffer"
-  GIT_TAG "origin/master"
-  USE_EXISTING_VER TRUE)
-
-# ++ MODULE: BSerialize
-CPM_AddModule("bserialize"
-  GIT_REPOSITORY "https://github.com/CIBC-Internal/cpm-bserialize"
-  GIT_TAG "origin/master"
-  USE_EXISTING_VER TRUE)
-
-CPM_Finish()
-
-MESSAGE(STATUS "Done configuring CPMs")
+OPTION(RENDERER_TRACE_ON "Enable detailed renderer logging." OFF)
+MARK_AS_ADVANCED(RENDERER_TRACE_ON)
+IF(RENDERER_TRACE_ON)
+  ADD_DEFINITIONS(-DRENDERER_TRACE_ON)
+ENDIF()
 
 ########################################################################
 # Copy Spire-SCIRun specific assets and shaders
@@ -523,38 +462,58 @@ FIND_PACKAGE(OpenGL REQUIRED)
 ########################################################################
 # Find and configure Qt
 
-# TODO: exclude for headless
 IF(NOT BUILD_HEADLESS)
-  FIND_PACKAGE(Qt4 COMPONENTS QtMain QtCore QtGui QtNetwork QtOpenGL REQUIRED)
+  FIND_PACKAGE(Qt5 COMPONENTS Core Gui Widgets Network OpenGL Concurrent PrintSupport Svg REQUIRED HINTS ${Qt5_PATH})
 
-  IF(QT_FOUND)
+  IF(Qt5Core_FOUND)
+    MESSAGE(STATUS "Found Qt version: ${Qt5Core_VERSION_STRING}")
+    ADD_DEFINITIONS(-DQT5_VERSION=${Qt5Core_VERSION_STRING})
+    INCLUDE_DIRECTORIES(${Qt5Core_INCLUDE_DIRS})
+	  INCLUDE_DIRECTORIES(${Qt5Widgets_INCLUDE_DIRS})
+    INCLUDE_DIRECTORIES(${Qt5Gui_INCLUDE_DIRS})
+    INCLUDE_DIRECTORIES(${Qt5Network_INCLUDE_DIRS})
+    INCLUDE_DIRECTORIES(${Qt5OpenGL_INCLUDE_DIRS})
+    INCLUDE_DIRECTORIES(${Qt5Concurrent_INCLUDE_DIRS})
+    INCLUDE_DIRECTORIES(${Qt5PrintSupport_INCLUDE_DIRS})
+    INCLUDE_DIRECTORIES(${Qt5Svg_INCLUDE_DIRS})
+    ADD_DEFINITIONS(${Qt5Core_DEFINITIONS})
+    ADD_DEFINITIONS(${Qt5Widgets_DEFINITIONS})
+    ADD_DEFINITIONS(${Qt5Gui_DEFINITIONS})
+    ADD_DEFINITIONS(${Qt5Network_DEFINITIONS})
+    ADD_DEFINITIONS(${Qt5OpenGL_DEFINITIONS})
+    ADD_DEFINITIONS(${Qt5Concurrent_DEFINITIONS})
+    ADD_DEFINITIONS(${Qt5PrintSupport_DEFINITIONS})
+    ADD_DEFINITIONS(${Qt5Svg_DEFINITIONS})
+    SET(QT_LIBRARIES Qt5::Widgets)
+  ELSE()
+    MESSAGE(FATAL_ERROR "Qt5 is required for building the SCIRun GUI")
+  ENDIF()
+
+  IF(Qt5Core_FOUND)
     INCLUDE_DIRECTORIES(${QT_INCLUDE_DIR})
-    INCLUDE(${QT_USE_FILE})
     ADD_DEFINITIONS(${QT_DEFINITIONS})
   ELSE()
-    MESSAGE(FATAL_ERROR "QT 4.8 or greater is required to build SCIRun")
+    MESSAGE(FATAL_ERROR "QT 5.13 or greater is required to build SCIRun")
   ENDIF()
 
   ADD_DEFINITIONS(-DQT_NO_KEYWORDS)
+
+  MACRO(QT_WRAP_UI arg1 arg2)
+    QT5_WRAP_UI(${arg1} ${arg2})
+  ENDMACRO(QT_WRAP_UI)
+
+  MACRO(QT_WRAP_CPP arg1 arg2)
+    QT5_WRAP_CPP(${arg1} ${arg2})
+  ENDMACRO(QT_WRAP_CPP)
+
+  MACRO(QT_ADD_RESOURCES arg1 arg2)
+    QT5_ADD_RESOURCES(${arg1} ${arg2})
+  ENDMACRO(QT_ADD_RESOURCES)
+
 ENDIF()
 
-########################################################################
-# Find and configure Qwt custom widgets
-
-OPTION(WITH_QWT_WIDGETS "Qwt Custom Widgets" OFF)
-MARK_AS_ADVANCED(WITH_QWT_WIDGETS)
-
-IF(WITH_QWT_WIDGETS)
-  SET(QWT_INCLUDE_DIR CACHE PATH "Qwt include directory")
-  IF(NOT QWT_INCLUDE_DIR)
-    MESSAGE(FATAL_ERROR "QWT_INCLUDE_DIR should be set to path like 'qwt-6.0.1/include'")
-  ENDIF()
-  INCLUDE_DIRECTORIES(${QWT_INCLUDE_DIR})
-  SET(QWT_LIBRARY CACHE FILEPATH "Qwt library")
-  IF(NOT QWT_LIBRARY)
-  	MESSAGE(FATAL_ERROR "QWT_LIBRARY should be set to a filepath like 'qwt-6.0.1/lib/libqwt.so'")
-  ENDIF()
-  SET(qwt_libraries ${QWT_LIBRARY} )
+IF(TRAVIS_BUILD OR Qt5Widgets_VERSION VERSION_LESS 5.13.0)
+  ADD_DEFINITIONS(-DOLDER_QT_SUPPORT_NEEDED)
 ENDIF()
 
 ########################################################################
@@ -574,19 +533,23 @@ INCLUDE_DIRECTORIES(
   ${CMAKE_CURRENT_BINARY_DIR}
   ${SCIRun_SOURCE_DIR}/
   ${SCIRun_SOURCE_DIR}/include
-  ${SCIRun_SOURCE_DIR}/Externals/gmock/gtest/include
-  ${SCIRun_SOURCE_DIR}/Externals/gmock/include
   ${SCIRun_SOURCE_DIR}/Externals/libxml2/include
+  ${SCIRun_SOURCE_DIR}/Externals/spire/
+  ${SCIRun_SOURCE_DIR}/Externals/submodules/googletest/googletest/include
+  ${SCIRun_SOURCE_DIR}/Externals/submodules/googletest/googlemock/include
   ${CMAKE_CURRENT_BINARY_DIR}/Externals/libxml2/include
   ${SCIRun_SOURCE_DIR}/Externals/
   ${SCIRun_BINARY_DIR}/
   ${SCIRun_BINARY_DIR}/include
-  ${SCIRun_SOURCE_DIR}/Externals/eigen
-  # TODO: set up include variable in log4cpp project
-  ${SCIRun_SOURCE_DIR}/Externals/log4cpp/include
   ${SCI_TEEM_INCLUDE}
   ${SCI_ZLIB_INCLUDE}
-  #${SCI_TETGEN_INCLUDE}
+  ${GLM_DIR}
+  ${SPDLOG_DIR}/include
+  ${Eigen_DIR}
+  ${SCI_TNY_INCLUDE}
+  ${SCI_LODEPNG_INCLUDE}
+  ${SCI_QWT_INCLUDE}
+  ${SCI_CLEAVER2_INCLUDE}
 )
 
 INCLUDE_DIRECTORIES(SYSTEM ${SCI_BOOST_INCLUDE})
@@ -602,6 +565,7 @@ MACRO(SCIRUN_ADD_UNIT_TEST test)
   ADD_EXECUTABLE(${test} ${ARGN})
   LIST(APPEND tmp ${test} ${UNIT_TEST_LIST})
   SET(UNIT_TEST_LIST ${tmp} CACHE INTERNAL "List of unit tests." FORCE)
+  TARGET_COMPILE_DEFINITIONS(${test} PRIVATE -DGTEST_LINKED_AS_SHARED_LIBRARY)
 ENDMACRO()
 
 MACRO(SCIRUN_ADD_TEST_DIR directory)
@@ -728,6 +692,7 @@ SET_PROPERTY(TARGET Algorithms_Math         PROPERTY FOLDER "Core/Algorithms")
 SET_PROPERTY(TARGET Algorithms_Field         PROPERTY FOLDER "Core/Algorithms")
 SET_PROPERTY(TARGET Algorithms_Describe         PROPERTY FOLDER "Core/Algorithms")
 SET_PROPERTY(TARGET Algorithms_BrainStimulator         PROPERTY FOLDER "Core/Algorithms")
+SET_PROPERTY(TARGET Algorithms_Legacy_Inverse         PROPERTY FOLDER "Core/Algorithms")
 SET_PROPERTY(TARGET Algorithms_Factory   PROPERTY FOLDER "Core/Algorithms")
 SET_PROPERTY(TARGET Core_Algorithms_Legacy_Fields         PROPERTY FOLDER "Core/Algorithms")
 SET_PROPERTY(TARGET Core_Algorithms_Legacy_Forward         PROPERTY FOLDER "Core/Algorithms")
@@ -766,12 +731,14 @@ SET_PROPERTY(TARGET Core_XMLUtil         PROPERTY FOLDER "Core")
 SET_PROPERTY(TARGET Core_Exceptions_Legacy         PROPERTY FOLDER "Core")
 SET_PROPERTY(TARGET Core_Util_Legacy         PROPERTY FOLDER "Core")
 SET_PROPERTY(TARGET Core_Containers         PROPERTY FOLDER "Core")
-SET_PROPERTY(TARGET Core_Thread_Legacy         PROPERTY FOLDER "Core")
+#SET_PROPERTY(TARGET Core_Thread_Legacy         PROPERTY FOLDER "Core")
 SET_PROPERTY(TARGET Core_Serialization_Network         PROPERTY FOLDER "Dataflow/Serialization")
 SET_PROPERTY(TARGET Core_Serialization_Network_Importer         PROPERTY FOLDER "Dataflow/Serialization")
+SET_PROPERTY(TARGET bundle_toolkit         PROPERTY FOLDER "Dataflow/Serialization")
 SET_PROPERTY(TARGET Engine_Network         PROPERTY FOLDER "Dataflow/Engine")
 SET_PROPERTY(TARGET Engine_Scheduler         PROPERTY FOLDER "Dataflow/Engine")
 SET_PROPERTY(TARGET Dataflow_State         PROPERTY FOLDER "Dataflow")
+SET_PROPERTY(TARGET ${SPIRE_LIBRARY_NAME} PROPERTY FOLDER "Graphics")
 
 IF(NOT BUILD_HEADLESS)
   SET_PROPERTY(TARGET Interface_Modules_Base   PROPERTY FOLDER "Interface/Modules")
@@ -819,13 +786,17 @@ SET_PROPERTY(TARGET Graphics_Glyphs   PROPERTY FOLDER "Graphics")
 SET_PROPERTY(TARGET Graphics_Widgets   PROPERTY FOLDER "Graphics")
 SET_PROPERTY(TARGET Graphics_Datatypes   PROPERTY FOLDER "Graphics")
 
-IF(BUILD_TESTING)
+IF(BUILD_TESTING OR TRAVIS_BUILD)
   SET_PROPERTY(TARGET gmock         PROPERTY FOLDER "Testing Support")
   SET_PROPERTY(TARGET gmock_main   PROPERTY FOLDER "Testing Support")
   SET_PROPERTY(TARGET gtest         PROPERTY FOLDER "Testing Support")
   SET_PROPERTY(TARGET gtest_main   PROPERTY FOLDER "Testing Support")
   SET_PROPERTY(TARGET Testing_Utils PROPERTY FOLDER "Testing Support")
   SET_PROPERTY(TARGET Testing_ModuleTestBase PROPERTY FOLDER "Testing Support")
+ENDIF()
+
+IF(BUILD_TESTING)
+
   #SET_PROPERTY(TARGET SCIRunTestData_external   PROPERTY FOLDER "Testing Support")
 
   SET_PROPERTY(TARGET Algorithms_Base_Tests   PROPERTY FOLDER "Core/Algorithms/Tests")
@@ -891,8 +862,6 @@ IF(BUILD_TESTING)
   ENDIF()
 ENDIF()
 
-SET_PROPERTY(TARGET ${CPM_LIBRARIES} PROPERTY FOLDER "Externals")
-SET_PROPERTY(TARGET ${SCI_LOG4CPP_LIBRARY} PROPERTY FOLDER "Externals")
 SET_PROPERTY(TARGET cleaver PROPERTY FOLDER "Externals")
 SET_PROPERTY(TARGET xml2 PROPERTY FOLDER "Externals")
 
@@ -946,26 +915,36 @@ SET(CPACK_RESOURCE_FILE_WELCOME ${PACKAGING_WELCOME})
 SET(CPACK_PACKAGE_VERSION_MAJOR "${SCIRUN_VERSION_MAJOR}")
 SET(CPACK_PACKAGE_VERSION_MINOR "${SCIRUN_VERSION_MINOR}")
 SET(CPACK_PACKAGE_VERSION_PATCH "${SCIRUN_VERSION_PATCH}")
+SET(CPACK_PACKAGE_VERSION "${SCIRUN_VERSION_MAJOR}.${SCIRUN_VERSION_MINOR}.${SCIRUN_VERSION_PATCH}")
 
-SET(CPACK_PACKAGE_INSTALL_DIRECTORY "${APPLICATION_NAME} ${SCIRUN_VERSION_MAJOR}.${SCIRUN_VERSION_MINOR}")
+SET(CPACK_PACKAGE_INSTALL_DIRECTORY "${APPLICATION_NAME}_${SCIRUN_VERSION_MAJOR}.${SCIRUN_VERSION_MINOR}")
 
 
 # other platform settings will be built up from here
 IF(APPLE)
-
- SET(CPACK_PACKAGE_DEFAULT_LOCATION "/Applications/")
- SET(CPACK_TOPLEVEL_TAG "")
-
- IF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  SET(CPACK_GENERATOR "productbuild;TGZ")
+  SET(CPACK_TOPLEVEL_TAG "")
+  IF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
    SET(CPACK_INSTALL_PREFIX "/" CACHE PATH "Install path prefix, prepended onto install directories." FORCE)
    SET(CMAKE_INSTALL_PREFIX "/" CACHE PATH "Install path prefix, prepended onto install directories." FORCE)
- ENDIF()
+  ENDIF()
+  # productbuild packaging repair hack
+  # call repair_package.sh after running package target in build
+  # Tip: can inspect packages using the pkgutil --expand command
+  IF(CPACK_GENERATOR MATCHES "productbuild")
+    # make sure there are paths to packaging tools
+    FIND_PROGRAM(PKGBUILD_EXE pkgbuild)
+    FIND_PROGRAM(PRODUCTBUILD_EXE productbuild)
+    FIND_PROGRAM(PKGUTIL_EXE pkgutil)
+    SET(PKG_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-Darwin")
+    SET(PKG_BUILD_DIR "${CMAKE_BINARY_DIR}/_CPack_Packages/productbuild/${PKG_FILE_NAME}")
+    SET(PKG_ROOT_DIR "${PKG_BUILD_DIR}/Applications")
 
- SET(CPACK_PACKAGING_INSTALL_PREFIX "/")
- SET(CPACK_STRIP_FILES TRUE)
- SET(CPACK_SOURCE_STRIP_FILES TRUE)
- SET(CPACK_PACKAGE_EXECUTABLES "${APPLICATION_NAME}.app" "${APPLICATION_NAME}")
-
+    CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/CMake/Modules/CPack.Distribution.dist.in
+                   ${CMAKE_BINARY_DIR}/CPack.Distribution.dist)
+    CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/CMake/scripts/repair_package.sh.in
+                   ${CMAKE_BINARY_DIR}/repair_package.sh)
+  ENDIF()
 ELSEIF(WIN32 AND NOT UNIX)
 
   # There is a bug in NSIS that does not handle full unix paths properly. Make

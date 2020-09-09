@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef MODULES_LEGACY_FINITEELEMENTS_APPLYFEMVOLTAGESOURCE_H__
 #define MODULES_LEGACY_FINITEELEMENTS_APPLYFEMVOLTAGESOURCE_H__
 
@@ -43,10 +43,10 @@ namespace SCIRun {
         LEGACY_BIOPSE_MODULE
       public:
         ApplyFEMVoltageSource();
-        virtual void setStateDefaults();
-        virtual void execute();
+        void setStateDefaults() override;
+        void execute() override;
 
-        INPUT_PORT(0, Mesh, LegacyField);
+        INPUT_PORT(0, Mesh, Field);
         INPUT_PORT(1, StiffnessMatrix, Matrix);
         INPUT_PORT(2, RHS, Matrix);
         INPUT_PORT(3, Dirichlet, DenseMatrix);

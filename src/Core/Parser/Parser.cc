@@ -1,33 +1,32 @@
-//  
-//  For more information, please see: http://software.sci.utah.edu
-//  
-//  The MIT License
-//  
-//  Copyright (c) 2015 Scientific Computing and Imaging Institute,
-//  University of Utah.
-//  
-//  
-//  Permission is hereby granted, free of charge, to any person obtaining a
-//  copy of this software and associated documentation files (the "Software"),
-//  to deal in the Software without restriction, including without limitation
-//  the rights to use, copy, modify, merge, publish, distribute, sublicense,
-//  and/or sell copies of the Software, and to permit persons to whom the
-//  Software is furnished to do so, subject to the following conditions:
-//  
-//  The above copyright notice and this permission notice shall be included
-//  in all copies or substantial portions of the Software.
-//  
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-//  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-//  THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-//  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-//  DEALINGS IN THE SOFTWARE.
-//  
+/*
+   For more information, please see: http://software.sci.utah.edu
+
+   The MIT License
+
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
+   University of Utah.
+
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the "Software"),
+   to deal in the Software without restriction, including without limitation
+   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+   and/or sell copies of the Software, and to permit persons to whom the
+   Software is furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+*/
 
 
-#include <Core/Parser/Parser.h> 
+#include <Core/Parser/Parser.h>
 #include <Core/Datatypes/Legacy/Base/Types.h>
 #include <iostream>
 #include <sci_debug.h>
@@ -57,28 +56,14 @@ namespace
   if (type == "AI") return "Integer Vector";
   return "Unknown";
   }
-  
-  std::string
-  ParserFunctionID(const std::string& name)
-  {
-  std::string fid = name + "$";
-  return (fid);
-  }
-  
+
   std::string
   ParserFunctionID(const std::string& name, const std::string& arg1)
   {
   std::string fid = name + "$" + arg1;
   return (fid);
   }
-  
-  std::string
-  ParserFunctionID(const std::string& name, const std::string& arg1, const std::string& arg2)
-  {
-  std::string fid = name + "$" + arg1 +":" + arg2;
-  return (fid);
-  }
-  
+
   std::string
   ParserFunctionID(const std::string& name, const std::vector<std::string>& args)
   {
@@ -95,7 +80,7 @@ void ParserNode::print(int level) const
 {
   // Depending on the level alter the indentation
   for (int lev=1;lev<level;lev++) std::cout << "  ";
-  
+
   // The four currently support constructs
   switch (kind_)
   {
@@ -205,7 +190,7 @@ ParserFunctionCatalog::print() const
   ParserFunctionList::const_iterator it, it_end;
   it = functions_.begin();
   it_end = functions_.end();
-  
+
   std::cout << "FUNCTION CATALOG:\n";
   while (it != it_end)
   {
@@ -231,7 +216,7 @@ ParserScriptVariable::print() const
 {
   std::cout << "  "<<uname_<<"("<<name_<<")"<<" type="<<type_<<", flags="<<flags_;
   if (kind_ == SCRIPT_CONSTANT_SCALAR_E) std::cout << ", value="<<scalar_value_;
-  else if (kind_ == SCRIPT_CONSTANT_STRING_E) std::cout << ", value="<<string_value_; 
+  else if (kind_ == SCRIPT_CONSTANT_STRING_E) std::cout << ", value="<<string_value_;
   std::cout << "\n";
 }
 
@@ -265,7 +250,7 @@ ParserScriptVariable::compute_dependence()
     dependence_ = parent_->get_name() + "(";
     size_t num_input_vars = parent_->num_input_vars();
     if ((num_input_vars == 2) && (parent_->get_function()->get_flags() & PARSER_SYMMETRIC_FUNCTION_E))
-    { 
+    {
       std::string uname1 = parent_->get_input_var(0)->get_uname();
       std::string uname2 = parent_->get_input_var(1)->get_uname();
       if (uname1.compare(uname2) <0) dependence_ += uname1 +"," +uname2+")";
@@ -315,7 +300,7 @@ Parser::Parser()
   add_unary_pre_operator("~","bitnot");
   add_unary_pre_operator("-","neg");
   add_unary_pre_operator("+","pos"); // Note pos is a function that should be ignored
-  
+
   add_unary_post_operator("'","transpose");
 
   add_numerical_constant("true",1.0);
@@ -350,7 +335,7 @@ Parser::parse(ParserProgramHandle& program,
 {
   // Clean error string
   error = "";
-  
+
   // Generate a new program if we need one
   if (!program) program.reset(new ParserProgram());
 
@@ -361,7 +346,7 @@ Parser::parse(ParserProgramHandle& program,
   {
     // Read an expression each iteration and store it in a string
     std::string expression;
-    
+
     // Get the next expression from the front of the string.
     // Currently this function will always pass
     if (!(scan_expression(expressions,expression)))
@@ -381,10 +366,10 @@ Parser::parse(ParserProgramHandle& program,
               "' is not of the type 'varname = expression;'\n";
       return (false);
     }
-    
+
     // Get the tree
     ParserNodeHandle node_handle;
-    
+
     // This the main function that breaks down the equation in several pieces
     if (!(parse_expression_tree(vartree,node_handle, error)))
     {
@@ -392,7 +377,7 @@ Parser::parse(ParserProgramHandle& program,
       // Hence here no error handling is needed
       return (false);
     }
-    
+
     // Add a copy operation for everything that is not a function
     //if (node_handle->get_kind() != PARSER_FUNCTION_E )
     //{
@@ -400,11 +385,11 @@ Parser::parse(ParserProgramHandle& program,
     //  node_handle = new ParserNode(PARSER_FUNCTION_E,"copy");
     //  node_handle->set_arg(0,thandle);
     //}
-    
+
     // A new tree which binds the variable name of the output together
     // with the top node of the parsing tree
     ParserTreeHandle tree_handle(new ParserTree(varname,node_handle));
-    
+
     // Add the code to the program.
     program->add_expression(expression,tree_handle);
 
@@ -413,7 +398,7 @@ Parser::parse(ParserProgramHandle& program,
     // and the error together. That way the user should be able to recognize
     // the faulty line more easily
   }
-  
+
   // Success
   return (true);
 }
@@ -428,7 +413,7 @@ Parser::scan_expression(std::string& expressions,
 {
   size_t esize = expressions.size();
   size_t idx = 0;
-  
+
   while (idx < esize)
   {
     if (expressions[idx] == '"')
@@ -444,7 +429,7 @@ Parser::scan_expression(std::string& expressions,
     else if (expressions[idx] == ';')
     {
       expression = expressions.substr(0,idx);
-      
+
       // Strip out any remaining space at the end of an expression
       idx++;
       while ((idx<esize)&&
@@ -463,7 +448,7 @@ Parser::scan_expression(std::string& expressions,
   // Currently we do not demand a semi colon at the of the last expression
   expression = expressions.substr(0,idx);
   expressions = "";
-  
+
   // If expression is empty we have reached the end of the program
   return (true);
 }
@@ -476,10 +461,10 @@ Parser::split_expression(std::string& expression,
 {
   // Remove spaces from string
   boost::trim(expression);
-  
+
   // Scan to see if the first text is a variable name
   if (!(scan_variable_name(expression,varname))) return (false);
-  
+
   // There can be spaces between the variable name and the equal sign
   boost::trim(expression);
 
@@ -497,17 +482,17 @@ Parser::split_expression(std::string& expression,
 
   // Strip spaces again
   boost::trim(expression);
-  
+
   // The remainder is the code for building the variable
   vartree = expression;
-  
+
   if (subs.size())
   {
     std::vector<std::string> indices_start;
     std::vector<std::string> indices_step;
     std::vector<std::string> indices_end;
     split_subs(subs,indices_start,indices_step,indices_end,varname);
-   
+
     // push it of the rest of the interpreter
     if (indices_end.size() == 0)
     {
@@ -518,7 +503,7 @@ Parser::split_expression(std::string& expression,
     else if (indices_step.size() == 0)
     {
       vartree = "assign_range("+varname+","+vartree;
-      for (size_t j=0; j<indices_start.size();j++) 
+      for (size_t j=0; j<indices_start.size();j++)
       {
         vartree += "," + indices_start[j];
         vartree += "," + indices_end[j];
@@ -528,7 +513,7 @@ Parser::split_expression(std::string& expression,
     else
     {
       vartree = "assign_steprange("+varname+","+vartree;
-      for (size_t j=0; j<indices_start.size();j++) 
+      for (size_t j=0; j<indices_start.size();j++)
       {
         vartree += "," + indices_start[j];
         vartree += "," + indices_step[j];
@@ -537,22 +522,22 @@ Parser::split_expression(std::string& expression,
       vartree += ")";
     }
 
-    
+
   }
-  
+
   // Success
   return (true);
 }
 
 // The main function for dissecting code into a tree
 bool
-Parser::parse_expression_tree(std::string& expression, 
+Parser::parse_expression_tree(std::string& expression,
                               ParserNodeHandle& handle,
                               std::string& error)
 {
   // Clear handle so what was in it is cleared
   handle = 0;
-  
+
   // Extra check to make sure parentheses levels match and
   // to check whether strings are properly marked
   // This function will return a syntax error if there is one
@@ -568,7 +553,7 @@ Parser::parse_expression_tree(std::string& expression,
     // remove all spaces at the start of the expression
     boost::trim(expression);
   }
-  
+
   // Remainder is the remainder of the text that needs to be scanned
   std::string remainder = expression;
 
@@ -577,20 +562,20 @@ Parser::parse_expression_tree(std::string& expression,
 
   // Component is an expression, a variable name, a function or a constant
   std::string component;
-  
+
   // Each component can have an unary operator to the end or the front of
   // that block
   std::string unary_operator;
   std::string post_unary_operator;
   std::string subs;
-  
+
   // List of all components we have scanned
   std::vector<std::string> components;
 
   // Between components binary operators are needed to link them together
   std::string binary_operator;
   std::vector<std::string> binary_operators;
-  
+
   // Record the binary operator priorities
   std::vector<int> binary_priority;
 
@@ -645,7 +630,7 @@ Parser::parse_expression_tree(std::string& expression,
       scan_subs_expression(remainder, subs);
       boost::trim(remainder);
       components.push_back(unary_operator+component+subs+post_unary_operator);
-    }    
+    }
     else
     {
       error = "SYNTAX ERROR - invalid syntax detected at the start of '"+remainder+"'";
@@ -655,38 +640,38 @@ Parser::parse_expression_tree(std::string& expression,
     boost::trim(remainder);
     if (remainder.size() == 0) break;
     binary_operator = "";
-    
+
     if (!(scan_binary_operator(remainder,binary_operator)))
     {
       error = "SYNTAX ERROR - invalid syntax detected at the start of '"+remainder+"'";
-      return (false);    
+      return (false);
     }
 
     binary_operators.push_back(binary_operator);
-    
+
     int priority;
     get_binary_priority(binary_operator,priority);
     binary_priority.push_back(priority);
-    
+
     boost::trim(remainder);
     if (remainder.size() == 0)
     {
       error = "SYNTAX ERROR - invalid syntax detected at the end of '"+expression+"'";
-      return (false);    
+      return (false);
     }
   }
-  
+
   std::vector<ParserNodeHandle> component_handles(components.size());
-  
+
   for (size_t k=0; k<component_handles.size(); k++)
   {
     component = components[k];
     ParserNodeHandle pre_function_handle = 0;
     ParserNodeHandle post_function_handle = 0;
     ParserNodeHandle subs_function_handle = 0;
-    
+
     std::string str;
-    
+
     if(scan_pre_unary_operator(component,unary_operator))
     {
       std::string fun_name;
@@ -696,13 +681,13 @@ Parser::parse_expression_tree(std::string& expression,
         pre_function_handle.reset(new ParserNode(PARSER_FUNCTION_E,fun_name));
       }
     }
-    
+
     if (scan_variable_name(component,str))
     {
       std::map<std::string,double>::iterator cit,cit_end;
       cit = numerical_constants_.begin();
       cit_end = numerical_constants_.end();
-      
+
       while(cit != cit_end)
       {
         if (str == (*cit).first)
@@ -713,7 +698,7 @@ Parser::parse_expression_tree(std::string& expression,
         }
         ++cit;
       }
-      if (cit == cit_end) 
+      if (cit == cit_end)
       {
         component_handles[k].reset(new ParserNode(PARSER_VARIABLE_E,str));
       }
@@ -733,7 +718,7 @@ Parser::parse_expression_tree(std::string& expression,
       std::string fun_name;
       std::vector<std::string> fun_args;
       split_function(str,fun_name,fun_args);
-      
+
       component_handles[k].reset(new ParserNode(PARSER_FUNCTION_E,fun_name));
       for (size_t j=0;j<fun_args.size();j++)
       {
@@ -750,15 +735,15 @@ Parser::parse_expression_tree(std::string& expression,
       if (!(parse_expression_tree(str,component_handles[k],error)))
       {
         return (false);
-      }      
+      }
     }
-    
+
     if(scan_subs_expression(component, subs))
     {
       std::vector<std::string> start_args;
       std::vector<std::string> step_args;
       std::vector<std::string> end_args;
-      
+
       split_subs(subs,start_args,step_args,end_args,str);
 
       std::string subs_expression;
@@ -817,36 +802,36 @@ Parser::parse_expression_tree(std::string& expression,
         }
       }
     }
-    
+
     if(scan_post_unary_operator(component,unary_operator))
     {
       std::string fun_name;
       get_unary_function_name(unary_operator,fun_name);
       post_function_handle.reset(new ParserNode(PARSER_FUNCTION_E,fun_name));
     }
-   
+
     if (subs_function_handle)
     {
       ParserNodeHandle subhandle = component_handles[k];
       component_handles[k] = subs_function_handle;
-      component_handles[k]->set_arg(0,subhandle);         
+      component_handles[k]->set_arg(0,subhandle);
     }
-   
+
     if (post_function_handle)
     {
       ParserNodeHandle subhandle = component_handles[k];
       component_handles[k] = post_function_handle;
-      component_handles[k]->set_arg(0,subhandle);     
+      component_handles[k]->set_arg(0,subhandle);
     }
 
     if (pre_function_handle)
     {
       ParserNodeHandle subhandle = component_handles[k];
       component_handles[k] = pre_function_handle;
-      component_handles[k]->set_arg(0,subhandle);     
+      component_handles[k]->set_arg(0,subhandle);
     }
   }
-  
+
   if (components.size() == 1)
   {
     handle = component_handles[0];
@@ -861,9 +846,9 @@ Parser::parse_expression_tree(std::string& expression,
       {
         if (binary_priority[j] > priority) priority = binary_priority[j];
       }
-      
+
       if (priority == -1) break;
-      
+
       std::string fun_name;
 
       for (size_t j=0; j<binary_priority.size();j++)
@@ -876,10 +861,10 @@ Parser::parse_expression_tree(std::string& expression,
           while (!component_handles[k1]) k1--;
           size_t k2 = j+1;
           while (!component_handles[k2]) k2++;
-                    
+
           nhandle->set_arg(0,component_handles[k1]);
           nhandle->set_arg(1,component_handles[k2]);
-          
+
           component_handles[k1] = nhandle;
           component_handles[k2] = 0;
           binary_priority[j] = -1;
@@ -904,7 +889,7 @@ Parser::scan_binary_operator(std::string& expression, std::string& binary_operat
   {
     binary_operator = expression.substr(0,2);
     std::map<std::string,BinaryOperator>::iterator it = binary_operators_.find(binary_operator);
-    if (it != binary_operators_.end()) 
+    if (it != binary_operators_.end())
     {
       expression = expression.substr(2);
       return (true);
@@ -921,13 +906,13 @@ Parser::scan_binary_operator(std::string& expression, std::string& binary_operat
       return (true);
     }
   }
-  
+
   binary_operator = "";
   return (false);
 }
 
 
-bool 
+bool
 Parser::scan_pre_unary_operator(std::string& expression, std::string& unary_operator)
 {
   if (expression.size() > 1)
@@ -951,13 +936,13 @@ Parser::scan_pre_unary_operator(std::string& expression, std::string& unary_oper
       return (true);
     }
   }
-  
+
   unary_operator = "";
   return (false);
 }
 
 
-bool 
+bool
 Parser::scan_post_unary_operator(std::string& expression, std::string& unary_operator)
 {
   if (expression.size() > 1)
@@ -982,11 +967,11 @@ Parser::scan_post_unary_operator(std::string& expression, std::string& unary_ope
     }
 
   }
-  
+
   unary_operator = "";
   return (false);}
 
-bool 
+bool
 Parser::get_unary_function_name(std::string& unary_operator, std::string& fun_name)
 {
   std::map<std::string,UnaryOperator>::iterator it = unary_pre_operators_.find(unary_operator);
@@ -1004,7 +989,7 @@ Parser::get_unary_function_name(std::string& unary_operator, std::string& fun_na
 }
 
 
-bool 
+bool
 Parser::get_binary_function_name(std::string& binary_operator, std::string& fun_name)
 {
   std::map<std::string,BinaryOperator>::iterator it = binary_operators_.find(binary_operator);
@@ -1015,7 +1000,7 @@ Parser::get_binary_function_name(std::string& binary_operator, std::string& fun_
   return (false);
 }
 
-bool 
+bool
 Parser::get_binary_priority(std::string& binary_operator, int& priority)
 {
   std::map<std::string,BinaryOperator>::iterator it = binary_operators_.find(binary_operator);
@@ -1036,15 +1021,15 @@ Parser::scan_variable_name(std::string& expression, std::string& var_name)
   {
     size_t idx = 1;
     while ((idx <esize)&&((expression[idx] == '_') || (expression[idx] >= 'a' && expression[idx] <= 'z')
-      || (expression[idx] >= 'A' && expression[idx] <= 'Z') 
+      || (expression[idx] >= 'A' && expression[idx] <= 'Z')
       || (expression[idx] >= '0' && expression[idx] <= '9'))) idx++;
-  
+
     var_name = expression.substr(0,idx);
-    
+
     size_t vidx = idx;
     while((idx < esize)&&((expression[idx] == ' ') ||(expression[idx] == '\t')||
         (expression[idx] == '\n') || (expression[idx] == '\r'))) idx++;
-  
+
     // Check whether it is a function name
     if (idx < esize && expression[idx] == '(') return (false);
     else
@@ -1066,7 +1051,7 @@ Parser::scan_constant_string(std::string& expression, std::string& str)
     {
       size_t idx = 1;
       str.clear();
-      
+
       while (idx<esize)
       {
         if (expression[idx] == '\\')
@@ -1093,7 +1078,7 @@ Parser::scan_constant_string(std::string& expression, std::string& str)
         else if (expression[idx] == '"') break;
         else str += expression[idx];
       }
-      
+
       if (idx < esize) return (true);
     }
     else
@@ -1120,9 +1105,9 @@ Parser::scan_function(std::string& expression, std::string& function)
   {
     size_t idx = 1;
     while ((idx <esize)&&((expression[idx] == '_') || (expression[idx] >= 'a' && expression[idx] <= 'z')
-      || (expression[idx] >= 'A' && expression[idx] <= 'Z') 
+      || (expression[idx] >= 'A' && expression[idx] <= 'Z')
       || (expression[idx] >= '0' && expression[idx] <= '9'))) idx++;
-  
+
     std::string var_name = expression.substr(0,idx);
 
     std::map<std::string,double>::iterator cit,cit_end;
@@ -1138,9 +1123,9 @@ Parser::scan_function(std::string& expression, std::string& function)
 
     while((idx < esize)&&((expression[idx] == ' ') ||(expression[idx] == '\t')||
         (expression[idx] == '\n') || (expression[idx] == '\r'))) idx++;
-  
+
     // Check whether it is a function name
-    if (expression[idx] == '(') 
+    if (expression[idx] == '(')
     {
       int paren_cnt = 1;
       idx++;
@@ -1157,9 +1142,9 @@ Parser::scan_function(std::string& expression, std::string& function)
           }
         }
         else if (expression[idx] == '(' || expression[idx] == '[') paren_cnt++;
-        else if (expression[idx] == ')' || expression[idx] == ']') 
+        else if (expression[idx] == ')' || expression[idx] == ']')
         {
-          paren_cnt--;      
+          paren_cnt--;
           if (paren_cnt == 0) { idx++; break; }
         }
         idx++;
@@ -1169,7 +1154,7 @@ Parser::scan_function(std::string& expression, std::string& function)
         function = expression.substr(0,idx);
         expression = expression.substr(idx);
         return (true);
-      } 
+      }
     }
     else
     {
@@ -1213,9 +1198,9 @@ Parser::scan_sub_expression(std::string& expression, std::string& subexpression)
         }
         // Do parentices counting
         else if (expression[idx] == '(') paren_cnt++;
-        else if (expression[idx] == ')') 
+        else if (expression[idx] == ')')
         {
-          paren_cnt--;      
+          paren_cnt--;
           // Test whether we hit the end of the sub expression
           if (paren_cnt == 0) break;
         }
@@ -1230,10 +1215,10 @@ Parser::scan_sub_expression(std::string& expression, std::string& subexpression)
         subexpression = expression.substr(0,idx);
         expression = expression.substr(idx);
         return (true);
-      } 
+      }
     }
   }
-  
+
   return (false);
 }
 
@@ -1269,9 +1254,9 @@ Parser::scan_subs_expression(std::string& expression, std::string& subexpression
         }
         // Do parentices counting
         else if (expression[idx] == '[') brac_cnt++;
-        else if (expression[idx] == ']') 
+        else if (expression[idx] == ']')
         {
-          brac_cnt--;      
+          brac_cnt--;
           // Test whether we hit the end of the sub expression
           if (brac_cnt == 0) break;
         }
@@ -1286,10 +1271,10 @@ Parser::scan_subs_expression(std::string& expression, std::string& subexpression
         subexpression = expression.substr(0,idx);
         expression = expression.substr(idx);
         return (true);
-      } 
+      }
     }
   }
-  
+
   subexpression = "";
   return (false);
 }
@@ -1303,7 +1288,7 @@ bool
 Parser::check_syntax(std::string& expression, std::string& error)
 {
   int paren_cnt = 0;
-  
+
   size_t esize = expression.size();
   size_t idx = 0;
   while(idx< esize)
@@ -1317,7 +1302,7 @@ Parser::check_syntax(std::string& expression, std::string& error)
         else if (expression[idx] == '"') break;
         else idx++;
       }
-      
+
       if (idx == esize)
       {
         error = "SYNTAX ERROR - Incomplete string in expression '"+expression+"'";
@@ -1339,7 +1324,7 @@ Parser::check_syntax(std::string& expression, std::string& error)
     error = "SYNTAX ERROR - Missing parentices in expression '"+expression+"'";
     return (false);
   }
-  
+
   return (true);
 }
 
@@ -1356,7 +1341,7 @@ Parser::scan_constant_value(std::string& expression, std::string& value)
     if (expression[0] == '.')
     {
       size_t idx = 1;
-      while((idx<esize)&&((expression[idx] >= '0' && expression[idx] <= '9'))) idx++;          
+      while((idx<esize)&&((expression[idx] >= '0' && expression[idx] <= '9'))) idx++;
       if (idx <esize)
       {
         if ((expression[idx] == 'e')||(expression[idx] == 'E'))
@@ -1365,16 +1350,16 @@ Parser::scan_constant_value(std::string& expression, std::string& value)
           if (idx <esize)
           {
             if (expression[idx] == '-') idx++;
-            while((idx<esize)&&(((expression[idx] >= '0') && (expression[idx] <= '9')))) idx++; 
+            while((idx<esize)&&(((expression[idx] >= '0') && (expression[idx] <= '9')))) idx++;
             if (idx<esize) if ((expression[idx] == 'f')||(expression[idx] == 'F')) idx++;
           }
         }
       }
       value = expression.substr(0,idx);
       expression = expression.substr(idx);
-      return (true);    
+      return (true);
     }
-  
+
     // Cases that start with a '0'
     if (expression[0] == '0')
     {
@@ -1402,7 +1387,7 @@ Parser::scan_constant_value(std::string& expression, std::string& value)
         else if (expression[1] >= '0' && expression[1] <= '7')
         {
           size_t idx = 2;
-          while((idx < esize)&&((expression[idx] >= '0' && expression[idx] <= '7'))) idx++;          
+          while((idx < esize)&&((expression[idx] >= '0' && expression[idx] <= '7'))) idx++;
 
           if (idx<esize) if ((expression[idx] == 'u')||(expression[idx] == 'U')||
                              (expression[idx] == 'l')||(expression[idx] == 'L')) idx++;
@@ -1417,7 +1402,7 @@ Parser::scan_constant_value(std::string& expression, std::string& value)
         else if (expression[1] == '.')
         {
           size_t idx = 2;
-          while((idx<esize)&&((expression[idx] >= '0' && expression[idx] <= '9'))) idx++;          
+          while((idx<esize)&&((expression[idx] >= '0' && expression[idx] <= '9'))) idx++;
           if (idx <esize)
           {
             if ((expression[idx] == 'e')||(expression[idx] == 'E'))
@@ -1426,7 +1411,7 @@ Parser::scan_constant_value(std::string& expression, std::string& value)
               if (idx <esize)
               {
                 if (expression[idx] == '-') idx++;
-                while((idx<esize)&&(((expression[idx] >= '0') && (expression[idx] <= '9')))) idx++; 
+                while((idx<esize)&&(((expression[idx] >= '0') && (expression[idx] <= '9')))) idx++;
                 if (idx<esize) if ((expression[idx] == 'f')||(expression[idx] == 'F')) idx++;
               }
             }
@@ -1441,18 +1426,18 @@ Parser::scan_constant_value(std::string& expression, std::string& value)
           if (idx <esize)
           {
             if (expression[idx] == '-') idx++;
-            while((idx<esize)&&(((expression[idx] >= '0') && (expression[idx] <= '9')))) idx++; 
+            while((idx<esize)&&(((expression[idx] >= '0') && (expression[idx] <= '9')))) idx++;
             if (idx<esize) if ((expression[idx] == 'f')||(expression[idx] == 'F')) idx++;
           }
           value = expression.substr(0,idx);
           expression = expression.substr(idx);
           return (true);
-        }        
+        }
         else
         {
           value = expression.substr(0,1);
           expression = expression.substr(1);
-          return (true);        
+          return (true);
         }
       }
       else
@@ -1462,20 +1447,20 @@ Parser::scan_constant_value(std::string& expression, std::string& value)
         return (true);
       }
     }
-  
+
     // Cases that start with a '1' to '9'
     if ((expression[0] >= '1')&&(expression[0] <= '9'))
-    {    
+    {
       if (esize > 1)
       {
         size_t idx = 1;
-        while((idx<esize)&&((expression[idx] >= '0' && expression[idx] <= '9'))) idx++;          
+        while((idx<esize)&&((expression[idx] >= '0' && expression[idx] <= '9'))) idx++;
         if (idx <esize)
-        {      
+        {
           if (expression[idx] == '.')
           {
             idx++;
-            while((idx<esize)&&((expression[idx] >= '0' && expression[idx] <= '9'))) idx++;          
+            while((idx<esize)&&((expression[idx] >= '0' && expression[idx] <= '9'))) idx++;
             if (idx <esize)
             {
               if ((expression[idx] == 'e')||(expression[idx] == 'E'))
@@ -1484,14 +1469,14 @@ Parser::scan_constant_value(std::string& expression, std::string& value)
                 if (idx <esize)
                 {
                   if (expression[idx] == '-') idx++;
-                  while((idx<esize)&&(((expression[idx] >= '0') && (expression[idx] <= '9')))) idx++; 
+                  while((idx<esize)&&(((expression[idx] >= '0') && (expression[idx] <= '9')))) idx++;
                   if (idx<esize) if ((expression[idx] == 'f')||(expression[idx] == 'F')) idx++;
                 }
-              }            
+              }
             }
             value = expression.substr(0,idx);
             expression = expression.substr(idx);
-            return (true);                        
+            return (true);
           }
           else if ((expression[idx] == 'e')||(expression[idx] == 'E'))
           {
@@ -1499,12 +1484,12 @@ Parser::scan_constant_value(std::string& expression, std::string& value)
             if (idx <esize)
             {
               if (expression[idx] == '-') idx++;
-              while((idx<esize)&&(((expression[idx] >= '0') && (expression[idx] <= '9')))) idx++; 
+              while((idx<esize)&&(((expression[idx] >= '0') && (expression[idx] <= '9')))) idx++;
               if (idx<esize) if ((expression[idx] == 'f')||(expression[idx] == 'F')) idx++;
             }
             value = expression.substr(0,idx);
             expression = expression.substr(idx);
-            return (true);                        
+            return (true);
           }
           else
           {
@@ -1513,25 +1498,25 @@ Parser::scan_constant_value(std::string& expression, std::string& value)
                                (expression[idx] == 'l')||(expression[idx] == 'L')) idx++;
             if (idx<esize) if ((expression[idx] == 'u')||(expression[idx] == 'U')||
                                (expression[idx] == 'l')||(expression[idx] == 'L')) idx++;
-          
+
             value = expression.substr(0,idx);
             expression = expression.substr(idx);
-            return (true);            
+            return (true);
           }
         }
         else
         {
           value = expression.substr(0,idx);
           expression = expression.substr(idx);
-          return (true);                    
+          return (true);
         }
       }
       else
       {
-        // Case of a single number 
+        // Case of a single number
         value = expression.substr(0,1);
         expression = expression.substr(1);
-        return (true);      
+        return (true);
       }
     }
   }
@@ -1548,7 +1533,7 @@ Parser::scan_equal_sign(std::string& expression)
 
   if (expression[0] == '=')
   {
-    if (esize > 1) 
+    if (esize > 1)
     {
       // These indicate different operators adn should be
       // ignored, most likely this means there is a syntax error
@@ -1581,12 +1566,12 @@ Parser::split_function(std::string& expression,
   if ((esize > 0) &&((expression[0] == '_') || (expression[0] >= 'a' && expression[0] <= 'z')
       || (expression[0] >= 'A' && expression[0] <= 'Z')) )
   {
-    // Scan the rest of the function name 
+    // Scan the rest of the function name
     size_t idx = 1;
     while ((idx <esize)&&((expression[idx] == '_') || (expression[idx] >= 'a' && expression[idx] <= 'z')
-      || (expression[idx] >= 'A' && expression[idx] <= 'Z') 
+      || (expression[idx] >= 'A' && expression[idx] <= 'Z')
       || (expression[idx] >= '0' && expression[idx] <= '9'))) idx++;
-  
+
     fun_name = expression.substr(0,idx);
 
     // scan through any white space
@@ -1594,11 +1579,11 @@ Parser::split_function(std::string& expression,
           ((expression[idx] == ' ') ||(expression[idx] == '\t')||
            (expression[idx] == '\n') || (expression[idx] == '\r')||
            (expression[idx] == '\f') || (expression[idx] == '\v'))) idx++;
-  
+
     // Variables for finding start and end of arguments
     size_t start, end;
     // Check whether it is a function, it should have a parentices open
-    if (expression[idx] == '(') 
+    if (expression[idx] == '(')
     {
       int paren_cnt = 1;
       idx++;
@@ -1621,17 +1606,17 @@ Parser::split_function(std::string& expression,
         }
         // Do parentices counting
         else if (expression[idx] == '(' || expression[idx] == '[') paren_cnt++;
-        else if (expression[idx] == ')' || expression[idx] == ']') 
+        else if (expression[idx] == ')' || expression[idx] == ']')
         {
-          paren_cnt--;      
-          // if we encounterd end paren_cnt should be zero 
-          if (paren_cnt == 0) 
+          paren_cnt--;
+          // if we encounterd end paren_cnt should be zero
+          if (paren_cnt == 0)
           {
             // Get the last argument
             end = idx;
             std::string arg = expression.substr(start,end-start);
             boost::trim(arg);
-            if (arg.size()) fun_args.push_back(arg);          
+            if (arg.size()) fun_args.push_back(arg);
             break;
           }
         }
@@ -1669,17 +1654,17 @@ Parser::split_subs(std::string& expression,
 {
   // Get the size of the srting we need to scan
   size_t esize = expression.size();
-  
+
   int col_count = 0;
   bool has_end = false;
   bool has_step = false;
-  
+
   // First detect the function name
   // A function name starts with _A-Za-z
   // Any other characters can have numbers in them as well
   if ((esize > 0) && expression[0] == '[')
   {
-    // Scan the rest of the function name 
+    // Scan the rest of the function name
     size_t idx = 1;
 
     // scan through any white space
@@ -1687,10 +1672,10 @@ Parser::split_subs(std::string& expression,
           ((expression[idx] == ' ') ||(expression[idx] == '\t')||
            (expression[idx] == '\n') || (expression[idx] == '\r')||
            (expression[idx] == '\f') || (expression[idx] == '\v'))) idx++;
-  
+
     // Variables for finding start and end of arguments
     size_t start, end;
-    
+
     int brac_cnt = 1;
     start = idx;
 
@@ -1712,11 +1697,11 @@ Parser::split_subs(std::string& expression,
       }
       // Do parentices counting
       else if (expression[idx] == '[') brac_cnt++;
-      else if (expression[idx] == ']') 
+      else if (expression[idx] == ']')
       {
-        brac_cnt--;      
-        // if we encounterd end paren_cnt should be zero 
-        if (brac_cnt == 0) 
+        brac_cnt--;
+        // if we encounterd end paren_cnt should be zero
+        if (brac_cnt == 0)
         {
           // Get the last argument
           end = idx;
@@ -1734,13 +1719,13 @@ Parser::split_subs(std::string& expression,
             else if (col_count == 1)
             {
               size_t end = start_args.size()-1;
-              end_args[end] = arg;            
+              end_args[end] = arg;
             }
             else if (col_count == 2)
             {
               size_t end = start_args.size()-1;
-              step_args[end] = arg;                      
-            }          
+              step_args[end] = arg;
+            }
           }
 
           break;
@@ -1755,7 +1740,7 @@ Parser::split_subs(std::string& expression,
           end = idx;
           std::string arg = expression.substr(start,end-start);
           boost::trim(arg);
-          
+
           if  (col_count == 0)
           {
             start_args.push_back(arg);
@@ -1765,12 +1750,12 @@ Parser::split_subs(std::string& expression,
           else if (col_count == 1)
           {
             size_t end = start_args.size()-1;
-            end_args[end] = arg;            
+            end_args[end] = arg;
           }
           else if (col_count == 2)
           {
             size_t end = start_args.size()-1;
-            step_args[end] = arg;                      
+            step_args[end] = arg;
           }
           start = idx+1;
           col_count = 0;
@@ -1800,7 +1785,7 @@ Parser::split_subs(std::string& expression,
             has_step = true;
           }
           col_count++;
-          
+
           start = idx+1;
         }
       }
@@ -1808,7 +1793,7 @@ Parser::split_subs(std::string& expression,
       idx++;
     }
   }
-  
+
   if (!has_end)
   {
     end_args.clear();
@@ -1818,7 +1803,7 @@ Parser::split_subs(std::string& expression,
   {
     step_args.clear();
   }
-  
+
 }
 
 
@@ -1848,9 +1833,9 @@ Parser::remove_global_parentices(std::string& expression)
           }
         }
         else if (expression[idx] == '(') paren_cnt++;
-        else if (expression[idx] == ')') 
+        else if (expression[idx] == ')')
         {
-          paren_cnt--;      
+          paren_cnt--;
           if (paren_cnt == 0) { idx++; break; }
         }
         idx++;
@@ -1872,9 +1857,9 @@ Parser::remove_comments(std::string& expression)
 {
   size_t esize = expression.size();
   size_t idx = 0;
-  
+
   std::string newexpression;
-  
+
   // Scan the expression
   while (idx < esize)
   {
@@ -1933,7 +1918,7 @@ Parser::add_binary_operator(const std::string& op, const std::string& funname, i
   binary_operators_[op] = binop;
 }
 
-void 
+void
 Parser::add_unary_pre_operator(const std::string& op, const std::string& funname)
 {
   UnaryOperator unop;
@@ -1941,8 +1926,8 @@ Parser::add_unary_pre_operator(const std::string& op, const std::string& funname
   unop.funname_ = funname;
   unary_pre_operators_[op] = unop;
 }
-  
-void 
+
+void
 Parser::add_unary_post_operator(const std::string& op, const std::string& funname)
 {
   UnaryOperator unop;
@@ -1958,8 +1943,8 @@ Parser::add_numerical_constant(const std::string& name,double val)
   numerical_constants_[name] = val;
 }
 
-bool 
-Parser::add_input_variable(ParserProgramHandle& program, 
+bool
+Parser::add_input_variable(ParserProgramHandle& program,
                            const std::string& name, const std::string& type, int flags)
 {
   if (!program) program.reset(new ParserProgram());
@@ -1967,8 +1952,8 @@ Parser::add_input_variable(ParserProgramHandle& program,
   return (true);
 }
 
-bool 
-Parser::add_output_variable(ParserProgramHandle& program, 
+bool
+Parser::add_output_variable(ParserProgramHandle& program,
                            const std::string& name, const std::string& type, int flags)
 {
   if (!program) program.reset(new ParserProgram());
@@ -1977,29 +1962,29 @@ Parser::add_output_variable(ParserProgramHandle& program,
 }
 
 bool
-Parser::get_input_variable_type(ParserProgramHandle program, 
-                                const std::string& name, 
+Parser::get_input_variable_type(ParserProgramHandle program,
+                                const std::string& name,
                                 std::string& type)
 {
   ParserVariableList varlist;
   program->get_input_variables(varlist);
   ParserVariableList::iterator it = varlist.find(name);
-  
+
   if (it == varlist.end()) return (false);
   type = (*it).second->get_type();
   return (true);
 }
 
 bool
-Parser::get_input_variable_type(ParserProgramHandle program, 
-                                const std::string& name, 
+Parser::get_input_variable_type(ParserProgramHandle program,
+                                const std::string& name,
                                 std::string& type,
                                 int& flags)
 {
   ParserVariableList varlist;
   program->get_input_variables(varlist);
   ParserVariableList::iterator it = varlist.find(name);
-  
+
   if (it == varlist.end()) return (false);
   type = (*it).second->get_type();
   flags = (*it).second->get_flags();
@@ -2007,29 +1992,29 @@ Parser::get_input_variable_type(ParserProgramHandle program,
 }
 
 bool
-Parser::get_output_variable_type(ParserProgramHandle program, 
-                                const std::string& name, 
+Parser::get_output_variable_type(ParserProgramHandle program,
+                                const std::string& name,
                                 std::string& type)
 {
   ParserVariableList varlist;
   program->get_output_variables(varlist);
   ParserVariableList::iterator it = varlist.find(name);
-  
+
   if (it == varlist.end()) return (false);
   type = (*it).second->get_type();
   return (true);
 }
 
 bool
-Parser::get_output_variable_type(ParserProgramHandle program, 
-                                const std::string& name, 
+Parser::get_output_variable_type(ParserProgramHandle program,
+                                const std::string& name,
                                 std::string& type,
                                 int& flags)
 {
   ParserVariableList varlist;
   program->get_output_variables(varlist);
   ParserVariableList::iterator it = varlist.find(name);
-  
+
   if (it == varlist.end()) return (false);
   type = (*it).second->get_type();
   flags = (*it).second->get_flags();
@@ -2042,78 +2027,78 @@ Parser::get_output_variable_type(ParserProgramHandle program,
 
 bool
 Parser::validate(ParserProgramHandle program,
-                 ParserFunctionCatalogHandle catalog, 
+                 ParserFunctionCatalogHandle catalog,
                  std::string& error)
 {
   if (!program)
   {
     error = "INTERNAL ERROR - Program was empty.";
     return (false);
-  } 
-  
+  }
+
   if (!catalog)
   {
     error = "INTERNAL ERROR - Function Catalog was empty.";
     return (false);
-  } 
-  
+  }
+
   program->set_catalog(catalog);
-  
+
   size_t num_expressions = program->num_expressions();
 
   ParserVariableList var_list;
   program->get_input_variables(var_list);
-  
+
   // Evaluate whether functions exist and whether output types match
   for (size_t j=0; j<num_expressions; j++)
   {
     std::string expression;
     ParserTreeHandle handle;
     program->get_expression(j,expression,handle);
-  
+
     if (!handle)
     {
       error = "INTERNAL ERROR: Encountered incomplete expression '"+expression+"'.";
-      return (false);    
+      return (false);
     }
-  
+
     ParserNodeHandle nhandle = handle->get_expression_tree();
     if (!nhandle)
     {
       error = "INTERNAL ERROR: Encountered incomplete expression '"+expression+"'.";
       return (false);
     }
-  
+
     if(!(recursive_validate(nhandle,catalog,var_list,error,expression)))
     {
       // error should already have been filled out
       return (false);
     }
-  
+
     // The output type is the type of the top node of the tree
     std::string vartype = nhandle->get_type();
     handle->set_type(vartype);
-    
+
     // Add the output variable name to the list so the next function can call it
     std::string varname = handle->get_varname();
     var_list[varname].reset(new ParserVariable(varname,vartype));
   }
-  
+
   // Validate output types
-  
+
   ParserVariableList o_var_list;
   program->get_output_variables(o_var_list);
   ParserVariableList::iterator it, it_end, var_it;
   it = o_var_list.begin();
   it_end = o_var_list.end();
-  
+
   // Check whether an output variable is assigned a value
   // Check whether the type of the value matches the required value
   while (it != it_end)
   {
     std::string varname = (*it).first;
     std::string vartype = (*it).second->get_type();
-    
+
     // Check whether the output type exists
     var_it = var_list.find(varname);
     if (var_it == var_list.end())
@@ -2121,9 +2106,9 @@ Parser::validate(ParserProgramHandle program,
       error = "OUTPUT VARIABLE '"+varname+"' has not been set.";
       return (false);
     }
-  
+
     std::string new_var_type = (*var_it).second->get_type();
-    
+
     // If the variable is set to unknown its output type is set here
     if (vartype == "U")
     {
@@ -2144,14 +2129,14 @@ Parser::validate(ParserProgramHandle program,
 }
 
 
-bool 
+bool
 Parser::recursive_validate(ParserNodeHandle handle,
                            ParserFunctionCatalogHandle fhandle,
                            ParserVariableList& var_list,
                            std::string& error,
                            std::string& expression)
 {
-  int kind = handle->get_kind(); 
+  int kind = handle->get_kind();
   switch(kind)
   {
     case  PARSER_CONSTANT_SCALAR_E:
@@ -2162,7 +2147,7 @@ Parser::recursive_validate(ParserNodeHandle handle,
     case PARSER_CONSTANT_STRING_E:
       {
         // Currently no validation
-        return (true);    
+        return (true);
       }
     case PARSER_VARIABLE_E:
       {
@@ -2173,7 +2158,7 @@ Parser::recursive_validate(ParserNodeHandle handle,
           error = "VARIABLE ERROR: Unknown variable '"+val+"' in expression '"+expression+"'.";
           return (false);
         }
-        
+
         std::string vartype = (*it).second->get_type();
         if (vartype == "U")
         {
@@ -2181,13 +2166,13 @@ Parser::recursive_validate(ParserNodeHandle handle,
           return (false);
         }
         handle->set_type(vartype);
-        
+
         return (true);
       }
     case PARSER_FUNCTION_E:
       {
         std::string funname = handle->get_value();
-        
+
         size_t num_args = handle->num_args();
         std::vector<std::string> arg_types(num_args);
         for (size_t j=0; j<num_args; j++)
@@ -2195,10 +2180,10 @@ Parser::recursive_validate(ParserNodeHandle handle,
           ParserNodeHandle chandle = handle->get_arg(j);
           // This one should return the error to the user
           if (!(recursive_validate(chandle,fhandle,var_list,error,expression))) return (false);
-        
+
           arg_types[j] = chandle->get_type();
         }
-        
+
         ParserFunctionHandle function;
         std::string fid = ParserFunctionID(funname,arg_types);
 
@@ -2226,8 +2211,8 @@ Parser::recursive_validate(ParserNodeHandle handle,
           if (!found_it)
           {
             error = "FUNCTION ERROR: Unknown function "+funname+"(";
-            for (size_t j=0;j<num_args;j++) 
-            { 
+            for (size_t j=0;j<num_args;j++)
+            {
               error += ParserVariableType(arg_types[j]);
               if (j < num_args-1) error += ",";
             }
@@ -2235,21 +2220,21 @@ Parser::recursive_validate(ParserNodeHandle handle,
             return (false);
           }
         }
-        
+
         std::string return_type = function->get_return_type();
-        
+
         handle->set_type(return_type);
         handle->set_function(function);
         return (true);
       }
   }
-  
+
   return (false);
 }
 
 
 bool
-Parser::optimize(ParserProgramHandle program, 
+Parser::optimize(ParserProgramHandle program,
                  std::string& error)
 {
   // Generate a new script, a script is a list of single functions that need
@@ -2257,26 +2242,26 @@ Parser::optimize(ParserProgramHandle program,
   // them in atomic pieces. This way we can sort out duplicate pieces and make
   // sure we can easily allocate temporarily spaces for intermediate results
   // This is especially needed for vectorized expressions and matrix algebra
-    
+
   std::list<ParserScriptVariableHandle> variables;
   std::map<std::string,ParserScriptVariableHandle> named_variables;
   std::map<std::string,int> named_order;
   int order = 0;
-  
+
   std::list<ParserScriptFunctionHandle> functions;
-  
-  // Phase 1: Add all the input variables, we later delete the ones we do not 
+
+  // Phase 1: Add all the input variables, we later delete the ones we do not
   // use later
 
   ParserVariableList input_variables;
   program->get_input_variables(input_variables);
-  
+
   ParserVariableList::iterator it, it_end;
   it = input_variables.begin();
   it_end = input_variables.end();
-  
+
   int cnt = 0;
-  
+
   ParserScriptVariableHandle vhandle;
   ParserScriptVariableHandle ohandle;
   ParserScriptVariableHandle phandle;
@@ -2289,46 +2274,46 @@ Parser::optimize(ParserProgramHandle program,
   std::string name;
   std::string uname;
   std::string uname_num;
-  
+
   while (it != it_end)
   {
     name = (*it).first;
     uname_num = boost::lexical_cast<std::string>(cnt); cnt++;
     uname = "$I" + uname_num;
-    
+
     // Get the variable attributes
     int flags = (*it).second->get_flags();
     std::string type = (*it).second->get_type();
-    
+
     // Generate an input variable
     // The input variable has the name of the variable
     // it has an unique name as well, as input and output
     // variables can share names. Likewise a variable can
     // be overwritten anytime
     vhandle.reset(new ParserScriptVariable(name,uname,type,flags));
-    
+
     // Add the variable to the general list of variables
     variables.push_back(vhandle);
-    
+
     // Add the variable as well into the list of named variables
     // This list is used to translate all the named variables in the tree
     named_variables[name] = vhandle;
     ++it;
   }
-  
+
   // Phase 2: run through the full tree and setup intermediate variables
   //  for each phase of the computation and translate constant strings and
   //  doubles as well into variables.
 
   size_t num_expressions = program->num_expressions();
   ParserTreeHandle thandle;
-  
+
   for (size_t j=0; j<num_expressions; j++)
   {
     // Get the tree
     program->get_expression(j,thandle);
 
-    std::string type = thandle->get_type(); 
+    std::string type = thandle->get_type();
 
     std::string varname = thandle->get_varname();
     // Generate a temporary variable
@@ -2342,10 +2327,10 @@ Parser::optimize(ParserProgramHandle program,
       case PARSER_FUNCTION_E :
         {
           uname_num = boost::lexical_cast<std::string>(cnt); cnt++;
-          uname = "$N"+uname_num;        
-        
+          uname = "$N"+uname_num;
+
           ohandle.reset(new ParserScriptVariable(uname,type,0));
-          
+
           // Build function tables and add variable description
           if (!(optimize_process_node(nhandle,variables,named_variables,
             functions,ohandle,cnt,error))) return (false);
@@ -2353,7 +2338,7 @@ Parser::optimize(ParserProgramHandle program,
           variables.push_back(ohandle);
         }
         break;
-        
+
       case PARSER_VARIABLE_E :
         {
           std::string varname = nhandle->get_value();
@@ -2370,30 +2355,30 @@ Parser::optimize(ParserProgramHandle program,
         {
           // Get the value of the constant
           std::string value = nhandle->get_value();
-          
+
           std::map<std::string,double>::iterator cit, cit_end;
           cit = numerical_constants_.begin();
           cit_end = numerical_constants_.end();
           double val;
-          
+
           while (cit != cit_end)
           {
-            if (value == (*cit).first) 
+            if (value == (*cit).first)
             {
-              val = (*cit).second;          
+              val = (*cit).second;
               break;
             }
             ++cit;
           }
-          
-          if (cit == cit_end) 
+
+          if (cit == cit_end)
             val = boost::lexical_cast<double>(value);
-        
+
           std::list<ParserScriptVariableHandle>::iterator it, it_end;
           it = variables.begin();
           it_end = variables.end();
           ohandle = 0;
-          
+
           while (it != it_end)
           {
             if ((*it)->get_kind() == SCRIPT_CONSTANT_SCALAR_E)
@@ -2406,7 +2391,7 @@ Parser::optimize(ParserProgramHandle program,
             }
             ++it;
           }
-        
+
           if (!ohandle)
           {
             uname_num = boost::lexical_cast<std::string>(cnt); cnt++;
@@ -2420,12 +2405,12 @@ Parser::optimize(ParserProgramHandle program,
         {
           // Get the value of the constant
           std::string value = nhandle->get_value();
-        
+
           std::list<ParserScriptVariableHandle>::iterator it, it_end;
           it = variables.begin();
           it_end = variables.end();
           ohandle.reset();
-          
+
           while (it != it_end)
           {
             if ((*it)->get_kind() == SCRIPT_CONSTANT_SCALAR_E)
@@ -2438,7 +2423,7 @@ Parser::optimize(ParserProgramHandle program,
             }
             ++it;
           }
-        
+
           if (!ohandle)
           {
             uname_num = boost::lexical_cast<std::string>(cnt); cnt++;
@@ -2449,7 +2434,7 @@ Parser::optimize(ParserProgramHandle program,
         }
         break;
     }
-    
+
 
     // Phase 2b: Mark flags of the variables. Set the variables that are constant,
     // the variables that a single (executed once), and sequential (executed multiple times)
@@ -2458,11 +2443,11 @@ Parser::optimize(ParserProgramHandle program,
     // Update variable flags
     fit = functions.begin();
     fit_end = functions.end();
-    
+
     while(fit != fit_end)
     {
       size_t num_args = (*fit)->num_input_vars();
-      
+
       int flags = 0;
       for (size_t j=0; j < num_args; j++)
       {
@@ -2475,14 +2460,14 @@ Parser::optimize(ParserProgramHandle program,
       if (flags & SCRIPT_SEQUENTIAL_VAR_E) flags = SCRIPT_SEQUENTIAL_VAR_E;
       if (flags & SCRIPT_SINGLE_VAR_E) flags = SCRIPT_SINGLE_VAR_E;
       if (flags & SCRIPT_CONST_VAR_E) flags = SCRIPT_CONST_VAR_E;
-    
+
       // Mark output variable with the proper flags
       qhandle = (*fit)->get_output_var();
       qhandle->set_flags(flags);
-      
+
       // Mark this function
       (*fit)->set_flags(flags&(SCRIPT_SEQUENTIAL_VAR_E|SCRIPT_SINGLE_VAR_E|SCRIPT_CONST_VAR_E|SCRIPT_OPTIONAL_VAR_E));
-      
+
       ++fit;
     }
 
@@ -2495,11 +2480,11 @@ Parser::optimize(ParserProgramHandle program,
   // Now variables and functions should contain a list of needed spaces and
   // functions contains a list in order in which expression need to be evaluated
 
-  // Phase 3: Find and mark the output variables, so we can find them later. 
+  // Phase 3: Find and mark the output variables, so we can find them later.
   // and follow the trail back to mark which functions and pieces are actually used
-  
+
   ParserVariableList output_variables, ordered_output_variables;
-  program->get_output_variables(output_variables);  
+  program->get_output_variables(output_variables);
 
   std::list<ParserScriptVariableHandle> ovariables;
 
@@ -2509,12 +2494,12 @@ Parser::optimize(ParserProgramHandle program,
     ParserVariableList::iterator vit, vit_end;
     vit = output_variables.begin();
     vit_end = output_variables.end();
-   
+
     while (vit != vit_end)
     {
       std::string varname = (*vit).first;
       int flags = (*vit).second->get_flags();
-      
+
       std::map<std::string,int>::iterator oit;
       oit = named_order.find(varname);
       if (oit == named_order.end())
@@ -2553,26 +2538,26 @@ Parser::optimize(ParserProgramHandle program,
       return (false);
     }
     (*nit).second->set_name(varname);
-    
+
     ParserScriptVariableHandle nhandle = (*nit).second;
-    
-    if (flags & SCRIPT_SEQUENTIAL_VAR_E) 
+
+    if (flags & SCRIPT_SEQUENTIAL_VAR_E)
     {
       int nflags = (*nit).second->get_flags();
       std::string type = (*nit).second->get_type();
       if (!(nflags & SCRIPT_SEQUENTIAL_VAR_E))
       {
-      
+
         // Need to add in extra function call
         uname_num = boost::lexical_cast<std::string>(cnt); cnt++;
-        uname = "$T"+uname_num;        
-      
+        uname = "$T"+uname_num;
+
         uhandle.reset(new ParserScriptVariable(uname,type,SCRIPT_SEQUENTIAL_VAR_E|SCRIPT_USED_VAR_E|SCRIPT_CONST_VAR_E));
         variables.push_back(uhandle);
-        
+
         // Build the function call to generate the new variable
         std::string fun_id = ParserFunctionID("seq",type);
-    
+
         ParserFunctionHandle fun_ptr;
         if(!(program->get_catalog()->find_function(fun_id,fun_ptr)))
         {
@@ -2580,7 +2565,7 @@ Parser::optimize(ParserProgramHandle program,
             ParserVariableType(type)+"'.";
           return (false);
         }
-    
+
         ParserScriptFunctionHandle parhandle = nhandle->get_parent();
         ParserScriptFunctionHandle fhandle(new ParserScriptFunction("seq",fun_ptr));
         if (nflags & SCRIPT_CONST_VAR_E) fhandle->set_flags(SCRIPT_USED_VAR_E|SCRIPT_CONST_VAR_E);
@@ -2589,11 +2574,11 @@ Parser::optimize(ParserProgramHandle program,
         nhandle->set_flags(SCRIPT_USED_VAR_E);
         fhandle->set_output_var(uhandle);
         uhandle->set_parent(fhandle);
-      
+
         // Now search for additional occurrences of whandle in the sequential list
         // and replace them with uhandle
         ParserScriptVariableHandle xhandle;
-        
+
         fit = functions.begin();
         fit_end = functions.end();
         while(fit != fit_end)
@@ -2612,11 +2597,11 @@ Parser::optimize(ParserProgramHandle program,
 
         fit = functions.begin();
         fit_end = functions.end();
-        
+
         while(fit != fit_end)
         {
           size_t num_args = (*fit)->num_input_vars();
-          
+
           int flags = 0;
           for (size_t j=0; j < num_args; j++)
           {
@@ -2627,31 +2612,31 @@ Parser::optimize(ParserProgramHandle program,
           if (flags & SCRIPT_SEQUENTIAL_VAR_E) flags = SCRIPT_SEQUENTIAL_VAR_E;
           if (flags & SCRIPT_SINGLE_VAR_E) flags = SCRIPT_SINGLE_VAR_E;
           if (flags & SCRIPT_CONST_VAR_E) flags = SCRIPT_CONST_VAR_E;
-        
+
           // Mark output variable with the proper flags
           qhandle = (*fit)->get_output_var();
           qhandle->set_flags(flags);
-          
+
           // Mark this function
           (*fit)->set_flags(flags&(SCRIPT_SEQUENTIAL_VAR_E|SCRIPT_SINGLE_VAR_E|SCRIPT_CONST_VAR_E));
-          
+
           ++fit;
         }
 
         fit = functions.begin();
         fit_end = functions.end();
-        
+
         while(fit != fit_end)
         {
-          if ((*fit) == parhandle) { ++fit; break; } 
+          if ((*fit) == parhandle) { ++fit; break; }
           ++fit;
         }
-        
+
         functions.insert(fit,fhandle);
         nhandle = uhandle;
       }
     }
-    
+
     ovariables.push_back(nhandle);
     ++vit;
   }
@@ -2665,7 +2650,7 @@ Parser::optimize(ParserProgramHandle program,
     (*pit)->set_flags(SCRIPT_USED_VAR_E);
     ParserScriptFunctionHandle fhandle = (*pit)->get_parent();
     if (fhandle) optimize_mark_used(fhandle);
-    
+
     ++pit;
   }
 
@@ -2677,13 +2662,13 @@ Parser::optimize(ParserProgramHandle program,
   fit_end = functions.end();
 
   std::string dependence, dependence2;
-  
+
   while (fit != fit_end)
   {
     ParserScriptVariableHandle handle = (*fit)->get_output_var();
     handle->compute_dependence();
     dependence = handle->get_dependence();
- 
+
     fit2 = functions.begin();
     while (fit2 != fit)
     {
@@ -2724,7 +2709,7 @@ Parser::optimize(ParserProgramHandle program,
         }
       }
       ++fit2;
-    }  
+    }
     ++fit;
   }
 
@@ -2744,45 +2729,45 @@ Parser::optimize(ParserProgramHandle program,
 
   fit = functions.begin();
   fit_end = functions.end();
-  
+
   // Sort functions in three different catagories
   while(fit != fit_end)
   {
-    
+
     int flags = (*fit)->get_flags();
     // Skip over any unused function, we do not need to do any computation on
     // those
     if (!(flags & SCRIPT_USED_VAR_E)) { ++fit; continue; }
 
-    if (flags & SCRIPT_SEQUENTIAL_VAR_E) 
+    if (flags & SCRIPT_SEQUENTIAL_VAR_E)
     {
       sequential_function_list.push_back(*fit);
     }
     else if (flags & SCRIPT_SINGLE_VAR_E)
     {
-      single_function_list.push_back(*fit);    
+      single_function_list.push_back(*fit);
     }
     else if (flags & SCRIPT_CONST_VAR_E)
     {
-      const_function_list.push_back(*fit);    
+      const_function_list.push_back(*fit);
     }
-    
+
     ++fit;
   }
 
   pit = variables.begin();
   pit_end = variables.end();
-  
+
   // Sort variables in three different catagories
   while(pit != pit_end)
   {
-    
+
     int flags = (*pit)->get_flags();
     // Skip over any unused function, we do not need to do any computation on
     // those
     if (!(flags & SCRIPT_USED_VAR_E)) { ++pit; continue; }
 
-    if (flags & SCRIPT_SEQUENTIAL_VAR_E) 
+    if (flags & SCRIPT_SEQUENTIAL_VAR_E)
     {
       flags = flags & (~(SCRIPT_SINGLE_VAR_E));
       (*pit)->clear_flags();
@@ -2794,29 +2779,29 @@ Parser::optimize(ParserProgramHandle program,
       flags = flags & (~(SCRIPT_SEQUENTIAL_VAR_E|SCRIPT_CONST_VAR_E));
       (*pit)->clear_flags();
       (*pit)->set_flags(flags);
-      single_variable_list.push_back(*pit);    
+      single_variable_list.push_back(*pit);
     }
     else if (flags & SCRIPT_CONST_VAR_E)
     {
       flags = flags & (~(SCRIPT_SINGLE_VAR_E|SCRIPT_SEQUENTIAL_VAR_E));
       (*pit)->clear_flags();
-      (*pit)->set_flags(flags); 
-      const_variable_list.push_back(*pit);    
+      (*pit)->set_flags(flags);
+      const_variable_list.push_back(*pit);
     }
     ++pit;
   }
-  
+
   // Phase 7: Add in sequence instruction for every variable that is used
   // in the sequential mode
-  
+
   fit = sequential_function_list.begin();
-  fit_end = sequential_function_list.end();  
-  
+  fit_end = sequential_function_list.end();
+
   ParserScriptVariableHandle whandle;
   ParserScriptVariableHandle xhandle;
   ParserScriptFunctionHandle fhandle;
 
-  
+
   // Sort functions in three different categories
   while(fit != fit_end)
   {
@@ -2826,19 +2811,19 @@ Parser::optimize(ParserProgramHandle program,
       whandle = (*fit)->get_input_var(j);
       int flags = whandle->get_flags();
       std::string type = whandle->get_type();
-      
+
       if (!(flags& SCRIPT_SEQUENTIAL_VAR_E))
       {
         // Need to add in extra function call
         uname_num = boost::lexical_cast<std::string>(cnt); cnt++;
-        uname = "$T"+uname_num;        
-      
+        uname = "$T"+uname_num;
+
         uhandle.reset(new ParserScriptVariable(uname,type,SCRIPT_SEQUENTIAL_VAR_E|SCRIPT_USED_VAR_E|SCRIPT_CONST_VAR_E));
         sequential_variable_list.push_back(uhandle);
-        
+
         // Build the function call to generate the new variable
         std::string fun_id = ParserFunctionID("seq",type);
-    
+
         ParserFunctionHandle fun_ptr;
         if(!(program->get_catalog()->find_function(fun_id,fun_ptr)))
         {
@@ -2846,19 +2831,19 @@ Parser::optimize(ParserProgramHandle program,
             ParserVariableType(type)+"'.";
           return (false);
         }
-    
+
         fhandle.reset(new ParserScriptFunction("seq",fun_ptr));
         fhandle->set_input_var(0,whandle);
         fhandle->set_output_var(uhandle);
         uhandle->set_parent(fhandle);
-        
+
         // Add these to the output of one of the other lists
         if (flags & SCRIPT_SINGLE_VAR_E) single_function_list.push_back(fhandle);
         else const_function_list.push_back(fhandle);
-    
+
         // Now search for additional occurrences of whandle in the sequential list
         // and replace them with uhandle
-        
+
         fit2 = sequential_function_list.begin();
         while(fit2 != fit_end)
         {
@@ -2877,7 +2862,7 @@ Parser::optimize(ParserProgramHandle program,
     }
     ++fit;
   }
-  
+
   pit = const_variable_list.begin();
   pit_end = const_variable_list.end();
   while(pit != pit_end) { program->add_const_var(*pit); ++pit; }
@@ -2901,7 +2886,7 @@ Parser::optimize(ParserProgramHandle program,
   fit = sequential_function_list.begin();
   fit_end = sequential_function_list.end();
   while(fit != fit_end) { program->add_sequential_function(*fit); ++fit; }
-  
+
   return (true);
 }
 
@@ -2941,7 +2926,7 @@ Parser::optimize_process_node(ParserNodeHandle& nhandle,
   }
   std::string funname = nhandle->get_value();
   ParserFunctionHandle function = nhandle->get_function();
-  
+
   int fflags = function->get_flags();
   ParserScriptFunctionHandle fhandle(new ParserScriptFunction(funname,function));
 
@@ -2950,7 +2935,7 @@ Parser::optimize_process_node(ParserNodeHandle& nhandle,
     // Mark function as sequential
     fhandle->set_flags(SCRIPT_SEQUENTIAL_VAR_E);
   }
-  
+
   if (fflags & PARSER_SINGLE_FUNCTION_E)
   {
     // Mark function as sequential
@@ -2962,21 +2947,21 @@ Parser::optimize_process_node(ParserNodeHandle& nhandle,
     // Mark function as sequential
     fhandle->set_flags(SCRIPT_CONST_VAR_E);
   }
-  
+
 
   fhandle->set_output_var(ohandle);
   ohandle->set_parent(fhandle);
-  
+
   std::string uname;
   std::string uname_num;
-  
+
   size_t num_args = nhandle->num_args();
   for (size_t j=0; j < num_args; j++)
   {
     ParserScriptVariableHandle iohandle;
     ParserNodeHandle ihandle(nhandle->get_arg(j));
     int ikind = ihandle->get_kind();
-    
+
     switch(ikind)
     {
       case PARSER_FUNCTION_E :
@@ -2984,10 +2969,10 @@ Parser::optimize_process_node(ParserNodeHandle& nhandle,
           std::string type = ihandle->get_type();
           uname_num = boost::lexical_cast<std::string>(cnt); cnt++;
           uname = "$T"+uname_num;
-        
+
           iohandle.reset(new ParserScriptVariable(uname,type,0));
           variables.push_back(iohandle);
-          
+
           if(!(optimize_process_node(ihandle,variables, named_variables,
                                      functions,iohandle,cnt,error))) return (false);
         }
@@ -3012,20 +2997,20 @@ Parser::optimize_process_node(ParserNodeHandle& nhandle,
           cit = numerical_constants_.begin();
           cit_end = numerical_constants_.end();
           double val;
-          
+
           while (cit != cit_end)
           {
-            if (value == (*cit).first) 
+            if (value == (*cit).first)
             {
-              val = (*cit).second;          
+              val = (*cit).second;
               break;
             }
             ++cit;
           }
-          
-          if (cit == cit_end) 
+
+          if (cit == cit_end)
             val = boost::lexical_cast<double>(value);
-                
+
           std::list<ParserScriptVariableHandle>::iterator it, it_end;
           it = variables.begin();
           it_end = variables.end();
@@ -3041,7 +3026,7 @@ Parser::optimize_process_node(ParserNodeHandle& nhandle,
             }
             ++it;
           }
-        
+
           if (!iohandle)
           {
             uname_num = boost::lexical_cast<std::string>(cnt); cnt++;
@@ -3055,7 +3040,7 @@ Parser::optimize_process_node(ParserNodeHandle& nhandle,
         {
           // Get the value of the constant
           std::string value = ihandle->get_value();
-        
+
           std::list<ParserScriptVariableHandle>::iterator it, it_end;
           it = variables.begin();
           it_end = variables.end();
@@ -3071,13 +3056,13 @@ Parser::optimize_process_node(ParserNodeHandle& nhandle,
             }
             ++it;
           }
-        
+
           if (!iohandle)
           {
             uname_num = boost::lexical_cast<std::string>(cnt); cnt++;
             uname = "$S"+uname_num;
             iohandle.reset(new ParserScriptVariable(uname,value));
-            
+
             variables.push_back(iohandle);
           }
         }
@@ -3092,25 +3077,25 @@ Parser::optimize_process_node(ParserNodeHandle& nhandle,
 }
 
 
-void 
+void
 ParserProgram::add_const_var(ParserScriptVariableHandle& handle)
-{ 
+{
   handle->set_var_number(const_variables_.size());
-  const_variables_.push_back(handle); 
+  const_variables_.push_back(handle);
 }
 
-void 
+void
 ParserProgram::add_single_var(ParserScriptVariableHandle& handle)
-{ 
+{
   handle->set_var_number(single_variables_.size());
-  single_variables_.push_back(handle); 
+  single_variables_.push_back(handle);
 }
 
-void 
+void
 ParserProgram::add_sequential_var(ParserScriptVariableHandle& handle)
-{ 
+{
   handle->set_var_number(sequential_variables_.size());
-  sequential_variables_.push_back(handle); 
+  sequential_variables_.push_back(handle);
 }
 
 void
@@ -3149,29 +3134,29 @@ ParserProgram::num_sequential_variables()
   return (sequential_variables_.size());
 }
 
-bool 
+bool
 ParserProgram::get_const_variable(size_t j,ParserScriptVariableHandle& handle)
 {
   if (j >= const_variables_.size()) return (false);
   handle = const_variables_[j];
   return (true);
-} 
+}
 
-bool 
+bool
 ParserProgram::get_single_variable(size_t j,ParserScriptVariableHandle& handle)
 {
   if (j >= single_variables_.size()) return (false);
   handle = single_variables_[j];
   return (true);
-} 
+}
 
-bool 
+bool
 ParserProgram::get_sequential_variable(size_t j,ParserScriptVariableHandle& handle)
 {
   if (j >= sequential_variables_.size()) return (false);
   handle = sequential_variables_[j];
   return (true);
-} 
+}
 
 size_t
 ParserProgram::num_const_functions()
@@ -3191,26 +3176,26 @@ ParserProgram::num_sequential_functions()
   return (sequential_functions_.size());
 }
 
-bool 
+bool
 ParserProgram::get_const_function(size_t j,ParserScriptFunctionHandle& handle)
 {
   if (j >= const_functions_.size()) return (false);
   handle = const_functions_[j];
   return (true);
-} 
+}
 
-bool 
+bool
 ParserProgram::get_single_function(size_t j,ParserScriptFunctionHandle& handle)
 {
   if (j >= single_functions_.size()) return (false);
   handle = single_functions_[j];
   return (true);
-} 
+}
 
-bool 
+bool
 ParserProgram::get_sequential_function(size_t j,ParserScriptFunctionHandle& handle)
 {
   if (j >= sequential_functions_.size()) return (false);
   handle = sequential_functions_[j];
   return (true);
-} 
+}

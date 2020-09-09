@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef INTERFACE_MODULES_RENDER_ES_CORE_HPP
 #define INTERFACE_MODULES_RENDER_ES_CORE_HPP
 
@@ -36,28 +36,30 @@ namespace SCIRun {
 namespace Render {
 
 /// Entity system core sitting on top of Acorn.
-class ESCore : public CPM_ES_ACORN_NS::Acorn
+  class ESCore : public spire::Acorn
 {
 public:
   ESCore();
   virtual ~ESCore();
 
-  void execute(double currentTime, double constantFrameTime);
+  std::string toString(std::string prefix) const;
+
+  void executeWithoutAdvancingClock();
+  void execute(double constantFrameTime);
   void setBackgroundColor(float r, float g, float b, float a);
-  
+  void runGCOnNextExecution(){runGC = true;}
+  bool hasShaderPromise() const;
+
 private:
+  bool hasGeomPromise() const;
 
-  int64_t                   mCoreSequence;    ///< Sequence number (frame) since start.
-  CPM_GL_STATE_NS::GLState  mDefaultGLState;  ///< Default OpenGL state.
-  double                    mCurrentTime;     ///< Current system time calculated from constant frame time.
-
-  float                     mFPS;             ///< Actual FPS of system.
-  float                     mLastRealTime;    ///< Last realtime passed into the core.
-
-  float r_, g_, b_, a_;
+  spire::GLState  mDefaultGLState;  ///< Default OpenGL state.
+  double          mCurrentTime;     ///< Current system time calculated from constant frame time.
+  bool            runGC;
+  float           r_, g_, b_, a_;
 };
 
 } // namespace Render
 } // namespace SCIRun
 
-#endif 
+#endif

@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,7 +24,6 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
-
 
 
 ///
@@ -822,7 +820,7 @@ TextPiostream::TextPiostream(const std::string& filename, Direction dir,
   else
   {
     istr=0;
-    ostr=new std::ofstream(filename.c_str());
+    ostr = new std::ofstream(filename.c_str(), std::ios_base::binary | std::ios_base::out);
     std::ostream& out=*ostr;
     if (!out)
     {

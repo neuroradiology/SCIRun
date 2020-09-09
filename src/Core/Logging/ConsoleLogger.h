@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,8 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
+
 /// @todo Documentation Core/Logging/ConsoleLogger.h
 
 #ifndef CORE_LOGGING_CONSOLELOGGER_H
@@ -46,6 +47,10 @@ namespace SCIRun
         virtual void warning(const std::string& msg) const override;
         virtual void remark(const std::string& msg) const override;
         virtual void status(const std::string& msg) const override;
+        virtual bool errorReported() const override { return errorReported_; }
+        virtual void setErrorFlag(bool flag) override { errorReported_ = flag; }
+      private:
+        mutable bool errorReported_{ false };
       };
 
       class SCISHARE NullLogger : public LegacyLoggerInterface
@@ -55,6 +60,8 @@ namespace SCIRun
         virtual void warning(const std::string& msg) const override {}
         virtual void remark(const std::string& msg) const override {}
         virtual void status(const std::string& msg) const override {}
+        virtual bool errorReported() const override { return false; }
+        virtual void setErrorFlag(bool flag) override {}
       };
     }
   }

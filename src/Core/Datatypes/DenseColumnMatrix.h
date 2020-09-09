@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -28,7 +27,7 @@
 
 
 #ifndef CORE_DATATYPES_DENSE_COLUMN_MATRIX_H
-#define CORE_DATATYPES_DENSE_COLUMN_MATRIX_H 
+#define CORE_DATATYPES_DENSE_COLUMN_MATRIX_H
 
 #include <Core/Datatypes/Matrix.h>
 #define register
@@ -47,7 +46,7 @@ namespace Datatypes {
     typedef DenseColumnMatrixGeneric<T> this_type;
     typedef Eigen::Matrix<T, Eigen::Dynamic, 1> EigenBase;
 
-    DenseColumnMatrixGeneric(size_t nrows = 0) : EigenBase(nrows) {}
+    explicit DenseColumnMatrixGeneric(size_t nrows = 0) : EigenBase(nrows) {}
 
     /// This constructor allows you to construct DenseColumnMatrixGeneric from Eigen expressions
     template<typename OtherDerived>

@@ -1,40 +1,49 @@
 /*
-For more information, please see: http://software.sci.utah.edu
+   For more information, please see: http://software.sci.utah.edu
 
-The MIT License
+   The MIT License
 
-Copyright (c) 2015 Scientific Computing and Imaging Institute,
-University of Utah.
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
+   University of Utah.
 
-License for the specific language governing rights and limitations under
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the "Software"),
-to deal in the Software without restriction, including without limitation
-the rights to use, copy, modify, merge, publish, distribute, sublicense,
-and/or sell copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following conditions:
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the "Software"),
+   to deal in the Software without restriction, including without limitation
+   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+   and/or sell copies of the Software, and to permit persons to whom the
+   Software is furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included
-in all copies or substantial portions of the Software.
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
 */
+
 
 #include <Interface/Modules/Render/ViewScenePlatformCompatibility.h>
 #include <Interface/Modules/Render/ViewSceneControlsDock.h>
 #include <Core/Application/Preferences/Preferences.h>
+#include <Dataflow/Network/NullModuleState.h>
+#include <Modules/Visualization/ShowField.h>
 #include <Core/Logging/Log.h>
+#include <Core/Utils/StringUtil.h>
 
 using namespace SCIRun;
+using namespace SCIRun::Core;
+using namespace SCIRun::Core::Logging;
 using namespace SCIRun::Core::Datatypes;
+using namespace SCIRun::Core::Algorithms::Visualization;
 using namespace SCIRun::Gui;
 using namespace SCIRun::Render;
+using namespace SCIRun::Dataflow::Networks;
+using namespace SCIRun::Modules::Render;
+using namespace SCIRun::Modules::Visualization;
 
 ViewSceneControlsDock::ViewSceneControlsDock(const QString& name, ViewSceneDialog* parent) : QDockWidget(parent)
 {
@@ -62,12 +71,25 @@ ViewSceneControlsDock::ViewSceneControlsDock(const QString& name, ViewSceneDialo
 
   updateZoomOptionVisibility();
 
+  //----------- Developer Tab--------------//
+  connect(toStringButton_, SIGNAL(clicked()), parent, SLOT(printToString()));
+  connect(bugReportButton_, SIGNAL(clicked()), parent, SLOT(sendBugReport()));
+
   //-----------Objects Tab-----------------//
   visibleItems_.reset(new VisibleItemManager(objectListWidget_));
   connect(selectAllPushButton_, SIGNAL(clicked()), visibleItems_.get(), SLOT(selectAllClicked()));
   connect(deselectAllPushButton_, SIGNAL(clicked()), visibleItems_.get(), SLOT(deselectAllClicked()));
-  connect(objectListWidget_, SIGNAL(itemClicked(QListWidgetItem*)), visibleItems_.get(), SLOT(slotChanged(QListWidgetItem*)));
+  connect(objectListWidget_, SIGNAL(itemClicked(QTreeWidgetItem*, int)), visibleItems_.get(), SLOT(updateVisible(QTreeWidgetItem*, int)));
   connect(visibleItems_.get(), SIGNAL(visibleItemChange()), parent, SIGNAL(newGeometryValueForwarder()));
+  connect(visibleItems_.get(), SIGNAL(meshComponentSelectionChange(const QString&, const QString&, bool)),
+    parent, SLOT(updateMeshComponentSelection(const QString&, const QString&, bool)));
+
+  connect(addGroup_, SIGNAL(clicked()), this, SLOT(addGroup()));
+  connect(removeGroup_, SIGNAL(clicked()), this, SLOT(removeGroup()));
+  connect(viewSceneTreeWidget_, SIGNAL(itemClicked(QTreeWidgetItem*, int)), this, SLOT(viewSceneTreeClicked(QTreeWidgetItem*, int)));
+  connect(&ViewSceneDialog::viewSceneManager, SIGNAL(groupsUpdatedSignal()), this, SLOT(updateViewSceneTree()));
+  updateViewSceneTree();
+  groupRemoveSpinBox_->setRange(0, 0);
 
   //-----------Render Tab-----------------//
   connect(setBackgroundColorPushButton_, SIGNAL(clicked()), parent, SLOT(assignBackgroundColor()));
@@ -82,6 +104,20 @@ ViewSceneControlsDock::ViewSceneControlsDock(const QString& name, ViewSceneDialo
   connect(textOffsetHorizontalSlider_, SIGNAL(valueChanged(int)), parent, SLOT(setTextOffset(int)));
   connect(fieldOfViewHorizontalSlider_, SIGNAL(valueChanged(int)), parent, SLOT(setFieldOfView(int)));
   //-----------Clipping Tab-----------------//
+  planeButtonGroup_->setId(plane1RadioButton_, 0);
+  planeButtonGroup_->setId(plane2RadioButton_, 1);
+  planeButtonGroup_->setId(plane3RadioButton_, 2);
+  planeButtonGroup_->setId(plane4RadioButton_, 3);
+  planeButtonGroup_->setId(plane5RadioButton_, 4);
+  planeButtonGroup_->setId(plane6RadioButton_, 5);
+
+  plane1RadioButton_->setStyleSheet("QRadioButton { color: rgb(219, 56, 22) }");
+  plane2RadioButton_->setStyleSheet("QRadioButton { color: rgb(242, 102, 19) }");
+  plane3RadioButton_->setStyleSheet("QRadioButton { color: rgb(205, 212, 74) }");
+  plane4RadioButton_->setStyleSheet("QRadioButton { color: rgb(87, 184, 53) }");
+  plane5RadioButton_->setStyleSheet("QRadioButton { color: rgb(126, 195, 237) }");
+  plane6RadioButton_->setStyleSheet("QRadioButton { color: rgb(189, 54, 191) }");
+
   connect(planeButtonGroup_, SIGNAL(buttonPressed(int)), parent, SLOT(setClippingPlaneIndex(int)));
   connect(planeVisibleCheckBox_, SIGNAL(clicked(bool)), parent, SLOT(setClippingPlaneVisible(bool)));
   connect(showPlaneFrameCheckBox_, SIGNAL(clicked(bool)), parent, SLOT(setClippingPlaneFrameOn(bool)));
@@ -92,9 +128,31 @@ ViewSceneControlsDock::ViewSceneControlsDock(const QString& name, ViewSceneDialo
   connect(dValueHorizontalSlider_, SIGNAL(valueChanged(int)), parent, SLOT(setClippingPlaneD(int)));
   //-----------Lights Tab-----------------//
   connect(headlightCheckBox_, SIGNAL(clicked(bool)), parent, SLOT(toggleHeadLight(bool)));
+  connect(headlightAzimuthSlider_, SIGNAL(valueChanged(int)), parent, SLOT(setHeadLightAzimuth(int)));
+  connect(headlightInclinationSlider_, SIGNAL(valueChanged(int)), parent, SLOT(setHeadLightInclination(int)));
+  connect(colorButton0, SIGNAL(clicked()), this, SLOT(selectLight0Color()));
+  setLabelColor(color0, lightColors[0] = Qt::white);
+
   connect(light1CheckBox_, SIGNAL(clicked(bool)), parent, SLOT(toggleLight1(bool)));
+  connect(light1AzimuthSlider_, SIGNAL(valueChanged(int)), parent, SLOT(setLight1Azimuth(int)));
+  connect(light1InclinationSlider_, SIGNAL(valueChanged(int)), parent, SLOT(setLight1Inclination(int)));
+  connect(colorButton1, SIGNAL(clicked()), this, SLOT(selectLight1Color()));
+  setLabelColor(color1, lightColors[1] = Qt::white);
+
   connect(light2CheckBox_, SIGNAL(clicked(bool)), parent, SLOT(toggleLight2(bool)));
+  connect(light2AzimuthSlider_, SIGNAL(valueChanged(int)), parent, SLOT(setLight2Azimuth(int)));
+  connect(light2InclinationSlider_, SIGNAL(valueChanged(int)), parent, SLOT(setLight2Inclination(int)));
+  connect(colorButton2, SIGNAL(clicked()), this, SLOT(selectLight2Color()));
+  setLabelColor(color2, lightColors[2] = Qt::white);
+
   connect(light3CheckBox_, SIGNAL(clicked(bool)), parent, SLOT(toggleLight3(bool)));
+  connect(light3AzimuthSlider_, SIGNAL(valueChanged(int)), parent, SLOT(setLight3Azimuth(int)));
+  connect(light3InclinationSlider_, SIGNAL(valueChanged(int)), parent, SLOT(setLight3Inclination(int)));
+  connect(colorButton3, SIGNAL(clicked()), this, SLOT(selectLight3Color()));
+  setLabelColor(color3, lightColors[3] = Qt::white);
+
+  connect(this, SIGNAL(updateLightColor(int)), parent, SLOT(setLightColor(int)));
+
   //-----------Materials Tab-----------------//
   connect(ambientDoubleSpinBox_, SIGNAL(valueChanged(double)), parent, SLOT(setAmbientValue(double)));
   connect(diffuseDoubleSpinBox_, SIGNAL(valueChanged(double)), parent, SLOT(setDiffuseValue(double)));
@@ -111,7 +169,13 @@ ViewSceneControlsDock::ViewSceneControlsDock(const QString& name, ViewSceneDialo
   connect(autoViewOnLoadCheckBox_, SIGNAL(clicked(bool)), parent, SLOT(autoViewOnLoadChecked(bool)));
   connect(orthoViewCheckBox_, SIGNAL(clicked(bool)), parent, SLOT(useOrthoViewChecked(bool)));
   connect(orientationCheckBox_, SIGNAL(clicked(bool)), parent, SLOT(showOrientationChecked(bool)));
-  connect(showAxisCheckBox_, SIGNAL(clicked(bool)), parent, SLOT(showAxisChecked(bool)));
+  connect(orientAxisSize_, SIGNAL(valueChanged(int)), parent, SLOT(setOrientAxisSize(int)));
+  connect(orientAxisXPos_, SIGNAL(valueChanged(int)), parent, SLOT(setOrientAxisPosX(int)));
+  connect(orientAxisYPos_, SIGNAL(valueChanged(int)), parent, SLOT(setOrientAxisPosY(int)));
+  connect(orientDefaultPositionButton, SIGNAL(clicked()), parent, SLOT(setDefaultOrientPos()));
+  connect(orientCenterPositionButton, SIGNAL(clicked()), parent, SLOT(setCenterOrientPos()));
+  connect(orientDefaultPositionButton, SIGNAL(clicked()), this, SLOT(setSliderDefaultPos()));
+  connect(orientCenterPositionButton, SIGNAL(clicked()), this, SLOT(setSliderCenterPos()));
   connect(showScaleBarTextGroupBox_, SIGNAL(clicked(bool)), parent, SLOT(setScaleBarVisible(bool)));
   connect(fontSizeSpinBox_, SIGNAL(valueChanged(int)), parent, SLOT(setScaleBarFontSize(int)));
   connect(scaleBarLengthDoubleSpinBox_, SIGNAL(valueChanged(double)), parent, SLOT(setScaleBarLength(double)));
@@ -120,6 +184,12 @@ ViewSceneControlsDock::ViewSceneControlsDock(const QString& name, ViewSceneDialo
   connect(scaleBarMultiplierDoubleSpinBox_, SIGNAL(valueChanged(double)), parent, SLOT(setScaleBarMultiplier(double)));
   //connect(scaleBarLineWidthDoubleSpinBox_, SIGNAL(valueChanged(double)), parent, SLOT(setScaleBarLineWidth(double)));
   connect(scaleBarUnitLineEdit_, SIGNAL(textEdited(const QString&)), parent, SLOT(setScaleBarUnitValue(const QString&)));
+  connect(rotateRightButton_, SIGNAL(clicked()), parent, SLOT(autoRotateRight()));
+  connect(rotateLeftButton_, SIGNAL(clicked()), parent, SLOT(autoRotateLeft()));
+  connect(rotateUpButton_, SIGNAL(clicked()), parent, SLOT(autoRotateUp()));
+  connect(rotateDownButton_, SIGNAL(clicked()), parent, SLOT(autoRotateDown()));
+  connect(autoRotateSpeedSpinBox_, SIGNAL(valueChanged(double)), parent, SLOT(setAutoRotateSpeed(double)));
+
   //-----------Controls Tab-------------------//
   connect(saveScreenShotOnUpdateCheckBox_, SIGNAL(stateChanged(int)), parent, SLOT(saveNewGeometryChanged(int)));
   connect(mouseControlComboBox_, SIGNAL(currentIndexChanged(int)), parent, SLOT(menuMouseControlChanged(int)));
@@ -132,22 +202,6 @@ ViewSceneControlsDock::ViewSceneControlsDock(const QString& name, ViewSceneDialo
   setSampleColor(Qt::black);
 
   WidgetStyleMixin::tabStyle(tabWidget);
-
-  setupLightControlCircle(headlightFrame_, 0, parent->pulling_, false);
-  setupLightControlCircle(light1Frame_, 1, parent->pulling_, false);
-  setupLightControlCircle(light2Frame_, 2, parent->pulling_, false);
-  setupLightControlCircle(light3Frame_, 3, parent->pulling_, false);
-  /*Temporarily set three light to no movement until movement works (after IBBM 2016)
-  setupLightControlCircle(light1Frame_, 1, parent->pulling_, true);
-  setupLightControlCircle(light2Frame_, 2, parent->pulling_, true);
-  setupLightControlCircle(light3Frame_, 3, parent->pulling_, true);
-  */
-
-  for (auto &light : lightControls_)
-  {
-    connect(light, SIGNAL(lightMoved(int)), parent, SLOT(setLightPosition(int)));
-    connect(light, SIGNAL(colorChanged(int)), parent, SLOT(setLightColor(int)));
-  }
 
   /////Set unused widgets to be not visible
   ////Clipping tab
@@ -164,24 +218,83 @@ ViewSceneControlsDock::ViewSceneControlsDock(const QString& name, ViewSceneDialo
   renderSliderFrame_->setEnabled(false);
   renderSliderFrame_->setVisible(false);
 
-  ///Lights Tab
-  label_11->setVisible(false);
-
   ///Materials Tab
   //materialsFrame_->setEnabled(false);
   //fogGroupBox_->setEnabled(false);
 
   ////View Tab
-  autoRotateGroupBox_->setEnabled(false);
-  autoRotateGroupBox_->setVisible(false);
-  //viewOptionsGroupBox_->setEnabled(false);
+  //autoRotateGroupBox_->setEnabled(false);
+  //autoRotateGroupBox_->setVisible(false);
+  viewOptionsGroupBox_->setEnabled(false);
+  viewOptionsGroupBox_->setVisible(false);
   autoViewOnLoadCheckBox_->setVisible(false);
   orthoViewCheckBox_->setVisible(false);
-  showAxisCheckBox_->setVisible(false);
 
   ////Controls Tab
   transparencyGroupBox_->setVisible(false);
+}
 
+static bool vsdPairComp(std::pair<ViewSceneDialog*, bool> a, std::pair<ViewSceneDialog*, bool> b)
+{
+  return std::get<0>(a)->getName() < std::get<0>(b)->getName();
+}
+
+void ViewSceneControlsDock::updateViewSceneTree()
+{
+  viewSceneTreeWidget_->clear();
+
+  int numGroups = ViewSceneDialog::viewSceneManager.getGroupCount();
+  std::vector<ViewSceneDialog*> ungroupedMemebers;
+  ViewSceneDialog::viewSceneManager.getUngroupedViewScenesAsVector(ungroupedMemebers);
+
+  for(int i = 0; i < numGroups; ++i)
+  {
+    auto group = new QTreeWidgetItem(viewSceneTreeWidget_, QStringList(QString::fromStdString("Group:" + std::to_string(i))));
+    viewSceneTreeWidget_->addTopLevelItem(group);
+    group->setData(1, Qt::EditRole, i);
+
+    std::vector<ViewSceneDialog*> groupMemebers;
+    ViewSceneDialog::viewSceneManager.getViewSceneGroupAsVector(i, groupMemebers);
+
+    std::vector<std::pair<ViewSceneDialog*, bool>> viewScenesToDisplay;
+    for(auto vsd : groupMemebers) viewScenesToDisplay.emplace_back(vsd, true);
+    for(auto vsd : ungroupedMemebers) viewScenesToDisplay.emplace_back(vsd, false);
+    std::sort(viewScenesToDisplay.begin(), viewScenesToDisplay.end(), vsdPairComp);
+
+    for(int j = 0; j < viewScenesToDisplay.size(); ++j)
+    {
+      auto item = new QTreeWidgetItem(group, QStringList(QString::fromStdString(std::get<0>(viewScenesToDisplay[j])->getName())));
+      item->setCheckState(0, (std::get<1>(viewScenesToDisplay[j])) ? Qt::Checked : Qt::Unchecked);
+      item->setData(1, Qt::EditRole, QVariant::fromValue(std::get<0>(viewScenesToDisplay[j])));
+    }
+  }
+
+  viewSceneTreeWidget_->expandAll();
+}
+
+void ViewSceneControlsDock::addGroup()
+{
+  ViewSceneDialog::viewSceneManager.addGroup();
+  groupRemoveSpinBox_->setRange(0, ViewSceneDialog::viewSceneManager.getGroupCount() - 1);
+}
+
+void ViewSceneControlsDock::removeGroup()
+{
+  uint32_t group = groupRemoveSpinBox_->value();
+  ViewSceneDialog::viewSceneManager.removeGroup(group);
+  groupRemoveSpinBox_->setRange(0, ViewSceneDialog::viewSceneManager.getGroupCount() - 1);
+}
+
+void ViewSceneControlsDock::viewSceneTreeClicked(QTreeWidgetItem* widgetItem, int column)
+{
+  QTreeWidgetItem* p = widgetItem->parent();
+  if(!p) return;
+  uint32_t g = p->data(1, Qt::EditRole).toInt();
+  ViewSceneDialog* vs = widgetItem->data(1, Qt::EditRole).value<ViewSceneDialog*>();
+  if (widgetItem->checkState(column) == Qt::Unchecked)
+    ViewSceneDialog::viewSceneManager.removeViewSceneFromGroup(vs, g);
+  else if (widgetItem->checkState(column) == Qt::Checked)
+    ViewSceneDialog::viewSceneManager.moveViewSceneToGroup(vs, g);
 }
 
 void ViewSceneControlsDock::setSampleColor(const QColor& color)
@@ -190,6 +303,14 @@ void ViewSceneControlsDock::setSampleColor(const QColor& color)
     QString::number(color.green()) + "," + QString::number(color.blue()) + "); }";
 
   currentBackgroundLabel_->setStyleSheet(styleSheet);
+}
+
+void ViewSceneControlsDock::setLabelColor(QLabel* label, const QColor& color)
+{
+  QString styleSheet = "QLabel{ background: rgb(" + QString::number(color.red()) + "," +
+    QString::number(color.green()) + "," + QString::number(color.blue()) + "); }";
+
+  label->setStyleSheet(styleSheet);
 }
 
 void ViewSceneControlsDock::setFogColorLabel(const QColor& color)
@@ -312,20 +433,24 @@ void ViewSceneControlsDock::updatePlaneControlDisplay(double x, double y, double
   dValueHorizontalSlider_->setSliderPosition(d * 100);
 }
 
-QPointF ViewSceneControlsDock::getLightPosition(int index) const
+// Set x and y sliders all the way right(100)
+void ViewSceneControlsDock::setSliderDefaultPos()
 {
-  return lightControls_[index]->getLightPosition();
+  orientAxisXPos_->setValue(100);
+  orientAxisYPos_->setValue(100);
 }
 
-QColor ViewSceneControlsDock::getLightColor(int index) const
+// Set x and y sliders to half way(50)
+void ViewSceneControlsDock::setSliderCenterPos()
 {
-  return lightControls_[index]->getColor();
+  orientAxisXPos_->setValue(50);
+  orientAxisYPos_->setValue(50);
 }
 
 bool VisibleItemManager::isVisible(const QString& name) const
 {
   auto itemMatch = itemList_->findItems(name, Qt::MatchExactly);
-  return itemMatch.size() == 1 && (itemMatch[0]->checkState() == Qt::Checked);
+  return itemMatch.size() == 1 && (itemMatch[0]->checkState(0) == Qt::Checked);
 }
 
 bool VisibleItemManager::containsItem(const QString& name) const
@@ -334,26 +459,43 @@ bool VisibleItemManager::containsItem(const QString& name) const
   return itemMatch.size() == 1;
 }
 
-std::vector<QString> VisibleItemManager::synchronize(const std::vector<GeometryBaseHandle>& geomList)
+std::vector<QString> VisibleItemManager::synchronize(const std::vector<GeometryBaseHandle>& geomList,
+  const ShowFieldStatesMap& showFieldStates)
 {
   std::vector<QString> displayNames;
   std::transform(geomList.begin(), geomList.end(), std::back_inserter(displayNames),
-    [](const GeometryBaseHandle& geom) { return QString::fromStdString(geom->uniqueID()).split('_').at(1); });
-  for (int i = 0; i < itemList_->count(); ++i)
+    [](const GeometryBaseHandle& geom)
+    {
+      auto parts = QString::fromStdString(geom->uniqueID()).split(GeometryObject::delimiter);
+      return (parts.size() > 1) ? parts.at(1) : QString("scale bar");
+    }
+  );
+  for (int i = 0; i < itemList_->topLevelItemCount(); ++i)
   {
-    if (std::find(displayNames.begin(), displayNames.end(), itemList_->item(i)->text()) == displayNames.end())
-      delete itemList_->takeItem(i);
+    if (std::find(displayNames.begin(), displayNames.end(), itemList_->topLevelItem(i)->text(0)) == displayNames.end())
+      delete itemList_->takeTopLevelItem(i);
   }
+
   for (const auto& name : displayNames)
   {
     if (!containsItem(name))
-      addRenderItem(name, true);
+      addRenderItem(name);
+
+    auto stateIter = std::find_if(showFieldStates.begin(), showFieldStates.end(), [&name](const ShowFieldStatesMap::value_type& p) { return name.toStdString().find(p.first) != std::string::npos; });
+    if (stateIter != showFieldStates.end())
+    {
+      auto state = stateIter->second;
+      updateCheckStates(name, {
+        state->getValue(Parameters::ShowNodes).toBool(),
+        state->getValue(Parameters::ShowEdges).toBool(),
+        state->getValue(Parameters::ShowFaces).toBool() });
+    }
   }
-  itemList_->sortItems();
+  itemList_->sortItems(0, Qt::AscendingOrder);
   return displayNames;
 }
 
-void VisibleItemManager::addRenderItem(const QString& name, bool checked)
+void VisibleItemManager::addRenderItem(const QString& name)
 {
   auto items = itemList_->findItems(name, Qt::MatchExactly);
   if (items.count() > 0)
@@ -361,30 +503,50 @@ void VisibleItemManager::addRenderItem(const QString& name, bool checked)
     return;
   }
 
-  auto item = new QListWidgetItem(name, itemList_);
+  QStringList names(name);
+  auto item = new QTreeWidgetItem(itemList_, names);
 
-  if (checked)
-    item->setCheckState(Qt::Checked);
-  else
-    item->setCheckState(Qt::Unchecked);
-
-  itemList_->addItem(item);
-}
-
-void VisibleItemManager::removeRenderItem(const QString& name)
-{
-  auto items = itemList_->findItems(name, Qt::MatchExactly);
-  Q_FOREACH(QListWidgetItem* item, items)
+  itemList_->addTopLevelItem(item);
+  item->setCheckState(0, Qt::Checked);
+  if (name.contains("ShowField:"))
   {
-    itemList_->removeItemWidget(item);
+    new QTreeWidgetItem(item, QStringList("Nodes"));
+    new QTreeWidgetItem(item, QStringList("Edges"));
+    new QTreeWidgetItem(item, QStringList("Faces"));
   }
 }
 
+void VisibleItemManager::updateCheckStates(const QString& name, std::vector<bool> checked)
+{
+  auto items = itemList_->findItems(name, Qt::MatchExactly);
+  if (items.count() > 1)
+  {
+    return;
+  }
+  auto item = items[0];
+  if (name.contains("ShowField:"))
+  {
+    auto nodes = item->child(2);  //TODO: brittle sort order
+    auto edges = item->child(0);
+    auto faces = item->child(1);
+    std::vector<QTreeWidgetItem*> stuff{ nodes, edges, faces };
+
+    for (auto&& itemChecked : zip(stuff, checked))
+    {
+      QTreeWidgetItem* i;
+      bool isChecked;
+      boost::tie(i, isChecked) = itemChecked;
+      i->setCheckState(0, isChecked ? Qt::Checked : Qt::Unchecked);
+    }
+  }
+}
+
+
 void VisibleItemManager::clear()
 {
-  if (itemList_->count() > 0)
+  if (itemList_->topLevelItemCount() > 0)
   {
-    LOG_DEBUG("ViewScene items cleared" << std::endl);
+    LOG_DEBUG("ViewScene items cleared");
     itemList_->clear();
   }
 }
@@ -392,9 +554,12 @@ void VisibleItemManager::clear()
 void VisibleItemManager::selectAllClicked()
 {
   itemList_->blockSignals(true);
-  for (int i = 0; i < itemList_->count(); ++i)
+  for (int i = 0; i < itemList_->topLevelItemCount(); ++i)
   {
-    itemList_->item(i)->setCheckState(Qt::Checked);
+    auto item = itemList_->topLevelItem(i);
+    item->setCheckState(0, Qt::Checked);
+    for (int i = 0; i < item->childCount(); ++i)
+      item->child(i)->setCheckState(0, Qt::Checked);
   }
   itemList_->blockSignals(false);
   Q_EMIT visibleItemChange();
@@ -403,23 +568,41 @@ void VisibleItemManager::selectAllClicked()
 void VisibleItemManager::deselectAllClicked()
 {
   itemList_->blockSignals(true);
-  for (int i = 0; i < itemList_->count(); ++i)
+  for (int i = 0; i < itemList_->topLevelItemCount(); ++i)
   {
-    itemList_->item(i)->setCheckState(Qt::Unchecked);
+    auto item = itemList_->topLevelItem(i);
+    item->setCheckState(0, Qt::Unchecked);
+    for (int i = 0; i < item->childCount(); ++i)
+      item->child(i)->setCheckState(0, Qt::Unchecked);
   }
   itemList_->blockSignals(false);
   Q_EMIT visibleItemChange();
 }
 
-void VisibleItemManager::slotChanged(QListWidgetItem* item)
+void VisibleItemManager::updateVisible(QTreeWidgetItem* item, int column)
 {
-  if (item->checkState() == Qt::Unchecked)
+  auto parent = item->parent();
+  if (parent)
   {
-    Q_EMIT visibleItemChange();
+    Q_EMIT meshComponentSelectionChange(parent->text(0), item->text(0), item->checkState(column) == Qt::Checked);
   }
-  else if (item->checkState() == Qt::Checked)
+
+  if (item->checkState(column) == Qt::Unchecked)
   {
-    Q_EMIT visibleItemChange();
+    for (int i = 0; i < item->childCount(); ++i)
+      item->child(i)->setCheckState(0, Qt::Unchecked);
+    if (!parent)
+      Q_EMIT visibleItemChange();
+  }
+  else if (item->checkState(column) == Qt::Checked)
+  {
+    for (int i = 0; i < item->childCount(); ++i)
+      item->child(i)->setCheckState(0, Qt::Checked);
+
+    if (parent)
+      parent->setCheckState(0, Qt::Checked);
+    else
+      Q_EMIT visibleItemChange();
   }
 }
 
@@ -439,101 +622,26 @@ void ViewSceneControlsDock::setupObjectListWidget()
   objectListWidget_->setItemDelegate(new FixMacCheckBoxes);
 }
 
-
-void ViewSceneControlsDock::setupLightControlCircle(QFrame* frame, int index, const boost::atomic<bool>& pulling, bool moveable)
+QColor ViewSceneControlsDock::getLightColor(int index) const
 {
-  auto scene = new QGraphicsScene(frame);
-  auto lightcontrol = new LightControlCircle(scene, index, pulling, frame->rect(), frame);
-  lightcontrol->setMovable(moveable);
-  lightControls_.push_back(lightcontrol);
+  return lightColors[index];
 }
 
-LightControlCircle::LightControlCircle(QGraphicsScene* scene,  int index,
-  const boost::atomic<bool>& pulling, QRectF sceneRect,
-  QWidget* parent)
-  : QGraphicsView(scene, parent),
-   index_(index), dialogPulling_(pulling), lightColor_(Qt::white)
+void ViewSceneControlsDock::selectLightColor(int index)
 {
-  setSceneRect(sceneRect);
-  static QPen pointPen(Qt::white, 1);
-  qreal x = (sceneRect.width()/2) - (sceneRect.height()/2) + 6;
-  qreal y = 6;
-  qreal radius = sceneRect.height() - 12;
-  boundingCircle_ = scene->addEllipse(x, y, radius, radius, pointPen, QBrush(Qt::transparent));
+  QString title = index < 1 ? " Choose color for Headlight" : " Choose color for Light" + QString::number(index);
 
-  const int lightCircleRadius = 10;
-  qreal circleX = (sceneRect.width() / 2) - (lightCircleRadius / 2);
-  qreal circleY = (sceneRect.height() / 2) - (lightCircleRadius / 2);
-  lightPosition_ = scene->addEllipse(circleX, circleY, lightCircleRadius, lightCircleRadius, pointPen, QBrush(lightColor_));
-  previousX_ = circleX;
-  previousY_ = circleY;
-  lightPosition_->setFlag(QGraphicsItem::ItemIsMovable, true);
-}
-
-void LightControlCircle::setMovable(bool canMove)
-{
-  lightPosition_->setFlag(QGraphicsItem::ItemIsMovable, canMove);
-}
-
-QPointF LightControlCircle::getLightPosition() const
-{
-  return lightPosition_->pos();
-}
-
-void LightControlCircle::setColor(const QColor& color)
-{
-  lightColor_ = color;
-  static_cast<QGraphicsEllipseItem*>(lightPosition_)->setBrush(QBrush(color));
-  Q_EMIT colorChanged(index_);
-}
-
-QColor LightControlCircle::getColor() const
-{
-  return lightColor_;
-}
-
-void LightControlCircle::mousePressEvent(QMouseEvent* event)
-{
-  QGraphicsView::mousePressEvent(event);
-  if (event->buttons() & Qt::LeftButton)
-  {
-    if (lightPosition_->isUnderMouse())
-    {
-      //std::cout << "small dot clicked" << std::endl;
-    }
-    else if (boundingCircle_->isUnderMouse())
-    {
-      //std::cout << "bounding circle clicked!" << std::endl;
-      selectLightColor();
-    }
-  }
-}
-
-void LightControlCircle::mouseMoveEvent(QMouseEvent* event)
-{
-  QGraphicsView::mouseMoveEvent(event);
-  if (lightPosition_->isUnderMouse())
-  {
-    if (lightPosition_->collidesWithItem(boundingCircle_))
-    {
-      previousX_ = lightPosition_->pos().x();
-      previousY_ = lightPosition_->pos().y();
-    }
-    else
-    {
-      lightPosition_->setPos(previousX_, previousY_);
-    }
-    Q_EMIT lightMoved(index_);
-  }
-}
-
-void LightControlCircle::selectLightColor()
-{
-  QString title = index_<1 ? windowTitle() + " Choose color for Headlight" : windowTitle() + " Choose color for Light" + QString::number(index_);
-
-  auto newColor = QColorDialog::getColor(lightColor_, this, title);
+  auto newColor = QColorDialog::getColor(lightColors[index], this, title);
   if (newColor.isValid())
   {
-    setColor(newColor);
+    lightColors[index] = newColor;
+    updateLightColor(index);
+    switch (index)
+    {
+      case 0: setLabelColor(color0, newColor); break;
+      case 1: setLabelColor(color1, newColor); break;
+      case 2: setLabelColor(color2, newColor); break;
+      case 3: setLabelColor(color3, newColor); break;
+    }
   }
 }

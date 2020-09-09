@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 ///
 ///@author
@@ -108,9 +108,8 @@ void ConvertMatricesToMesh::execute()
     FieldHandle result_field = CreateField(fi);
     VMesh* mesh = result_field->vmesh();
 
-    index_type i, j;
     const size_type pnrows = positionshandle->nrows();
-    for (i = 0; i < pnrows; i++)
+    for (auto i = 0; i < pnrows; i++)
     {
       const Point p(positionshandle->get(i, 0),
         positionshandle->get(i, 1),

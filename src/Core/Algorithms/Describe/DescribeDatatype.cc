@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #include <Core/Algorithms/Describe/DescribeDatatype.h>
 #include <Core/Algorithms/Field/ReportFieldInfoAlgorithm.h>
@@ -68,6 +68,15 @@ std::string DescribeDatatype::describe(const DatatypeHandle& data) const
   {
     ReportComplexMatrixInfoAlgo algo;
     auto info = algo.runImpl(cmat);
+
+    return "[Complex Matrix Data] Info:\n" + ReportComplexMatrixInfoAlgo::summarize(info);
+  }
+
+  auto cmatsp = boost::dynamic_pointer_cast<ComplexSparseRowMatrix>(data);
+  if (cmatsp)
+  {
+    ReportComplexMatrixInfoAlgo algo;
+    auto info = algo.runImpl(cmatsp);
 
     return "[Complex Matrix Data] Info:\n" + ReportComplexMatrixInfoAlgo::summarize(info);
   }

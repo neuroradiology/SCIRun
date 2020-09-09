@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,6 +24,7 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
 
 #include <Interface/Modules/Math/GetMatrixSliceDialog.h>
 #include <Dataflow/Network/ModuleStateInterface.h>  //TODO: extract into intermediate
@@ -61,7 +61,7 @@ GetMatrixSliceDialog::GetMatrixSliceDialog(const std::string& name, ModuleStateH
   lastIndexButton_->setIcon(QApplication::style()->standardIcon(QStyle::SP_MediaSeekForward));
   connect(lastIndexButton_, SIGNAL(clicked()), this, SLOT(selectLastIndex()));
 
-  connect(indexSlider_, SIGNAL(sliderReleased()), this, SIGNAL(executeActionTriggered()));
+  connect(indexSlider_, SIGNAL(sliderReleased()), this, SIGNAL(executeFromStateChangeTriggered()));
 
   playButton_->setIcon(QApplication::style()->standardIcon(QStyle::SP_MediaPlay));
   connect(playButton_, SIGNAL(clicked()), this, SLOT(startPlay()));
@@ -80,6 +80,12 @@ void GetMatrixSliceDialog::pullSpecial()
   auto max = state_->getValue(Parameters::MaxIndex).toInt();
   indexSlider_->setMaximum(max);
   indexSpinBox_->setMaximum(max);
+
+  // set value again in case it was greater than the hard-coded widget max.
+  auto value = state_->getValue(Parameters::SliceIndex).toInt();
+  indexSlider_->setValue(value);
+  indexSpinBox_->setValue(value);
+
   indexSlider_->setMinimum(0);
 }
 
@@ -87,32 +93,32 @@ void GetMatrixSliceDialog::incrementIndex()
 {
   for (int i = 0; i < indexIncrementSpinBox_->value(); ++i)
     indexSpinBox_->stepUp();
-  Q_EMIT executeActionTriggered();
+  Q_EMIT executeFromStateChangeTriggered();
 }
 
 void GetMatrixSliceDialog::decrementIndex()
 {
   for (int i = 0; i < indexIncrementSpinBox_->value(); ++i)
     indexSpinBox_->stepDown();
-  Q_EMIT executeActionTriggered();
+  Q_EMIT executeFromStateChangeTriggered();
 }
 
 void GetMatrixSliceDialog::selectFirstIndex()
 {
   indexSpinBox_->setValue(0);
-  Q_EMIT executeActionTriggered();
+  Q_EMIT executeFromStateChangeTriggered();
 }
 
 void GetMatrixSliceDialog::selectLastIndex()
 {
   indexSpinBox_->setValue(indexSlider_->maximum());
-  Q_EMIT executeActionTriggered();
+  Q_EMIT executeFromStateChangeTriggered();
 }
 
 void GetMatrixSliceDialog::startPlay()
 {
   state_->setTransientValue(Parameters::PlayModeActive, static_cast<int>(GetMatrixSliceAlgo::PLAY));
-  Q_EMIT executeActionTriggered();
+  Q_EMIT executeFromStateChangeTriggered();
   Q_EMIT executionLoopStarted();
   //qDebug() << " execution loop started emitted ";
 }

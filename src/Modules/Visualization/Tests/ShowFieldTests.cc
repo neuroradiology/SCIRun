@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #include <Testing/ModuleTestBase/ModuleTestBase.h>
 #include <Modules/Visualization/ShowField.h>
 #include <Core/Datatypes/Legacy/Field/Field.h>
@@ -40,6 +40,7 @@ using namespace SCIRun::Core::Datatypes;
 using namespace SCIRun::Dataflow::Networks;
 using namespace SCIRun::Core::Algorithms;
 using namespace SCIRun::Core::Algorithms::Visualization;
+using namespace SCIRun::Core::Algorithms::Visualization::Parameters;
 using namespace SCIRun::Modules::Visualization;
 using namespace SCIRun::Core;
 using namespace SCIRun;
@@ -53,13 +54,14 @@ class ShowFieldScalingTest : public ParameterizedModuleTest<int>
 protected:
   virtual void SetUp()
   {
-    Log::get().setVerbose(false);
+    LogSettings::Instance().setVerbose(false);
     showField = makeModule("ShowField");
     showField->setStateDefaults();
+    showField->get_state()->setValue(ShowEdges, false);
     auto size = GetParam();
     latVol = CreateEmptyLatVol(size, size, size);
     stubPortNWithThisData(showField, 0, latVol);
-    Log::get() << INFO << "Setting up ShowField with size " << size << "^3 latvol" << std::endl;
+    LOG_DEBUG("Setting up ShowField with size {}^3 latvol", size);
   }
 
   UseRealModuleStateFactory f;
@@ -69,17 +71,15 @@ protected:
 
 TEST_P(ShowFieldScalingTest, ConstructLatVolGeometry)
 {
-  Log::get() << INFO << "Start ShowField::execute" << std::endl;
+  LOG_DEBUG("Start ShowField::execute");
   showField->execute();
-  Log::get() << INFO << "End ShowField::execute" << std::endl;
+  LOG_DEBUG("End ShowField::execute");
 }
 
 INSTANTIATE_TEST_CASE_P(
   ConstructLatVolGeometry,
   ShowFieldScalingTest,
-  Values(20, 40, 60, 80
-  //, 100, 120, 150//, //200 //to speed up make test
-  //, 256 // probably runs out of memory
+  Values(20, 40, 60, 80, 100, 120 //,150 //,200 //,256
   )
   );
 
@@ -88,7 +88,7 @@ class ShowFieldStateGeometryNameSynchronizationTest : public ModuleTest
 protected:
   virtual void SetUp()
   {
-    Log::get().setVerbose(false);
+    LogSettings::Instance().setVerbose(false);
     showField = makeModule("ShowField");
     showField->setStateDefaults();
     auto size = 2;
@@ -127,4 +127,48 @@ TEST_F(ShowFieldStateGeometryNameSynchronizationTest, GeometryNameSynchronizesWi
 
   EXPECT_NE(hash1, addInputShouldBeDifferent);
   EXPECT_NE(inputChangeShouldBeDifferent, hash1);
+}
+
+class ShowFieldPreformaceTest : public ModuleTest {};
+TEST_F(ShowFieldPreformaceTest, TestFacePreformace)
+{
+  LogSettings::Instance().setVerbose(false);
+  UseRealModuleStateFactory f;
+  ModuleHandle showField = makeModule("ShowField");
+  showField->setStateDefaults();
+  auto state = showField->get_state();
+  state->setValue(ShowFaces, true);
+  state->setValue(ShowEdges, false);
+  state->setValue(ShowNodes, false);
+  state->setValue(FacesColoring, 1);
+
+  ColorMapHandle colorMap = StandardColorMapFactory::create();
+  stubPortNWithThisData(showField, 1, colorMap);
+
+  std::vector<FieldHandle> vectorOfInputData =
+  {
+    CreateEmptyLatVol(64, 64, 64)
+  };
+
+  std::vector<std::string> vectorOfInputDataNames =
+  {
+    "64x64x64 LatVol"
+  };
+
+  const static int NUM_RUNS = 16;
+
+  for(int i = 0; i < vectorOfInputData.size(); ++i)
+  {
+
+    auto start = std::chrono::steady_clock::now();
+    stubPortNWithThisData(showField, 0, vectorOfInputData[i]);
+    for(int i = 0; i < NUM_RUNS; ++i)
+    {
+      showField->execute();
+    }
+    auto end = std::chrono::steady_clock::now();
+    auto diff = end - start;
+    std::cout << vectorOfInputDataNames[i] << " : " << std::chrono::duration<double, std::milli>(diff).count()/NUM_RUNS << " ms\n";
+  }
+  std::cout << "\n";
 }

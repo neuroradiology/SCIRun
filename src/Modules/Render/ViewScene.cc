@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   License for the specific language governing rights and limitations under
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,11 +25,15 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#include <Modules/Render/ViewScene.h>
-#include <Core/Datatypes/Geometry.h>
-#include <Core/Logging/Log.h>
+
 #include <Core/Datatypes/Color.h>
 #include <Core/Datatypes/DenseMatrix.h>
+#include <Core/Datatypes/Geometry.h>
+#include <Core/GeometryPrimitives/Point.h>
+#include <Core/Logging/Log.h>
+#include <Modules/Render/ViewScene.h>
+#include <boost/thread.hpp>
+#include <es-log/trace-log.h>
 
 // Needed to fix conflict between define in X11 header
 // and eigen enum member.
@@ -42,23 +45,46 @@ using namespace SCIRun::Modules::Render;
 using namespace SCIRun::Core::Algorithms;
 using namespace Render;
 using namespace SCIRun::Core::Datatypes;
+using namespace SCIRun::Core::Geometry;
 using namespace SCIRun::Dataflow::Networks;
 using namespace SCIRun::Core::Thread;
+using namespace SCIRun::Core::Logging;
 
 MODULE_INFO_DEF(ViewScene, Render, SCIRun)
 
 Mutex ViewScene::mutex_("ViewScene");
 
+ViewScene::ScopedExecutionReporter::ScopedExecutionReporter(ModuleStateHandle state)
+  : state_(state)
+{
+  state_->setValue(IsExecuting, true);
+}
+
+ViewScene::ScopedExecutionReporter::~ScopedExecutionReporter()
+{
+  state_->setValue(IsExecuting, false);
+}
+
 ALGORITHM_PARAMETER_DEF(Render, GeomData);
+ALGORITHM_PARAMETER_DEF(Render, VSMutex);
 ALGORITHM_PARAMETER_DEF(Render, GeometryFeedbackInfo);
 ALGORITHM_PARAMETER_DEF(Render, ScreenshotData);
+ALGORITHM_PARAMETER_DEF(Render, MeshComponentSelection);
+ALGORITHM_PARAMETER_DEF(Render, ShowFieldStates);
 
-ViewScene::ViewScene() : ModuleWithAsyncDynamicPorts(staticInfo_, true), asyncUpdates_(0)
+ViewScene::ViewScene() : ModuleWithAsyncDynamicPorts(staticInfo_, true)
 {
+  RENDERER_LOG_FUNCTION_SCOPE;
   INITIALIZE_PORT(GeneralGeom);
   INITIALIZE_PORT(ScreenshotDataRed);
   INITIALIZE_PORT(ScreenshotDataGreen);
   INITIALIZE_PORT(ScreenshotDataBlue);
+
+  get_state()->setTransientValue(Parameters::VSMutex, &screenShotMutex_, true);
+}
+
+ViewScene::~ViewScene()
+{
 }
 
 void ViewScene::setStateDefaults()
@@ -67,9 +93,9 @@ void ViewScene::setStateDefaults()
   state->setValue(BackgroundColor, ColorRGB(0.0, 0.0, 0.0).toString());
   state->setValue(Ambient, 0.2);
   state->setValue(Diffuse, 1.0);
-  state->setValue(Specular, 0.4);
-  state->setValue(Shine, 1.0);
-  state->setValue(Emission, 1.0);
+  state->setValue(Specular, 0.3);
+  state->setValue(Shine, 0.5);
+  state->setValue(Emission, 0.0);
   state->setValue(FogOn, false);
   state->setValue(ObjectsOnly, true);
   state->setValue(UseBGColor, true);
@@ -77,7 +103,7 @@ void ViewScene::setStateDefaults()
   state->setValue(FogEnd, 0.71);
   state->setValue(FogColor, ColorRGB(0.0, 0.0, 1.0).toString());
   state->setValue(ShowScaleBar, false);
-  state->setValue(ScaleBarUnitValue, "mm");
+  state->setValue(ScaleBarUnitValue, std::string("mm"));
   state->setValue(ScaleBarLength, 1.0);
   state->setValue(ScaleBarHeight, 1.0);
   state->setValue(ScaleBarMultiplier, 1.0);
@@ -102,13 +128,33 @@ void ViewScene::setStateDefaults()
   state->setValue(Light1Color, ColorRGB(0.0, 0.0, 0.0).toString());
   state->setValue(Light2Color, ColorRGB(0.0, 0.0, 0.0).toString());
   state->setValue(Light3Color, ColorRGB(0.0, 0.0, 0.0).toString());
+  state->setValue(HeadLightAzimuth, 180);
+  state->setValue(Light1Azimuth, 180);
+  state->setValue(Light2Azimuth, 180);
+  state->setValue(Light3Azimuth, 180);
+  state->setValue(HeadLightInclination, 90);
+  state->setValue(Light1Inclination, 90);
+  state->setValue(Light2Inclination, 90);
+  state->setValue(Light3Inclination, 90);
+  state->setValue(ShowViewer, false);
+  state->setValue(CameraDistance, 3.0);
+  state->setValue(IsExecuting, false);
+  state->setValue(TimeExecutionFinished, 0);
+  state->setValue(CameraDistanceMinimum, 1e-10);
+  state->setValue(CameraLookAt, Point(0.0, 0.0, 0.0).get_string());
+  state->setValue(CameraRotation, std::string("Quaternion(1.0,0.0,0.0,0.0)"));
+  state->setValue(HasNewGeometry, false);
 
-  postStateChangeInternalSignalHookup();
+  get_state()->connectSpecificStateChanged(Parameters::GeometryFeedbackInfo, [this]() { processViewSceneObjectFeedback(); });
+  get_state()->connectSpecificStateChanged(Parameters::MeshComponentSelection, [this]() { processMeshComponentSelection(); });
 }
 
-void ViewScene::postStateChangeInternalSignalHookup()
+void ViewScene::fireTransientStateChangeSignalForGeomData()
 {
-  get_state()->connectSpecificStateChanged(Parameters::GeometryFeedbackInfo, [this]() { processViewSceneObjectFeedback(); });
+  //this is gross but I dont see any other way to fire the signal associated with geom data
+  auto transient = get_state()->getTransientValue(Parameters::GeomData);
+  auto geoms = transient_value_cast<GeomListPtr>(transient);
+  get_state()->setTransientValue(Parameters::GeomData, geoms, true);
 }
 
 void ViewScene::portRemovedSlotImpl(const PortId& pid)
@@ -121,7 +167,8 @@ void ViewScene::portRemovedSlotImpl(const PortId& pid)
       activeGeoms_.erase(loc);
     updateTransientList();
   }
-  get_state()->fireTransientStateChangeSignal();
+
+  fireTransientStateChangeSignalForGeomData();
 }
 
 void ViewScene::updateTransientList()
@@ -133,9 +180,15 @@ void ViewScene::updateTransientList()
   {
     geoms.reset(new GeomList());
   }
-  auto activeHandles = activeGeoms_ | boost::adaptors::map_values;
+
   geoms->clear();
-  geoms->insert(activeHandles.begin(), activeHandles.end());
+
+  for (const auto& geomPair : activeGeoms_)
+  {
+    auto geom = geomPair.second;
+    geom->addToList(geom, *geoms);
+    LOG_DEBUG("updateTransientList added geom to state list: {}", geomPair.first.toString());
+  }
 
   // Grab geometry inputs and pass them along in a transient value to the GUI
   // thread where they will be transported to Spire.
@@ -146,7 +199,7 @@ void ViewScene::updateTransientList()
   // about the lifetimes of the buffers we have in GeometryObject. Need to
   // switch to std::shared_ptr on an std::array when in production.
 
-  /// \todo Need to make this data transfer mechanism thread safe!
+  // todo Need to make this data transfer mechanism thread safe!
   // I thought about dynamic casting geometry object to a weak_ptr, but I don't
   // know where it will be destroyed. For now, it will have have stale pointer
   // data lying around in it... yuck.
@@ -155,15 +208,15 @@ void ViewScene::updateTransientList()
 
 void ViewScene::asyncExecute(const PortId& pid, DatatypeHandle data)
 {
-  if (!data)
-    return;
+  if (!data) return;
   //lock for state modification
   {
-    LOG_DEBUG("ViewScene::asyncExecute before locking");
+    LOG_DEBUG("ViewScene::asyncExecute {} before locking", id().id_);
     Guard lock(mutex_.get());
+
     get_state()->setTransientValue(Parameters::ScreenshotData, boost::any(), false);
 
-    LOG_DEBUG("ViewScene::asyncExecute after locking");
+    LOG_DEBUG("ViewScene::asyncExecute {} after locking", id().id_);
 
     auto geom = boost::dynamic_pointer_cast<GeometryObject>(data);
     if (!geom)
@@ -172,64 +225,64 @@ void ViewScene::asyncExecute(const PortId& pid, DatatypeHandle data)
       return;
     }
 
+    {
+      auto iport = getInputPort(pid);
+      auto connectedModuleId = iport->connectedModuleId();
+      if (connectedModuleId->find("ShowField") != std::string::npos)
+      {
+        auto state = iport->stateFromConnectedModule();
+        syncMeshComponentFlags(*connectedModuleId, state);
+      }
+    }
+
     activeGeoms_[pid] = geom;
+    LOG_DEBUG("asyncExecute added active geom to map: {}", pid.toString());
     updateTransientList();
   }
-  get_state()->fireTransientStateChangeSignal();
-  asyncUpdates_.fetch_add(1);
-  //std::cout << "asyncExecute " << asyncUpdates_ << std::endl;
+}
+
+void ViewScene::syncMeshComponentFlags(const std::string& connectedModuleId, ModuleStateHandle state)
+{
+  if (connectedModuleId.find("ShowField:") != std::string::npos)
+  {
+    auto map = transient_value_cast<ShowFieldStatesMap>(get_state()->getTransientValue(Parameters::ShowFieldStates));
+    map[connectedModuleId] = state;
+    get_state()->setTransientValue(Parameters::ShowFieldStates, map, false);
+  }
 }
 
 void ViewScene::execute()
 {
-  // hack for headless viewscene. Right now, it hangs/crashes/who knows.
+  auto state = get_state();
+  auto executionReporter = ScopedExecutionReporter(state);
+
+  fireTransientStateChangeSignalForGeomData();
 #ifdef BUILD_HEADLESS
   sendOutput(ScreenshotDataRed, boost::make_shared<DenseMatrix>(0, 0));
   sendOutput(ScreenshotDataGreen, boost::make_shared<DenseMatrix>(0, 0));
   sendOutput(ScreenshotDataBlue, boost::make_shared<DenseMatrix>(0, 0));
 #else
-  if (needToExecute())
+  Guard lock(screenShotMutex_.get());
+  if (needToExecute() && inputPorts().size() >= 1) // only send screenshot if input is present
   {
-    const int maxAsyncWaitTries = 100; //TODO: make configurable for longer-running networks
-    auto asyncWaitTries = 0;
-    if (inputPorts().size() > 1) // only send screenshot if input is present
+    ModuleStateInterface::TransientValueOption screenshotDataOption;
+    screenshotDataOption = state->getTransientValue(Parameters::ScreenshotData);
     {
-      while (asyncUpdates_ < inputPorts().size() - 1)
-      {
-        asyncWaitTries++;
-        if (asyncWaitTries == maxAsyncWaitTries)
-          return; // nothing coming down the ports
-        //wait until all asyncExecutes are done.
-      }
-
-      ModuleStateInterface::TransientValueOption screenshotDataOption;
-      auto state = get_state();
-      do
-      {
-        screenshotDataOption = state->getTransientValue(Parameters::ScreenshotData);
-        if (screenshotDataOption)
-        {
-          auto screenshotData = transient_value_cast<RGBMatrices>(screenshotDataOption);
-          if (screenshotData.red)
-          {
-            sendOutput(ScreenshotDataRed, screenshotData.red);
-          }
-          if (screenshotData.green)
-          {
-            sendOutput(ScreenshotDataGreen, screenshotData.green);
-          }
-          if (screenshotData.blue)
-          {
-            sendOutput(ScreenshotDataBlue, screenshotData.blue);
-          }
-        }
-      } while (!screenshotDataOption);
+      auto screenshotData = transient_value_cast<RGBMatrices>(screenshotDataOption);
+      if (screenshotData.red) sendOutput(ScreenshotDataRed, screenshotData.red);
+      if (screenshotData.green) sendOutput(ScreenshotDataGreen, screenshotData.green);
+      if (screenshotData.blue) sendOutput(ScreenshotDataBlue, screenshotData.blue);
     }
-    asyncUpdates_ = 0;
-
-    get_state()->setTransientValue(Parameters::ScreenshotData, boost::any(), false);
   }
 #endif
+  state->setValue(HasNewGeometry, true);
+  state->setValue(TimeExecutionFinished, int(getCurrentTimeSinceEpoch()));
+}
+
+long ViewScene::getCurrentTimeSinceEpoch()
+{
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+    std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
 void ViewScene::processViewSceneObjectFeedback()
@@ -241,6 +294,17 @@ void ViewScene::processViewSceneObjectFeedback()
   if (newInfo)
   {
     auto vsInfo = transient_value_cast<ViewSceneFeedback>(newInfo);
+    sendFeedbackUpstreamAlongIncomingConnections(vsInfo);
+  }
+}
+
+void ViewScene::processMeshComponentSelection()
+{
+  auto state = get_state();
+  auto newInfo = state->getTransientValue(Parameters::MeshComponentSelection);
+  if (newInfo)
+  {
+    auto vsInfo = transient_value_cast<MeshComponentSelectionFeedback>(newInfo);
     sendFeedbackUpstreamAlongIncomingConnections(vsInfo);
   }
 }
@@ -283,3 +347,19 @@ const AlgorithmParameterName ViewScene::HeadLightColor("HeadLightColor");
 const AlgorithmParameterName ViewScene::Light1Color("Light1Color");
 const AlgorithmParameterName ViewScene::Light2Color("Light2Color");
 const AlgorithmParameterName ViewScene::Light3Color("Light3Color");
+const AlgorithmParameterName ViewScene::HeadLightAzimuth("HeadLightAzimuth");
+const AlgorithmParameterName ViewScene::Light1Azimuth("Light1Azimuth");
+const AlgorithmParameterName ViewScene::Light2Azimuth("Light2Azimuth");
+const AlgorithmParameterName ViewScene::Light3Azimuth("Light3Azimuth");
+const AlgorithmParameterName ViewScene::HeadLightInclination("HeadLightInclination");
+const AlgorithmParameterName ViewScene::Light1Inclination("Light1Inclination");
+const AlgorithmParameterName ViewScene::Light2Inclination("Light2Inclination");
+const AlgorithmParameterName ViewScene::Light3Inclination("Light3Inclination");
+const AlgorithmParameterName ViewScene::ShowViewer("ShowViewer");
+const AlgorithmParameterName ViewScene::CameraDistance("CameraDistance");
+const AlgorithmParameterName ViewScene::CameraDistanceMinimum("CameraDistanceMinimum");
+const AlgorithmParameterName ViewScene::CameraLookAt("CameraLookAt");
+const AlgorithmParameterName ViewScene::CameraRotation("CameraRotation");
+const AlgorithmParameterName ViewScene::IsExecuting("IsExecuting");
+const AlgorithmParameterName ViewScene::TimeExecutionFinished("TimeExecutionFinished");
+const AlgorithmParameterName ViewScene::HasNewGeometry("HasNewGeometry");

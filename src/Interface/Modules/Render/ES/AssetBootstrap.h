@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef INTERFACE_MODULES_RENDER_ES_ASSET_BOOTSTRAP_H
 #define INTERFACE_MODULES_RENDER_ES_ASSET_BOOTSTRAP_H
 
@@ -37,7 +37,7 @@ namespace Render {
 
 // Two required functions for systems. Technically, systems could
 // register themselves.
-void        registerSystem_AssetBootstrap(CPM_ES_ACORN_NS::Acorn& core);
+void        registerSystem_AssetBootstrap(spire::Acorn& core);
 const char* getSystemName_AssetBootstrap();
 
 } // namespace Render

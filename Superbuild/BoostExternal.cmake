@@ -1,21 +1,21 @@
 #  For more information, please see: http://software.sci.utah.edu
-# 
+#
 #  The MIT License
-# 
+#
 #  Copyright (c) 2015 Scientific Computing and Imaging Institute,
 #  University of Utah.
-# 
-#  
+#
+#
 #  Permission is hereby granted, free of charge, to any person obtaining a
 #  copy of this software and associated documentation files (the "Software"),
 #  to deal in the Software without restriction, including without limitation
 #  the rights to use, copy, modify, merge, publish, distribute, sublicense,
 #  and/or sell copies of the Software, and to permit persons to whom the
 #  Software is furnished to do so, subject to the following conditions:
-# 
+#
 #  The above copyright notice and this permission notice shall be included
-#  in all copies or substantial portions of the Software. 
-# 
+#  in all copies or substantial portions of the Software.
+#
 #  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
 #  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 #  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -71,9 +71,20 @@ ENDIF()
 # Boost Jam needs to have 64-bit build explicitly configured
 IF(WIN32)
   SET(FORCE_64BIT_BUILD ON)
+  SET(boost_GIT_TAG "origin/v1.67.0")
+ELSE()
+
+  if (${USER_PYTHON_VERSION} VERSION_GREATER "3.7")
+    #message(${USER_PYTHON_VERSION} " needs a later boost")
+    SET(boost_GIT_TAG "origin/v1.67.0")
+  else()
+    #message(${USER_PYTHON_VERSION} " ok with old boost")
+    SET(boost_GIT_TAG "origin/v1.58.0")
+  endif()
+
 ENDIF()
 
-SET(boost_GIT_TAG "origin/master")
+
 SET(boost_GIT_URL "https://github.com/CIBC-Internal/boost.git")
 
 # TODO: fix install step
@@ -121,4 +132,3 @@ CONFIGURE_FILE(${SUPERBUILD_DIR}/UseBoost.cmake ${SCI_BOOST_USE_FILE} COPYONLY)
 SET(Boost_DIR ${INSTALL_DIR} CACHE PATH "")
 
 MESSAGE(STATUS "Boost_DIR: ${Boost_DIR}")
-

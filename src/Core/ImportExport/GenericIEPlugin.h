@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef SCI_project_GenericIEPlugin_h
 #define SCI_project_GenericIEPlugin_h 1
 
@@ -38,9 +38,9 @@
 #include <boost/lexical_cast.hpp>
 #include <Core/ImportExport/share.h>
 
-namespace SCIRun {
+namespace SCIRun 
+{
 
-//----------------------------------------------------------------------
 template <class Data>
 class GenericIEPluginInterface
 {
@@ -259,11 +259,11 @@ IEPluginLegacyAdapter<Data>::IEPluginLegacyAdapter(const std::string& pname,
     }
     if (*(*loc).second == *this)
     {
-      std::cerr << "WARNING: IEPlugin '" << tmppname << "' duplicated.\n";
+      //TODO: inject new logger std::cerr << "WARNING: IEPlugin '" << tmppname << "' duplicated.\n";
       break;
     }
 
-    std::cout << "WARNING: Multiple IEPlugins with '" << pluginname_ << "' name.\n";
+    //TODO: inject new logger std::cout << "WARNING: Multiple IEPlugins with '" << pluginname_ << "' name.\n";
     tmppname = pluginname_ + "(" + boost::lexical_cast<std::string>(counter) + ")";
     counter++;
   }
@@ -277,7 +277,7 @@ IEPluginLegacyAdapter<Data>::~IEPluginLegacyAdapter()
   auto iter = GenericIEPluginManager<Data>::getMap().getMap().find(pluginname_);
   if (iter == GenericIEPluginManager<Data>::getMap().getMap().end())
   {
-    std::cerr << "WARNING: IEPlugin " << pluginname_ << " not found in database for removal.\n";
+    //TODO: inject new logger std::cerr << "WARNING: IEPlugin " << pluginname_ << " not found in database for removal.\n";
   }
   else
   {
@@ -348,6 +348,12 @@ std::string dialogBoxFilterFromFileTypeDescription(const GenericIEPluginManager<
   auto ext = pl ? pl->fileExtension() : std::string();
   filter << name << " (" << (!ext.empty() ? ext : "*.*") << ")";
   return filter.str();
+}
+
+template <class Data>
+std::function<std::string(const std::string&)> dialogBoxFilterFromFileTypeDescription(const GenericIEPluginManager<Data>& mgr)
+{
+  return [&mgr](const std::string& name) { return dialogBoxFilterFromFileTypeDescription(mgr, name); };
 }
 
 template <class Data>

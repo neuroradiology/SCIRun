@@ -3,9 +3,8 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
-
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
@@ -26,7 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#include <Interface/Modules/Render/namespaces.h>
+
 #include <Interface/Modules/Render/ES/SRUtil.h>
 
 #include <glm/glm.hpp>
@@ -110,5 +109,4 @@ size_t buildNormalRenderingForVBO(std::shared_ptr<std::vector<uint8_t>> vboData,
 }
 
 } // namespace Render
-} // namespace SCIRun 
-
+} // namespace SCIRun

@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -26,6 +25,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
+
 /// @todo Documentation Core/Logging/ConsoleLogger.cc/
 
 #include <iostream>
@@ -35,20 +35,21 @@ using namespace SCIRun::Core::Logging;
 
 void ConsoleLogger::error(const std::string& msg) const
 {
-  std::cerr << "Error: " << msg << std::endl;
+  std::cout << "Error: " << msg << std::endl;
+  errorReported_ = true;
 }
 
 void ConsoleLogger::warning(const std::string& msg) const
 {
-  std::cerr << "Warning: " << msg << std::endl;
+  std::cout << "Warning: " << msg << std::endl;
 }
 
 void ConsoleLogger::remark(const std::string& msg) const
 {
-  std::cerr << "Remark: " << msg << std::endl;
+  std::cout << "Remark: " << msg << std::endl;
 }
 
 void ConsoleLogger::status(const std::string& msg) const
 {
-  std::cerr << msg << std::endl;
+  std::cout << msg << std::endl;
 }

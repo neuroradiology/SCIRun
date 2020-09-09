@@ -3,10 +3,9 @@
 
    The MIT License
 
-   Copyright (c) 2015 Scientific Computing and Imaging Institute,
+   Copyright (c) 2020 Scientific Computing and Imaging Institute,
    University of Utah.
 
-   
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the "Software"),
    to deal in the Software without restriction, including without limitation
@@ -25,10 +24,12 @@
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 */
+
+
 /// @todo Documentation Core/Datatypes/Matrix.h
 
 #ifndef CORE_DATATYPES_MATRIX_H
-#define CORE_DATATYPES_MATRIX_H 
+#define CORE_DATATYPES_MATRIX_H
 
 #include <Core/Datatypes/Datatype.h>
 #include <Core/Datatypes/MatrixFwd.h>
@@ -56,7 +57,7 @@ namespace Datatypes {
     // Persistent representation.
     MatrixIOBase() : separate_raw_(false) {}
     virtual std::string dynamic_type_name() const override { return "MatrixIOBase"; }
-    virtual void io(Piostream&);
+    virtual void io(Piostream&) override;
     static PersistentTypeID type_id;
   protected:
     bool           separate_raw_;
@@ -67,6 +68,7 @@ namespace Datatypes {
   class MatrixBase : public MatrixIOBase, public HasPropertyManager
   {
   public:
+    using value_type = T;
     virtual size_t nrows() const = 0;
     virtual size_t ncols() const = 0;
     size_t get_dense_size() const { return nrows() * ncols(); }
@@ -74,14 +76,14 @@ namespace Datatypes {
     using Visitor = MatrixVisitorGeneric<T>;
     virtual void accept(Visitor& visitor) = 0;
 
-    bool empty() const { return 0 == nrows() && 0 == ncols(); }
+    bool empty() const { return 0 == nrows() || 0 == ncols(); }
 
     friend std::ostream& operator<<(std::ostream& o, const MatrixBase<T>& m)
     {
       m.print(o);
       return o;
     }
-  
+
     virtual T get(int i, int j) const = 0;
     virtual void put(int i, int j, const T& val) = 0;
 
