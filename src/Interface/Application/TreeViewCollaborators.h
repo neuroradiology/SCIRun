@@ -55,9 +55,11 @@ namespace Gui {
       visitItem(tree->topLevelItem(i), itemFunc);
   }
 
+  static constexpr auto hasUIDataFlag = Qt::UserRole + 1;
+
   struct HideItemsNotMatchingString
   {
-    enum SearchType
+    enum class SearchType
     {
       STARTS_WITH,
       WILDCARDS,
@@ -66,7 +68,7 @@ namespace Gui {
     };
 
     explicit HideItemsNotMatchingString(SearchType searchType, const QString& pattern);
-    QRegExp match_;
+    QRegularExpression match_;
     QString start_;
     SearchType searchType_;
 

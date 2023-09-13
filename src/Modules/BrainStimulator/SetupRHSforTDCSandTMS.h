@@ -65,8 +65,8 @@ class SCISHARE SetupTDCS : public SCIRun::Dataflow::Networks::Module,
   public:
     SetupTDCS();
 
-    virtual void execute() override;
-    virtual void setStateDefaults() override;
+    void execute() override;
+    void setStateDefaults() override;
 
     INPUT_PORT(0, MESH, Field);
     INPUT_PORT(1, SCALP_TRI_SURF_MESH, Field);
@@ -84,7 +84,7 @@ class SCISHARE SetupTDCS : public SCIRun::Dataflow::Networks::Module,
 
     NEW_BRAIN_STIMULATOR_MODULE
 
-    MODULE_TRAITS_AND_INFO(ModuleHasUIAndAlgorithm)
+    MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUIAndAlgorithm)
 };
 
 }}}

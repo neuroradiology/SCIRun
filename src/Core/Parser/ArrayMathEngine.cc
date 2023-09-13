@@ -1042,7 +1042,7 @@ NewArrayMathEngine::add_output_fielddata(const std::string& name,
       fi.set_data_type("double");
     else
       fi.set_data_type(output_datatype);
-    fi.set_basis_type(basis_order);
+    fi.set_basis_type(static_cast<databasis_info_type>(basis_order));
     fd.field_ = CreateField(fi);
 
     fielddata_.push_back(fd);
@@ -1267,7 +1267,7 @@ NewArrayMathEngine::add_output_matrix(const std::string& name)
   OutputMatrix m;
   m.array_name_ = name;
   m.matrix_name_ = tname;
-  m.matrix_ = 0;
+  m.matrix_ = nullptr;
   m.size_ = 0;
   matrixdata_.push_back(m);
 
@@ -1309,7 +1309,7 @@ NewArrayMathEngine::add_output_matrix(const std::string& name,
   OutputMatrix m;
   m.array_name_ = name;
   m.matrix_name_ = tname;
-  m.matrix_ = 0;
+  m.matrix_ = nullptr;
   m.size_ = 0;
   matrixdata_.push_back(m);
 
@@ -1575,7 +1575,7 @@ NewArrayMathEngine::run()
 
     if (fielddata_[j].output_basis_order_ > -1)
     {
-      fi.set_basis_type(fielddata_[j].output_basis_order_);
+      fi.set_basis_type(static_cast<databasis_info_type>(fielddata_[j].output_basis_order_));
     }
 
     MeshHandle mesh = field->mesh();
@@ -1824,8 +1824,8 @@ void
 NewArrayMathEngine::clear()
 {
   // Reset all values
-  pprogram_ = 0;
-  mprogram_ = 0;
+  pprogram_ = nullptr;
+  mprogram_ = nullptr;
 
   pre_expression_.clear();
   expression_.clear();

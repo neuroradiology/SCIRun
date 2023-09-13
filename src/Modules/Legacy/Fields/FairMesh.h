@@ -43,13 +43,13 @@ namespace SCIRun {
       public:
         FairMesh();
 
-        virtual void execute() override;
-        virtual void setStateDefaults() override;
+        void execute() override;
+        void setStateDefaults() override;
 
         INPUT_PORT(0, Input_Mesh, Field);
         OUTPUT_PORT(0, Faired_Mesh, Field);
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUIAndAlgorithm)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUIAndAlgorithm)
       };
 
     }

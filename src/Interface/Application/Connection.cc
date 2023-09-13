@@ -27,9 +27,7 @@
 
 
 #include <iostream>
-#include <stdexcept>
 #include <Interface/qt_include.h>
-#include <boost/bind.hpp>
 #include <Core/Application/Application.h>
 #include <Dataflow/Engine/Controller/NetworkEditorController.h>
 #include <Interface/Application/Connection.h>
@@ -47,7 +45,7 @@ using namespace SCIRun::Core::Logging;
 class EuclideanDrawStrategy : public ConnectionDrawStrategy
 {
 public:
-  virtual void draw(QGraphicsPathItem* item, const QPointF& from, const QPointF& to) override
+  void draw(QGraphicsPathItem* item, const QPointF& from, const QPointF& to) override
   {
     QPainterPath path;
 
@@ -73,7 +71,7 @@ public:
 class CubicBezierDrawStrategy : public ConnectionDrawStrategy
 {
 public:
-  virtual void draw(QGraphicsPathItem* item, const QPointF& from, const QPointF& to) override
+  void draw(QGraphicsPathItem* item, const QPointF& from, const QPointF& to) override
   {
     QPainterPath path;
     QPointF start = from;
@@ -103,7 +101,7 @@ public:
 class ManhattanDrawStrategy : public ConnectionDrawStrategy
 {
 public:
-  virtual void draw(QGraphicsPathItem* item, const QPointF& from, const QPointF& to) override
+  void draw(QGraphicsPathItem* item, const QPointF& from, const QPointF& to) override
   {
     QPainterPath path;
     path.moveTo(from);
@@ -190,13 +188,13 @@ namespace SCIRun
 
     QList<QAction*> fillInsertModuleMenu(QMenu* menu, const ModuleDescriptionMap& moduleMap, PortWidget* output, ConnectionLine* conn)
     {
-      auto portTypeToMatch = output->get_typename();
+      auto portTypeToMatch = output->description()->get_typename();
 
       return fillMenuWithFilteredModuleActions(menu, moduleMap,
         [portTypeToMatch](const ModuleDescription& m) { return portTypeMatches(portTypeToMatch, true, m) && portTypeMatches(portTypeToMatch, false, m); },
         [conn](QAction* action)
         {
-          QObject::connect(action, SIGNAL(triggered()), conn, SLOT(insertNewModule()));
+          QObject::connect(action, &QAction::triggered, conn, &ConnectionLine::insertNewModule);
           action->setProperty("insert", true);
         },
         menu);
@@ -234,7 +232,7 @@ namespace SCIRun
     private:
       bool eitherPortDynamic(const std::pair<PortWidget*, PortWidget*>& ports) const
       {
-        return ports.first->isDynamic() || ports.second->isDynamic();
+        return ports.first->description()->isDynamic() || ports.second->description()->isDynamic();
       }
     };
   }
@@ -247,7 +245,7 @@ namespace SCIRun
     class ConnectionLineNoteDisplayStrategy : public NoteDisplayStrategy
     {
     public:
-      virtual QPointF relativeNotePosition(QGraphicsItem*, const QGraphicsTextItem*, NotePosition) const override
+      QPointF relativeNotePosition(QGraphicsItem*, const QGraphicsTextItem*, NotePosition) const override
       {
         return QPointF(0,0);
       }
@@ -263,7 +261,7 @@ namespace
 
 ConnectionLine::ConnectionLine(PortWidget* fromPort, PortWidget* toPort, const ConnectionId& id, ConnectionDrawStrategyPtr drawer)
   : HasNotes(id, false),
-  NoteDisplayHelper(boost::make_shared<ConnectionLineNoteDisplayStrategy>(), this),
+  NoteDisplayHelper(makeShared<ConnectionLineNoteDisplayStrategy>(), this),
   fromPort_(fromPort), toPort_(toPort), id_(id), drawer_(drawer), destroyed_(false), menu_(nullptr), menuOpen_(0), placeHoldingWidth_(0)
 {
   if (fromPort_)
@@ -271,13 +269,13 @@ ConnectionLine::ConnectionLine(PortWidget* fromPort, PortWidget* toPort, const C
     fromPort_->addConnection(this);
   }
   else
-    LOG_DEBUG("NULL FROM PORT: {}", id_.id_);
+    LOG_DEBUG("Null FROM PORT: {}", id_.id_);
   if (toPort_)
   {
     toPort_->addConnection(this);
   }
   else
-    LOG_DEBUG("NULL TO PORT: {}", id_.id_);
+    LOG_DEBUG("Null TO PORT: {}", id_.id_);
 
   if (fromPort_ && toPort_)
   {
@@ -292,15 +290,20 @@ ConnectionLine::ConnectionLine(PortWidget* fromPort, PortWidget* toPort, const C
   menu_ = new ConnectionMenu(this);
   connectNoteEditorToAction(menu_->notesAction_);
   connectUpdateNote(this);
-  NeedsScenePositionProvider::setPositionObject(boost::make_shared<MidpointPositionerFromPorts>(fromPort_, toPort_));
-  connect(menu_->disableAction_, SIGNAL(triggered()), this, SLOT(toggleDisabled()));
-  connect(this, SIGNAL(insertNewModule(const QMap<QString, std::string>&)),
-    fromPort_, SLOT(insertNewModule(const QMap<QString, std::string>&)));
+  NeedsScenePositionProvider::setPositionObject(makeShared<MidpointPositionerFromPorts>(fromPort_, toPort_));
+  connect(menu_->disableAction_, &QAction::triggered, this, &ConnectionLine::toggleDisabled);
+  connect(this, &ConnectionLine::requestInsertNewModule, [this](const QMap<QString, std::string>& m) { fromPort_->insertNewModule(m); });
   menu_->setStyleSheet(fromPort->styleSheet());
 
   trackNodes();
 
   guiLogDebug("Connection made: {}", id_.id_);
+}
+
+void ConnectionLine::changeConnectionStatus(const SCIRun::Dataflow::Networks::ConnectionId& id, bool status)
+{
+  if (id.id_ == id_.id_)
+    setDisabled(!status);
 }
 
 ConnectionLine::~ConnectionLine()
@@ -374,18 +377,19 @@ void ConnectionLine::trackNodes()
   }
 }
 
+#if 0
 void ConnectionLine::addSubnetCompanion(PortWidget* subnetPort)
 {
   setVisible(false);
   ConnectionFactory f(subnetPort->sceneFunc());
 
-  auto out = subnetPort->isInput() ? fromPort_ : subnetPort;
-  auto in = subnetPort->isInput() ? subnetPort : toPort_;
+  auto out = subnetPort->description()->isInput() ? fromPort_ : subnetPort;
+  auto in = subnetPort->description()->isInput() ? subnetPort : toPort_;
 
-  ConnectionDescription cd{ { out->getUnderlyingModuleId(), out->id() }, { in->getUnderlyingModuleId(), in->id() } };
+  ConnectionDescription cd{ { out->description()->getUnderlyingModuleId(), out->description()->id() }, { in->description()->getUnderlyingModuleId(), in->description()->id() } };
   subnetCompanion_ = f.makeFinishedConnection(out, in, ConnectionId::create(cd));
 
-  connect(subnetPort, SIGNAL(portMoved()), subnetCompanion_, SLOT(trackNodes()));
+  connect(subnetPort, &PortWidget::portMoved, subnetCompanion_, sl(trackNodes()));
 
   subnetCompanion_->isCompanion_ = true;
   subnetCompanion_->trackNodes();
@@ -402,6 +406,7 @@ void ConnectionLine::deleteCompanion()
     subnetCompanion_ = nullptr;
   }
 }
+#endif
 
 void ConnectionLine::setDrawStrategy(ConnectionDrawStrategyPtr cds)
 {
@@ -420,10 +425,6 @@ double ConnectionLine::defaultZValue() const
 
 void ConnectionLine::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 {
-  //TODO: this is a bit inconsistent, disabling for now
-//  if (event->button() == Qt::MiddleButton)
-//    DataInfoDialog::show(fromPort_->getPortDataDescriber(), "Connection", id_.id_);
-
 	setColorAndWidth(placeHoldingColor_, placeHoldingWidth_);
 	menuOpen_ = false;
 	setZValue(defaultZValue());
@@ -491,18 +492,18 @@ void ConnectionLine::insertNewModule()
   auto toPortLocal = toPort_;
   toPort_ = nullptr;
 
-  Q_EMIT insertNewModule({
+  Q_EMIT requestInsertNewModule({
     { "moduleToAdd", moduleToAddName.toStdString() },
-    { "endModuleId", toPortLocal->getUnderlyingModuleId().id_ },
-    { "inputPortName", toPortLocal->get_portname() },
-    { "inputPortId", toPortLocal->id().toString() }
+    { "endModuleId", toPortLocal->description()->getUnderlyingModuleId().id_ },
+    { "inputPortName", toPortLocal->description()->get_portname() },
+    { "inputPortId", toPortLocal->description()->externalId().toString() }
   });
   deleteLater();
 }
 
 ModuleIdPair ConnectionLine::getConnectedToModuleIds() const
 {
-	return std::make_pair(toPort_->getUnderlyingModuleId(), fromPort_->getUnderlyingModuleId());
+	return std::make_pair(toPort_->description()->getUnderlyingModuleId(), fromPort_->description()->getUnderlyingModuleId());
 }
 
 void ConnectionLine::updateNote(const Note& note)
@@ -539,25 +540,36 @@ void DataInfoDialog::show(PortDataDescriber portDataDescriber, const QString& la
 {
   auto info = eval(portDataDescriber);
 
-  auto msgBox = new QMessageBox(mainWindowWidget());
+  auto msgBox = new DatatypeInfoBox(mainWindowWidget());
   msgBox->setAttribute(Qt::WA_DeleteOnClose);
   msgBox->setStandardButtons(QMessageBox::Ok);
   msgBox->setEscapeButton(QMessageBox::Ok);
-
-#if 0
-  auto viewButton = new QPushButton("View...");
-  auto pixmap = QPixmap::grabWidget(SCIRunMainWindow::Instance()); //TODO: pass in screenshot of visualized data
-  viewButton->setIcon(pixmap);
-  viewButton->setIconSize(pixmap.rect().size() / 10);
-  msgBox->addButton(viewButton, QMessageBox::HelpRole);
-#endif
-
   msgBox->setDetailedText("The above datatype info is displayed for the current run only. Hit i again after executing to display updated info. Keep this window open to compare info between runs.");
   msgBox->setWindowTitle(label + " Data info: " + QString::fromStdString(id));
-  msgBox->setText(info);
   msgBox->setModal(false);
   msgBox->setWindowFlags(msgBox->windowFlags() | Qt::WindowStaysOnTopHint);
+  if (id.find("ColorMapObject") != std::string::npos)
+  {
+    auto infos = info.split("&");
+    msgBox->setText(infos[0]);
+    if (infos.size() > 1)
+      msgBox->addColorLabel(infos[1]);
+  }
+  else
+  {
+    msgBox->setText(info);
+  }
   msgBox->show();
+}
+
+void DatatypeInfoBox::addColorLabel(const QString& style)
+{
+  auto label = new QLabel;
+  label->setMinimumSize(QSize(230, 30));
+  label->setStyleSheet(style);
+  label->setMargin(10);
+  auto grid = qobject_cast<QGridLayout*>(layout());
+  grid->addWidget(label, 5, 1);
 }
 
 void ConnectionLine::keyPressEvent(QKeyEvent* event)
@@ -600,7 +612,7 @@ ConnectionInProgressManhattan::ConnectionInProgressManhattan(PortWidget* port, C
 void ConnectionInProgressManhattan::update(const QPointF& end)
 {
   lastEnd_ = end;
-  if (fromPort_->isInput())
+  if (fromPort_->description()->isInput())
     drawStrategy_->draw(this, end, fromPort_->position());
   else
     drawStrategy_->draw(this, fromPort_->position(), end);

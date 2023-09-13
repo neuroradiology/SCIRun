@@ -31,7 +31,7 @@
 
 #include <Core/Datatypes/Geometry.h>
 #include <Core/GeometryPrimitives/BBox.h>
-#include <Core/Algorithms/Visualization/RenderFieldState.h>
+#include <Graphics/Datatypes/RenderFieldState.h>
 
 //freetype
 #include <ft2build.h>
@@ -263,18 +263,18 @@ namespace SCIRun {
 
         bool isClippable() const {return isClippable_;}
 
-        void setColorMap(const std::string& name) { }
-        boost::optional<std::string> colorMap() const { return mColorMap; }
+        //void setColorMap(const std::string&) { }
+        std::optional<std::string> colorMap() const { return mColorMap; }
 
       private:
         VBOList mVBOs;  ///< Array of vertex buffer objects.
         IBOList mIBOs;  ///< Array of index buffer objects.
         PassList  mPasses; /// List of passes to setup.
         bool isClippable_;
-        boost::optional<std::string> mColorMap;
+        std::optional<std::string> mColorMap;
       };
 
-      typedef boost::shared_ptr<GeometryObjectSpire> GeometryHandle;
+      typedef SharedPointer<GeometryObjectSpire> GeometryHandle;
 
       class SCISHARE CompositeGeometryObject : public GeometryObjectSpire
       {
@@ -292,7 +292,7 @@ namespace SCIRun {
       template <typename GeomIter>
         static GeometryHandle createGeomComposite(const Core::GeometryIDGenerator& idGenerator, const std::string& tag, GeomIter begin, GeomIter end)
       {
-        return boost::make_shared<CompositeGeometryObject>(idGenerator, tag, begin, end);
+        return makeShared<CompositeGeometryObject>(idGenerator, tag, begin, end);
       }
     }
   }

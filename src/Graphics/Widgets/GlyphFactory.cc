@@ -31,9 +31,9 @@ DEALINGS IN THE SOFTWARE.
 #include <Graphics/Widgets/Widget.h>
 
 using namespace SCIRun;
-using namespace SCIRun::Core::Geometry;
-using namespace SCIRun::Core::Datatypes;
-using namespace SCIRun::Graphics::Datatypes;
+using namespace Core::Geometry;
+using namespace Core::Datatypes;
+using namespace Graphics::Datatypes;
 
 std::string RealGlyphFactory::sphere(SphereParameters params, WidgetBase& widget) const
 {
@@ -46,14 +46,38 @@ std::string RealGlyphFactory::sphere(SphereParameters params, WidgetBase& widget
 
   auto name = widget.uniqueID() + "widget" + ss.str();
 
-  Graphics::GlyphGeom glyphs;
+  GlyphGeom glyphs;
   ColorRGB node_color;
-  glyphs.addSphere(params.point, params.common.scale, params.common.resolution, node_color);
+  glyphs.addSphere(params.point, params.common.scale, params.common.resolution, node_color, false, 0.0);
 
   auto renState = getSphereRenderState(params.common.defaultColor);
 
-  glyphs.buildObject(widget, name, renState.get(RenderState::USE_TRANSPARENCY), 1.0,
-    colorScheme, renState, SpireIBO::PRIMITIVE::TRIANGLES, params.common.bbox);
+  glyphs.buildObject(widget, name, renState.get(RenderState::ActionFlags::USE_TRANSPARENCY), 1.0,
+    colorScheme, renState, params.common.bbox);
+
+  return name;
+}
+
+std::string RealGlyphFactory::superquadric(SuperquadricParameters params, WidgetBase& widget) const
+{
+  if (params.common.scale < 0) params.common.scale = 1.;
+  if (params.common.resolution < 0) params.common.resolution = 10;
+
+  auto colorScheme = ColorScheme::COLOR_UNIFORM;
+  std::stringstream ss;
+  ss << params.common.scale << params.common.resolution << static_cast<int>(colorScheme);
+
+  auto name = widget.uniqueID() + "widget" + ss.str();
+
+  GlyphGeom glyphs;
+  ColorRGB node_color;
+  glyphs.addSuperquadricSurface(params.point, params.tensor, params.common.scale,
+                                params.common.resolution, node_color, params.A, params.B, false, 0.0);
+
+  auto renState = getSphereRenderState(params.common.defaultColor);
+
+  glyphs.buildObject(widget, name, renState.get(RenderState::ActionFlags::USE_TRANSPARENCY), 1.0,
+    colorScheme, renState, params.common.bbox);
 
   return name;
 }
@@ -62,8 +86,8 @@ RenderState RealGlyphFactory::getSphereRenderState(const std::string& defaultCol
 {
   RenderState renState;
 
-  renState.set(RenderState::IS_ON, true);
-  renState.set(RenderState::USE_TRANSPARENCY, false);
+  renState.set(RenderState::ActionFlags::IS_ON, true);
+  renState.set(RenderState::ActionFlags::USE_TRANSPARENCY, false);
 
   renState.defaultColor = ColorRGB(defaultColor);
   renState.defaultColor = (renState.defaultColor.r() > 1.0 ||
@@ -75,9 +99,9 @@ RenderState RealGlyphFactory::getSphereRenderState(const std::string& defaultCol
     renState.defaultColor.b() / 255.)
     : renState.defaultColor;
 
-  renState.set(RenderState::USE_DEFAULT_COLOR, true);
-  renState.set(RenderState::USE_NORMALS, true);
-  renState.set(RenderState::IS_WIDGET, true);
+  renState.set(RenderState::ActionFlags::USE_DEFAULT_COLOR, true);
+  renState.set(RenderState::ActionFlags::USE_NORMALS, true);
+  renState.set(RenderState::ActionFlags::IS_WIDGET, true);
 
   return renState;
 }
@@ -93,14 +117,15 @@ std::string RealGlyphFactory::disk(DiskParameters params, WidgetBase& widget) co
 
   auto name = widget.uniqueID() + "widget" + ss.str();
 
-  Graphics::GlyphGeom glyphs;
+  GlyphGeom glyphs;
   ColorRGB node_color;
-  glyphs.addDisk(params.p1, params.p2, params.common.scale, params.common.resolution, node_color, node_color);
+  glyphs.addDisk(params.p1, params.p2, params.common.scale, params.common.resolution,
+                 node_color, node_color, false, 0.0);
 
   auto renState = getSphereRenderState(params.common.defaultColor);
 
-  glyphs.buildObject(widget, name, renState.get(RenderState::USE_TRANSPARENCY), 1.0,
-    colorScheme, renState, SpireIBO::PRIMITIVE::TRIANGLES, params.common.bbox);
+  glyphs.buildObject(widget, name, renState.get(RenderState::ActionFlags::USE_TRANSPARENCY), 1.0,
+    colorScheme, renState, params.common.bbox);
   return name;
 }
 
@@ -115,14 +140,15 @@ std::string RealGlyphFactory::cylinder(CylinderParameters params, WidgetBase& wi
 
   auto name = widget.uniqueID() + "widget" + ss.str();
 
-  Graphics::GlyphGeom glyphs;
+  GlyphGeom glyphs;
   ColorRGB node_color;
-  glyphs.addCylinder(params.p1, params.p2, params.common.scale, params.common.resolution, node_color, node_color);
+  glyphs.addCylinder(params.p1, params.p2, params.common.scale, params.common.resolution,
+                     node_color, node_color, false, 0.0);
 
   auto renState = getSphereRenderState(params.common.defaultColor);
 
-  glyphs.buildObject(widget, name, renState.get(RenderState::USE_TRANSPARENCY), 1.0,
-    colorScheme, renState, SpireIBO::PRIMITIVE::TRIANGLES, params.common.bbox);
+  glyphs.buildObject(widget, name, renState.get(RenderState::ActionFlags::USE_TRANSPARENCY), 1.0,
+    colorScheme, renState, params.common.bbox);
 
   return name;
 }
@@ -138,14 +164,15 @@ std::string RealGlyphFactory::cone(ConeParameters params, WidgetBase& widget) co
 
   auto name = widget.uniqueID() + "widget" + ss.str();
 
-  Graphics::GlyphGeom glyphs;
+  GlyphGeom glyphs;
   ColorRGB node_color;
-  glyphs.addCone(params.cylinder.p1, params.cylinder.p2, params.cylinder.common.scale, params.cylinder.common.resolution, params.renderBase, node_color, node_color);
+  glyphs.addCone(params.cylinder.p1, params.cylinder.p2, params.cylinder.common.scale,
+                 params.cylinder.common.resolution, params.renderBase, node_color, node_color, false, 0.0);
 
   auto renState = getSphereRenderState(params.cylinder.common.defaultColor);
 
-  glyphs.buildObject(widget, name, renState.get(RenderState::USE_TRANSPARENCY), 1.0,
-    colorScheme, renState, SpireIBO::PRIMITIVE::TRIANGLES, params.cylinder.common.bbox);
+  glyphs.buildObject(widget, name, renState.get(RenderState::ActionFlags::USE_TRANSPARENCY), 1.0,
+    colorScheme, renState, params.cylinder.common.bbox);
 
   return name;
 }
@@ -154,18 +181,19 @@ std::string RealGlyphFactory::basicBox(BasicBoundingBoxParameters params, Widget
 {
   auto colorScheme(ColorScheme::COLOR_UNIFORM);
   //get all the bbox edges
-  Point c,r,d,b;
-  params.pos.getPosition(c,r,d,b);
-  auto x = r - c, y = d - c, z = b - c;
+  auto c = params.pos.center_;
+  auto eigvecs = params.pos.scaledEigvecs_;
   std::vector<Point> points = {
-    c + x + y + z,
-    c + x + y - z,
-    c + x - y + z,
-    c + x - y - z,
-    c - x + y + z,
-    c - x + y - z,
-    c - x - y + z,
-    c - x - y - z };
+      c + eigvecs[0] + eigvecs[1] + eigvecs[2],
+      c + eigvecs[0] + eigvecs[1] - eigvecs[2],
+      c + eigvecs[0] - eigvecs[1] + eigvecs[2],
+      c + eigvecs[0] - eigvecs[1] - eigvecs[2],
+      c - eigvecs[0] + eigvecs[1] + eigvecs[2],
+      c - eigvecs[0] + eigvecs[1] - eigvecs[2],
+      c - eigvecs[0] - eigvecs[1] + eigvecs[2],
+      c - eigvecs[0] - eigvecs[1] - eigvecs[2]
+  };
+
   uint32_t point_indicies[] = {
     0, 1, 0, 2, 0, 4,
     7, 6, 7, 5, 3, 7,
@@ -181,12 +209,13 @@ std::string RealGlyphFactory::basicBox(BasicBoundingBoxParameters params, Widget
   //generate triangles for the cylinders.
   for (auto edge = 0; edge < 24; edge += 2)
   {
-    glyphs.addCylinder(points[point_indicies[edge]], points[point_indicies[edge + 1]], params.common.scale, num_strips, ColorRGB(), ColorRGB());
+    glyphs.addCylinder(points[point_indicies[edge]], points[point_indicies[edge + 1]],
+                       params.common.scale, num_strips, ColorRGB(), ColorRGB(), false, 0.0);
   }
   //generate triangles for the spheres
   for (const auto& a : points)
   {
-    glyphs.addSphere(a, params.common.scale, num_strips, ColorRGB(1, 0, 0));
+    glyphs.addSphere(a, params.common.scale, num_strips, ColorRGB(1, 0, 0), false, 0.0);
   }
 
   std::stringstream ss;
@@ -197,16 +226,77 @@ std::string RealGlyphFactory::basicBox(BasicBoundingBoxParameters params, Widget
 
   RenderState renState;
 
-  renState.set(RenderState::IS_ON, true);
-  renState.set(RenderState::USE_TRANSPARENCY, false);
+  renState.set(RenderState::ActionFlags::IS_ON, true);
+  renState.set(RenderState::ActionFlags::USE_TRANSPARENCY, false);
 
   renState.defaultColor = ColorRGB(1, 1, 1);
-  renState.set(RenderState::USE_DEFAULT_COLOR, true);
-  renState.set(RenderState::USE_NORMALS, true);
-  renState.set(RenderState::IS_WIDGET, true);
+  renState.set(RenderState::ActionFlags::USE_DEFAULT_COLOR, true);
+  renState.set(RenderState::ActionFlags::USE_NORMALS, true);
+  renState.set(RenderState::ActionFlags::IS_WIDGET, true);
 
-  glyphs.buildObject(widget, name, renState.get(RenderState::USE_TRANSPARENCY), 1.0,
-    colorScheme, renState, SpireIBO::PRIMITIVE::TRIANGLES, params.common.bbox);
+  glyphs.buildObject(widget, name, renState.get(RenderState::ActionFlags::USE_TRANSPARENCY), 1.0,
+    colorScheme, renState, params.common.bbox);
+
+  return name;
+}
+
+std::string RealGlyphFactory::box(BoundingBoxParameters params, WidgetBase& widget) const
+{
+  auto colorScheme(ColorScheme::COLOR_UNIFORM);
+  //get all the bbox edges
+  auto c = params.pos.center_;
+  auto eigvecs = params.pos.scaledEigvecs_;
+  std::vector<Point> points = {
+    c + eigvecs[0] + eigvecs[1] + eigvecs[2],
+      c + eigvecs[0] + eigvecs[1] - eigvecs[2],
+      c + eigvecs[0] - eigvecs[1] + eigvecs[2],
+      c + eigvecs[0] - eigvecs[1] - eigvecs[2],
+      c - eigvecs[0] + eigvecs[1] + eigvecs[2],
+      c - eigvecs[0] + eigvecs[1] - eigvecs[2],
+      c - eigvecs[0] - eigvecs[1] + eigvecs[2],
+      c - eigvecs[0] - eigvecs[1] - eigvecs[2]};
+
+  uint32_t point_indicies[] = {
+      0, 1, 0, 2, 0, 4,
+      7, 6, 7, 5, 3, 7,
+      4, 5, 4, 6, 1, 5,
+      3, 2, 3, 1, 2, 6};
+  const auto num_strips = 50;
+  std::vector<Vector> tri_points;
+  std::vector<Vector> tri_normals;
+  std::vector<uint32_t> tri_indices;
+  std::vector<ColorRGB> colors;
+  GlyphGeom glyphs;
+  //generate triangles for the cylinders.
+  for (auto edge = 0; edge < 24; edge += 2)
+  {
+    glyphs.addCylinder(points[point_indicies[edge]], points[point_indicies[edge + 1]],
+                       params.common.scale, num_strips, ColorRGB(), ColorRGB(), false, 0.0);
+  }
+  //generate triangles for the spheres
+  for (const auto& a : points)
+  {
+    glyphs.addSphere(a, params.common.scale, num_strips, ColorRGB(1, 0, 0), false, 0.0);
+  }
+
+  std::stringstream ss;
+  ss << params.common.scale;
+  for (const auto& a : points) ss << a.x() << a.y() << a.z();
+
+  auto name = "bounding_box_cylinders" + ss.str();
+
+  RenderState renState;
+
+  renState.set(RenderState::ActionFlags::IS_ON, true);
+  renState.set(RenderState::ActionFlags::USE_TRANSPARENCY, false);
+
+  renState.defaultColor = ColorRGB(1, 1, 1);
+  renState.set(RenderState::ActionFlags::USE_DEFAULT_COLOR, true);
+  renState.set(RenderState::ActionFlags::USE_NORMALS, true);
+  renState.set(RenderState::ActionFlags::IS_WIDGET, true);
+
+  glyphs.buildObject(widget, name, renState.get(RenderState::ActionFlags::USE_TRANSPARENCY), 1.0,
+    colorScheme, renState, params.common.bbox);
 
   return name;
 }

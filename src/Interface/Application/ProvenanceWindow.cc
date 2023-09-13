@@ -50,14 +50,14 @@ ProvenanceWindow::ProvenanceWindow(ProvenanceManagerHandle provenanceManager, QW
   // TODO deprecated
   //networkXMLTextEdit_->setTabStopWidth(15);
 
-  connect(provenanceListWidget_, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(displayInfo(QListWidgetItem*)));
-  connect(provenanceListWidget_, SIGNAL(currentItemChanged(QListWidgetItem*, QListWidgetItem*)), this, SLOT(displayInfo(QListWidgetItem*)));
-  connect(undoButton_, SIGNAL(clicked()), this, SLOT(undo()));
-  connect(redoButton_, SIGNAL(clicked()), this, SLOT(redo()));
-  connect(undoAllButton_, SIGNAL(clicked()), this, SLOT(undoAll()));
-  connect(redoAllButton_, SIGNAL(clicked()), this, SLOT(redoAll()));
-  connect(clearButton_, SIGNAL(clicked()), this, SLOT(clear()));
-  connect(itemMaxSpinBox_, SIGNAL(valueChanged(int)), this, SLOT(setMaxItems(int)));
+  connect(provenanceListWidget_, &QListWidget::itemClicked, this, &ProvenanceWindow::displayInfo);
+  connect(provenanceListWidget_, &QListWidget::currentItemChanged, this, &ProvenanceWindow::displayInfo);
+  connect(undoButton_, &QPushButton::clicked, this, &ProvenanceWindow::undo);
+  connect(redoButton_, &QPushButton::clicked, this, &ProvenanceWindow::redo);
+  connect(undoAllButton_, &QPushButton::clicked, this, &ProvenanceWindow::undoAll);
+  connect(redoAllButton_, &QPushButton::clicked, this, &ProvenanceWindow::redoAll);
+  connect(clearButton_, &QPushButton::clicked, this, &ProvenanceWindow::clear);
+  connect(itemMaxSpinBox_, qOverload<int>(&QSpinBox::valueChanged), this, &ProvenanceWindow::setMaxItems);
   setMaxItems(10);
   setUndoEnabled(false);
   setRedoEnabled(false);
@@ -288,11 +288,11 @@ GuiActionProvenanceConverter::GuiActionProvenanceConverter(NetworkEditor* editor
   provenanceManagerModifyingNetwork_(false)
 {}
 
-void GuiActionProvenanceConverter::moduleAdded(const std::string& name, SCIRun::Dataflow::Networks::ModuleHandle module)
+void GuiActionProvenanceConverter::moduleAdded(const std::string& name, SCIRun::Dataflow::Networks::ModuleHandle)
 {
   if (!provenanceManagerModifyingNetwork_)
   {
-    ProvenanceItemHandle item(boost::make_shared<ModuleAddedProvenanceItem>(name, editor_->saveNetwork()));
+    ProvenanceItemHandle item(makeShared<ModuleAddedProvenanceItem>(name, editor_->saveNetwork()));
     Q_EMIT provenanceItemCreated(item);
   }
 }
@@ -301,7 +301,7 @@ void GuiActionProvenanceConverter::moduleRemoved(const ModuleId& id)
 {
   if (!provenanceManagerModifyingNetwork_)
   {
-    ProvenanceItemHandle item(boost::make_shared<ModuleRemovedProvenanceItem>(id, editor_->saveNetwork()));
+    ProvenanceItemHandle item(makeShared<ModuleRemovedProvenanceItem>(id, editor_->saveNetwork()));
     Q_EMIT provenanceItemCreated(item);
   }
 }
@@ -310,7 +310,7 @@ void GuiActionProvenanceConverter::connectionAdded(const SCIRun::Dataflow::Netwo
 {
   if (!provenanceManagerModifyingNetwork_)
   {
-    ProvenanceItemHandle item(boost::make_shared<ConnectionAddedProvenanceItem>(cd, editor_->saveNetwork()));
+    ProvenanceItemHandle item(makeShared<ConnectionAddedProvenanceItem>(cd, editor_->saveNetwork()));
     Q_EMIT provenanceItemCreated(item);
   }
 }
@@ -319,7 +319,7 @@ void GuiActionProvenanceConverter::connectionRemoved(const SCIRun::Dataflow::Net
 {
   if (!provenanceManagerModifyingNetwork_)
   {
-    ProvenanceItemHandle item(boost::make_shared<ConnectionRemovedProvenanceItem>(id, editor_->saveNetwork()));
+    ProvenanceItemHandle item(makeShared<ConnectionRemovedProvenanceItem>(id, editor_->saveNetwork()));
     Q_EMIT provenanceItemCreated(item);
   }
 }
@@ -328,7 +328,7 @@ void GuiActionProvenanceConverter::moduleMoved(const SCIRun::Dataflow::Networks:
 {
   if (!provenanceManagerModifyingNetwork_)
   {
-    ProvenanceItemHandle item(boost::make_shared<ModuleMovedProvenanceItem>(id, newX, newY, editor_->saveNetwork()));
+    ProvenanceItemHandle item(makeShared<ModuleMovedProvenanceItem>(id, newX, newY, editor_->saveNetwork()));
     Q_EMIT provenanceItemCreated(item);
   }
 }

@@ -29,7 +29,7 @@
 #include <Interface/Modules/Math/CreateStandardMatrixDialog.h>
 #include <Core/Algorithms/Base/AlgorithmVariableNames.h>
 #include <Core/Algorithms/Math/CreateStandardMatrixAlgo.h>
-#include <boost/shared_ptr.hpp>
+#include <Core/Utils/SmartPointers.h>
 #include <Dataflow/Network/ModuleStateInterface.h>
 #include <QtGui>
 
@@ -43,27 +43,26 @@ CreateStandardMatrixDialog::CreateStandardMatrixDialog(const std::string& name, 
                                                        QWidget* parent /* = 0 */)
 : ModuleDialogGeneric(state, parent)
 {
-    setupUi(this);
-    setWindowTitle(QString::fromStdString(name));
-    fixSize();
+  setupUi(this);
+  setWindowTitle(QString::fromStdString(name));
+  fixSize();
 
-    addComboBoxManager(matrixType_, Parameters::MatrixType);
-    addSpinBoxManager(noOfRows_, Parameters::Rows);
-    addSpinBoxManager(noOfColumns_, Parameters::Columns);
-    addDoubleSpinBoxManager(sizeOfStep_,Parameters::Size);
-    addDoubleSpinBoxManager(startPointer_,Parameters::StartPointer);
+  addComboBoxManager(matrixType_, Parameters::MatrixType);
+  addSpinBoxManager(noOfRows_, Parameters::Rows);
+  addSpinBoxManager(noOfColumns_, Parameters::Columns);
+  addDoubleSpinBoxManager(sizeOfStep_,Parameters::Size);
+  addDoubleSpinBoxManager(startPointer_,Parameters::StartPointer);
 
-
-    connect(matrixType_, SIGNAL(activated(const QString&)), this, SLOT(enableWidgets(const QString&)));
+  connect(matrixType_, COMBO_BOX_ACTIVATED_STRING, this, &CreateStandardMatrixDialog::enableWidgets);
 }
 
 void CreateStandardMatrixDialog::enableWidgets(const QString& mode)
 {
-    sizeOfStep_->setReadOnly(mode!="Series");
-    startPointer_->setReadOnly(mode!="Series");
+  sizeOfStep_->setReadOnly(mode!="Series");
+  startPointer_->setReadOnly(mode!="Series");
 }
 
 void CreateStandardMatrixDialog::pullSpecial()
 {
-    enableWidgets(QString::fromStdString(state_->getValue(Parameters::MatrixType).toString()));
+  enableWidgets(QString::fromStdString(state_->getValue(Parameters::MatrixType).toString()));
 }

@@ -35,7 +35,6 @@
 #include <Core/Datatypes/SparseRowMatrix.h>
 #include <Core/Datatypes/Legacy/Field/Field.h>
 #include <Core/Python/PythonDatatypeConverter.h>
-#include <boost/thread.hpp>
 #include <Core/Logging/Log.h>
 #include <Modules/Python/share.h>
 
@@ -80,7 +79,7 @@ namespace SCIRun
               valueOption = state->getTransientValue(transientKey);
 
               tries++;
-              boost::this_thread::sleep(boost::posix_time::milliseconds(waitTime_));
+              std::this_thread::sleep_for(std::chrono::milliseconds(waitTime_));
             }
 
             Datatypes::DatatypeHandle output;
@@ -89,32 +88,33 @@ namespace SCIRun
             {
               auto var = Dataflow::Networks::transient_value_cast<Variable>(valueOption);
               //logCritical("ValueOption found, typename is {}", var.name().name());
-              if (var.name().name() == "string")
+              auto name = var.name().name();
+              if (name == "string")
               {
                 auto valueStr = var.toString();
-                auto strObj = boost::make_shared<Datatypes::String>(!valueStr.empty() ? valueStr : "Empty string or non-string received");
+                auto strObj = makeShared<Datatypes::String>(!valueStr.empty() ? valueStr : "Empty string or non-string received");
                 output = strObj;
                 module_.sendOutput(stringPort, strObj);
               }
-              else if (var.name().name() == "int")
+              else if (name == "int")
               {
                 auto valueInt = var.toInt();
-                output = boost::make_shared<Datatypes::DenseMatrix>(1, 1, valueInt);
+                output = makeShared<Datatypes::DenseMatrix>(1, 1, valueInt);
                 // special case, don't send, just return value
                 //module_.sendOutput(matrixPort, output);
               }
-              else if (var.name().name() == Core::Python::pyDenseMatrixLabel())
+              else if (name == "list")
               {
-                auto dense = boost::dynamic_pointer_cast<Core::Datatypes::DenseMatrix>(var.getDatatype());
-                if (dense)
+                auto list = var.toVector();
+                if (list[0].name().name() == "list")
                 {
-                  output = dense;
-                  module_.sendOutput(matrixPort, dense);
+                  auto mat = convertToDenseMatrix(list);
+                  module_.sendOutput(matrixPort, makeShared<Datatypes::DenseMatrix>(mat));
                 }
               }
               else if (var.name().name() == Core::Python::pySparseRowMatrixLabel())
               {
-                auto sparse = boost::dynamic_pointer_cast<Core::Datatypes::SparseRowMatrix>(var.getDatatype());
+                auto sparse = std::dynamic_pointer_cast<Core::Datatypes::SparseRowMatrix>(var.getDatatype());
                 if (sparse)
                 {
                   output = sparse;
@@ -123,7 +123,7 @@ namespace SCIRun
               }
               else if (var.name().name() == Core::Python::pyFieldLabel())
               {
-                auto field = boost::dynamic_pointer_cast<Core::Datatypes::Field>(var.getDatatype());
+                auto field = std::dynamic_pointer_cast<Core::Datatypes::Field>(var.getDatatype());
                 if (field)
                 {
                   output = field;
@@ -136,6 +136,30 @@ namespace SCIRun
         private:
           PythonModule& module_;
           int maxTries_, waitTime_;
+
+          Datatypes::DenseMatrix convertToDenseMatrix(const Variable::List& list) const
+          {
+            auto rowSize = list.size();
+            if (rowSize > 0)
+            {
+              auto firstRow = list[0].toVector();
+              auto firstColSize = firstRow.size();
+              if (firstColSize > 0)
+              {
+                Datatypes::DenseMatrix dense(rowSize, firstColSize);
+                for (int r = 0; r < rowSize; ++r)
+                {
+                  auto row = list[r].toVector();
+                  if (row.size() != firstColSize)
+                    THROW_INVALID_ARGUMENT("The rows of the input matrix must be of equal size.");
+                  for (int c = 0; c < firstColSize; ++c)
+                    dense(r, c) = row[c].toDouble();
+                }
+                return dense;
+              }
+            }
+            return Datatypes::DenseMatrix();
+          }
         };
         #endif
       }
@@ -153,13 +177,13 @@ namespace SCIRun
       {
       public:
         PythonObjectForwarder();
-        virtual void execute() override;
-        virtual void setStateDefaults() override;
+        void execute() override;
+        void setStateDefaults() override;
         OUTPUT_PORT(0, PythonMatrix, Matrix);
         OUTPUT_PORT(1, PythonField, Field);
         OUTPUT_PORT(2, PythonString, String);
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUI)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
       };
 
     }

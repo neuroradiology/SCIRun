@@ -37,13 +37,13 @@ namespace Visualization {
   {
   public:
     ShowOrientationAxes();
-    virtual void execute();
-    virtual void setStateDefaults();
+    void execute() override;
+    void setStateDefaults() override;
 
     INPUT_PORT(0, InputField, Field);
     OUTPUT_PORT(0, OutputGeom, GeometryObject);
 
-    MODULE_TRAITS_AND_INFO(ModuleHasUI)
+    MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
 
     static const Core::Algorithms::AlgorithmParameterName Scale;
     static const Core::Algorithms::AlgorithmParameterName X;
@@ -54,7 +54,7 @@ namespace Visualization {
     static const Core::Algorithms::AlgorithmParameterName UseFieldPosition;
 
    private:
-    boost::shared_ptr<ShowOrientationAxesImpl> impl_;
+    SharedPointer<ShowOrientationAxesImpl> impl_;
   };
 }}}
 

@@ -56,8 +56,8 @@ class GenericReader : public SCIRun::Dataflow::Networks::Module,
 public:
   GenericReader(const std::string &name, const std::string &category, const std::string &package, const std::string& stateFilename);
 
-  virtual void setStateDefaults() override final;
-  virtual void execute() override;
+  void setStateDefaults() override final;
+  void execute() override;
   INPUT_PORT(0, Filename, String);
   //OUTPUT_PORT(0, Object, PortType);
   OUTPUT_PORT(1, FileLoaded, String);
@@ -72,10 +72,10 @@ protected:
   time_t old_filemodification_;
 
   virtual bool useCustomImporter(const std::string& filename) const = 0;
-  virtual bool call_importer(const std::string &filename, HType & handle) { return false; }
+  virtual bool call_importer(const std::string& /*filename*/, HType& /*handle*/) { return false; }
 
   static Core::Thread::Mutex fileCheckMutex_;
-  static bool file_exists(const std::string & filename);
+  static bool file_exists(const std::string& filename);
 };
 
 

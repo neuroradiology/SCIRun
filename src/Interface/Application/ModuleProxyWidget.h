@@ -105,6 +105,7 @@ namespace SCIRun
       QColor animateColor_;
       bool grabbedByWidget_, isSelected_;
       QWidget* pressedSubWidget_;
+      bool destroyed_ {false};
       QPointF position_;
       QPointF cachedPosition_;
       bool doHighlight_;
@@ -115,6 +116,7 @@ namespace SCIRun
       LoopDiamondPolygon* backgroundShape_ {nullptr};
     };
 
+#if 0
     class SubnetPortsBridgeProxyWidget : public QGraphicsProxyWidget
     {
     public:
@@ -123,6 +125,7 @@ namespace SCIRun
     private:
       class SubnetPortsBridgeWidget* ports_;
     };
+#endif
   }
 }
 

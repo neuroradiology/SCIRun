@@ -44,9 +44,9 @@ class SCISHARE GetMatrixSliceDialog : public ModuleDialogGeneric,
 public:
   GetMatrixSliceDialog(const std::string& name,
     SCIRun::Dataflow::Networks::ModuleStateHandle state,
-    QWidget* parent = 0);
+    QWidget* parent = nullptr);
 protected:
-  virtual void pullSpecial() override;
+  void pullSpecial() override;
 private Q_SLOTS:
   void incrementIndex();
   void decrementIndex();
@@ -54,8 +54,6 @@ private Q_SLOTS:
   void selectLastIndex();
   void startPlay();
   void stopPlay();
-private:
-  GuiStringTranslationMap playModeMap_;
 };
 
 }

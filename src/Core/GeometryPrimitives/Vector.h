@@ -48,18 +48,6 @@ namespace Core {
 namespace Geometry {
 
   /// @todo move to math header
-  template <typename T>
-  inline const T& Min(const T& t1, const T& t2, const T& t3)
-  {
-    return std::min(std::min(t1,t2), t3);
-  }
-
-  template <typename T>
-  inline const T& Max(const T& t1, const T& t2, const T& t3)
-  {
-    return std::max(std::max(t1,t2), t3);
-  }
-
 class Point;
 
 class Vector
@@ -108,6 +96,7 @@ class Vector
     inline Vector operator-(const Vector&) const;
     inline Vector operator-(const Point&) const;
     inline Vector& operator-=(const Vector&);
+    inline double norm() const;
     inline double normalize();
     inline double safe_normalize();
     inline Vector getArbitraryTangent() const;
@@ -236,10 +225,15 @@ inline Vector Max(const Vector &v1, const Vector &v2)
 
 SCISHARE void Pio( Piostream&, Vector& );
 
+inline double Vector::norm() const
+{
+  return std::sqrt(d_[0]*d_[0] + d_[1]*d_[1] + d_[2]*d_[2]);
+}
+
 inline
   double Vector::safe_normalize()
 {
-  double l = std::sqrt(d_[0]*d_[0] + d_[1]*d_[1] + d_[2]*d_[2]);
+  double l = norm();
   if (l > 0.0)
   {
     d_[0]/=l;
@@ -257,12 +251,12 @@ inline double Vector::length2() const
 
 inline double Vector::minComponent() const
 {
-  return Min(d_[0], d_[1], d_[2]);
+  return (std::min)({d_[0], d_[1], d_[2]});
 }
 
 inline double Vector::maxComponent() const
 {
-  return Max(d_[0], d_[1], d_[2]);
+  return (std::max)({d_[0], d_[1], d_[2]});
 }
 
 inline Vector Vector::operator/(const double d) const
@@ -387,12 +381,13 @@ inline Vector Cross(const Vector& v1, const Vector& v2)
 }
 
 //returns a unit vector
-static const double THRESHOLD = std::sqrt(2.0)/2;
-static const Vector i(1,0,0);
-static const Vector j(0,1,0);
 inline Vector Vector::getArbitraryTangent() const
 {
-  Vector normalized = this->normal();
+  static const double THRESHOLD = std::sqrt(2.0) / 2;
+  static const Vector i(1, 0, 0);
+  static const Vector j(0, 1, 0);
+
+  const auto normalized = normal();
 
   if (fabs(normalized.x()) < THRESHOLD)
      return (i - normalized * normalized.x()).normal();
@@ -403,7 +398,7 @@ inline Vector Vector::getArbitraryTangent() const
 inline Vector Interpolate(const Vector& v1, const Vector& v2,
 			  double weight)
 {
-  double weight1=1.0-weight;
+  const double weight1=1.0-weight;
   return Vector(v2.d_[0]*weight+v1.d_[0]*weight1,
 		v2.d_[1]*weight+v1.d_[1]*weight1,
 		v2.d_[2]*weight+v1.d_[2]*weight1);
@@ -454,7 +449,7 @@ inline double Vector::w() const
 inline
 double Vector::normalize()
 {
-  double l=sqrt(d_[0]*d_[0] + d_[1]*d_[1] + d_[2]*d_[2]);
+  double l = norm();
   if (l > 0.0)
   {
     d_[0]/=l;

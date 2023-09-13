@@ -64,12 +64,12 @@ namespace SCIRun
 
         void setStateDefaults() override;
 
-        MODULE_TRAITS_AND_INFO(NoAlgoOrUI)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::NoAlgoOrUI)
       private:
         void processWidgetFeedback(const Core::Datatypes::ModuleFeedback& var);
         void adjustGeometryFromTransform(const Core::Geometry::Transform& transformMatrix);
 
-        boost::shared_ptr<CreateTestingArrowImpl> impl_;
+        SharedPointer<CreateTestingArrowImpl> impl_;
       };
     }
   }

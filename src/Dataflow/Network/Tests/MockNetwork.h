@@ -40,7 +40,7 @@ namespace SCIRun {
     namespace Networks {
       namespace Mocks
       {
-        class MockNetwork : public NetworkInterface
+        class MockNetwork : public NetworkStateInterface
         {
         public:
           MOCK_METHOD1(add_module, ModuleHandle(const ModuleLookupInfo&));
@@ -51,8 +51,8 @@ namespace SCIRun {
           MOCK_CONST_METHOD1(lookupExecutable, ExecutableObject*(const ModuleId&));
           MOCK_METHOD2(connect, ConnectionId(const ConnectionOutputPort&, const ConnectionInputPort&));
           MOCK_METHOD1(disconnect, bool(const ConnectionId&));
+          MOCK_CONST_METHOD4(lookupConnection, ConnectionHandle(const std::string&, int, const std::string&, int));
           MOCK_CONST_METHOD0(nconnections, size_t());
-          MOCK_METHOD1(disable_connection, void(const ConnectionId&));
           MOCK_CONST_METHOD0(toString, std::string());
           MOCK_CONST_METHOD1(connections, ConnectionDescriptionList(bool));
           MOCK_CONST_METHOD0(errorCode, int());
@@ -63,13 +63,11 @@ namespace SCIRun {
           MOCK_CONST_METHOD0(moduleExecutionStates, std::vector<ModuleExecutionState::Value>());
           MOCK_METHOD0(clear, void());
           MOCK_CONST_METHOD0(containsViewScene, bool());
-          MOCK_CONST_METHOD1(connectModuleInterrupted, boost::signals2::connection(ModuleInterruptedSignal::slot_function_type));
-          MOCK_METHOD1(interruptModuleRequest, void(const ModuleId&));
         };
 
-        typedef boost::shared_ptr<MockNetwork> MockNetworkPtr;
+        typedef SharedPointer<MockNetwork> MockNetworkPtr;
 
-        inline ModuleHandle addModuleToNetwork(NetworkInterface& network, const std::string& moduleName)
+        inline ModuleHandle addModuleToNetwork(NetworkStateInterface& network, const std::string& moduleName)
         {
           ModuleLookupInfo info;
           info.module_name_ = moduleName;

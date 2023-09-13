@@ -49,11 +49,12 @@ namespace Networks {
   {
     ModuleLookupInfoXML module;
     State::SimpleMapModuleStateXML state;
-    ModuleWithState(const ModuleLookupInfoXML& m = ModuleLookupInfoXML(), const State::SimpleMapModuleStateXML& s = State::SimpleMapModuleStateXML()) : module(m), state(s) {}
+    ModuleWithState(const ModuleLookupInfoXML& m = ModuleLookupInfoXML(),
+      const State::SimpleMapModuleStateXML& s = State::SimpleMapModuleStateXML()) : module(m), state(s) {}
   private:
     friend class boost::serialization::access;
     template <class Archive>
-    void serialize(Archive& ar, const unsigned int version)
+    void serialize(Archive& ar, const unsigned int /*version*/)
     {
       ar & BOOST_SERIALIZATION_NVP(module);
       ar & BOOST_SERIALIZATION_NVP(state);
@@ -70,7 +71,7 @@ namespace Networks {
   private:
     friend class boost::serialization::access;
     template <class Archive>
-    void serialize(Archive& ar, const unsigned int version)
+    void serialize(Archive& ar, const unsigned int /*version*/)
     {
       ar & BOOST_SERIALIZATION_NVP(noteHTML);
       ar & BOOST_SERIALIZATION_NVP(noteText);
@@ -120,10 +121,11 @@ namespace Networks {
   public:
     ModuleMapXML modules;
     ConnectionsXML connections;
+    NetworkSerializationInterfaceHandle data() const;
   private:
     friend class boost::serialization::access;
     template <class Archive>
-    void serialize(Archive& ar, const unsigned int version)
+    void serialize(Archive& ar, const unsigned int /*version*/)
     {
       ar & BOOST_SERIALIZATION_NVP(modules);
       ar & BOOST_SERIALIZATION_NVP(connections);
@@ -179,7 +181,7 @@ namespace Networks {
   private:
     friend class boost::serialization::access;
     template <class Archive>
-    void serialize(Archive& ar, const unsigned int version)
+    void serialize(Archive& ar, const unsigned int /*version*/)
     {
       ar & BOOST_SERIALIZATION_NVP(networks);
     }

@@ -29,11 +29,7 @@
 #ifndef CORE_ALGORITHMS_DATAIO_STLUTILS_H
 #define CORE_ALGORITHMS_DATAIO_STLUTILS_H 1
 
-/// TODO: use std::unordered_map when porting to SCIRun 5
-#include <boost/unordered_map.hpp>
-#include <boost/shared_array.hpp>
-
-#include <functional>
+#include <unordered_map>
 #include <list>
 
 #include <Core/GeometryPrimitives/Point.h>
@@ -44,16 +40,9 @@ namespace SCIRun {
 namespace Core {
   namespace Algorithms {
 
-struct SCISHARE PointHash : std::unary_function<Geometry::Point, std::size_t>
+struct SCISHARE PointHash
 {
-  std::size_t operator()(Geometry::Point const& point) const
-  {
-    std::size_t seed = 0;
-    boost::hash_combine( seed, point.x() );
-    boost::hash_combine( seed, point.y() );
-    boost::hash_combine( seed, point.z() );
-    return seed;
-  }
+  std::size_t operator()(Geometry::Point const& point) const;
 };
 
 struct SCISHARE Facet
@@ -72,7 +61,7 @@ struct SCISHARE Facet
 };
 
 // point(vertex) lookup table
-typedef boost::unordered_map< Geometry::Point, unsigned int, PointHash > PointTable;
+typedef std::unordered_map< Geometry::Point, unsigned int, PointHash > PointTable;
 typedef std::list<Facet> FacetList;
 
 /// compute face normal:
@@ -81,7 +70,7 @@ typedef std::list<Facet> FacetList;
 ///   Ni = UyVz - UzVy
 ///   Nj = UzVx - UxVz
 ///   Nk = UxVy - UyVx
-SCISHARE boost::shared_array<float> computeFaceNormal(const Geometry::Point& p1, const Geometry::Point& p2, const Geometry::Point& p3);
+SCISHARE std::vector<float> computeFaceNormal(const Geometry::Point& p1, const Geometry::Point& p2, const Geometry::Point& p3);
 
 }}}
 

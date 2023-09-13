@@ -26,7 +26,7 @@
 */
 
 
-#include <Core/Algorithms/Visualization/RenderFieldState.h>
+#include <Graphics/Datatypes/RenderFieldState.h>
 #include <Modules/Visualization/ShowMeshBoundingBox.h>
 #include <Core/Datatypes/Legacy/Field/Field.h>
 #include <Core/Datatypes/Legacy/Field/VField.h>
@@ -132,11 +132,11 @@ void ShowMeshBoundingBoxImpl::addLinesToAxis(GlyphGeom& glyphs, int count, const
 RenderState ShowMeshBoundingBoxImpl::getRenderState()
 {
   RenderState renState;
-  renState.set(RenderState::USE_NORMALS, false);
-  renState.set(RenderState::IS_ON, true);
-  renState.set(RenderState::USE_TRANSPARENCY, false);
+  renState.set(RenderState::ActionFlags::USE_NORMALS, false);
+  renState.set(RenderState::ActionFlags::IS_ON, true);
+  renState.set(RenderState::ActionFlags::USE_TRANSPARENCY, false);
   renState.mGlyphType = RenderState::GlyphType::LINE_GLYPH;
-  renState.set(RenderState::USE_DEFAULT_COLOR, false);
+  renState.set(RenderState::ActionFlags::USE_DEFAULT_COLOR, false);
   return renState;
 }
 
@@ -152,9 +152,9 @@ GeometryHandle ShowMeshBoundingBoxImpl::makeGeometry(const GeometryIDGenerator& 
   addLinesToAxis(glyphs, y_, min, y, x, z, ColorRGB(0,1,0));
   addLinesToAxis(glyphs, z_, min, z, x, y, ColorRGB(0,0,1));
 
-  auto geom(boost::make_shared<GeometryObjectSpire>(idGen, "ShowMeshBoundingBox", true));
+  auto geom(makeShared<GeometryObjectSpire>(idGen, "ShowMeshBoundingBox", true));
   glyphs.buildObject(*geom, geom->uniqueID(), false, 1.0, ColorScheme::COLOR_IN_SITU,
-                     getRenderState(), SpireIBO::PRIMITIVE::LINES, bbox_, true, nullptr);
+                     getRenderState(), bbox_, true, nullptr);
   return geom;
 }
 

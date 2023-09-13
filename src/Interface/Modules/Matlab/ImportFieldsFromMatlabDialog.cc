@@ -29,6 +29,7 @@
 #include <Interface/Modules/Matlab/ImportFieldsFromMatlabDialog.h>
 #include <Modules/Legacy/Matlab/DataIO/ImportFieldsFromMatlab.h>
 #include <Core/Algorithms/Base/AlgorithmVariableNames.h>
+#include <Core/Algorithms/Base/VariableHelper.h>
 #ifndef Q_MOC_RUN
 #include <Core/Utils/StringUtil.h>
 #endif
@@ -48,11 +49,11 @@ ImportFieldsFromMatlabDialog::ImportFieldsFromMatlabDialog(const std::string& na
   fixSize();
 
   addLineEditManager(fileNameLineEdit_, Variables::Filename);
-  connect(openFileButton_, SIGNAL(clicked()), this, SLOT(openFile()));
-  connect(fileNameLineEdit_, SIGNAL(editingFinished()), this, SLOT(pushFileNameToState()));
-  connect(fileNameLineEdit_, SIGNAL(returnPressed()), this, SLOT(pushFileNameToState()));
-  connect(portListWidget_, SIGNAL(currentRowChanged(int)), this, SLOT(portItemClicked(int)));
-  connect(matlabObjectListWidget_, SIGNAL(currentRowChanged(int)), this, SLOT(matlabItemClicked(int)));
+  connect(openFileButton_, &QPushButton::clicked, this, &ImportFieldsFromMatlabDialog::openFile);
+  connect(fileNameLineEdit_, &QLineEdit::editingFinished, this, &ImportFieldsFromMatlabDialog::pushFileNameToState);
+  connect(fileNameLineEdit_, &QLineEdit::returnPressed, this, &ImportFieldsFromMatlabDialog::pushFileNameToState);
+  connect(portListWidget_, &QListWidget::currentRowChanged, this, &ImportFieldsFromMatlabDialog::portItemClicked);
+  connect(matlabObjectListWidget_, &QListWidget::currentRowChanged, this, &ImportFieldsFromMatlabDialog::matlabItemClicked);
 }
 
 ImportObjectsFromMatlabDialogBase::ImportObjectsFromMatlabDialogBase(ModuleStateHandle state, QWidget* parent) :

@@ -27,6 +27,7 @@
 
 
 #include <Core/Datatypes/Color.h>
+#include <Core/Datatypes/Feedback.h>
 #include <Core/Datatypes/Legacy/Field/Field.h>
 #include <Core/Datatypes/Legacy/Field/FieldInformation.h>
 #include <Core/Datatypes/Legacy/Field/Mesh.h>
@@ -38,6 +39,7 @@
 // ReSharper disable once CppUnusedIncludeDirective
 #include <Core/Datatypes/Scalar.h>
 #include <Core/Datatypes/DenseMatrix.h>
+#include <Core/Datatypes/Feedback.h>
 
 using namespace SCIRun;
 using namespace Core;
@@ -63,6 +65,8 @@ ALGORITHM_PARAMETER_DEF(Fields, ProbeLabel);
 ALGORITHM_PARAMETER_DEF(Fields, ProbeColor);
 ALGORITHM_PARAMETER_DEF(Fields, SnapToNode);
 ALGORITHM_PARAMETER_DEF(Fields, SnapToElement);
+ALGORITHM_PARAMETER_DEF(Fields, BBoxSize);
+ALGORITHM_PARAMETER_DEF(Fields, UseBBoxSize);
 
 namespace SCIRun
 {
@@ -80,7 +84,7 @@ namespace SCIRun
         int widgetid_;
         double l2norm_;
         bool color_changed_;
-        GeometryHandle buildWidgetObject(FieldHandle field, ModuleStateHandle state, const GeometryIDGenerator& idGenerator);
+          GeometryHandle buildWidgetObject(const std::optional<SharedPointer<Field>> ifield, FieldHandle ofield, double fieldScale, ModuleStateHandle state, const GeometryIDGenerator& idGenerator);
         RenderState getWidgetRenderState(ModuleStateHandle state);
         Transform previousTransform_;
       };
@@ -165,6 +169,8 @@ void GenerateSinglePointProbeFromField::setStateDefaults()
   state->setValue(ProbeColor, ColorRGB(1, 1, 1).toString());
   state->setValue(SnapToNode, false);
   state->setValue(SnapToElement, false);
+  state->setValue(Parameters::BBoxSize, 10.0);
+  state->setValue(Parameters::UseBBoxSize, false);
 
   getOutputPort(GeneratedWidget)->connectConnectionFeedbackListener([this](const ModuleFeedback& var) { processWidgetFeedback(var); });
 }
@@ -179,20 +185,31 @@ Point GenerateSinglePointProbeFromField::currentLocation() const
 void GenerateSinglePointProbeFromField::execute()
 {
   auto ifieldOption = getOptionalInput(InputField);
+
+  // First, the total needs to be scaled to half since we need the radius instead of the diameter
+  // Second, we want to divide by 3 to get the average of the bbox lengths
+  const static double SCALE_CORRECTION = 1.0 / 6.0;
+  double fieldScale = 0.0;
+  if (ifieldOption)
+  {
+    auto bbox = ifieldOption->get()->vmesh()->get_bounding_box();
+    fieldScale = SCALE_CORRECTION * (bbox.x_length() + bbox.y_length() + bbox.z_length());
+  }
+
   if (needToExecute())
   {
     auto field = GenerateOutputField(ifieldOption);
     sendOutput(GeneratedPoint, field);
 
     auto index = GenerateIndex();
-    sendOutput(ElementIndex, boost::make_shared<Int32>(static_cast<int>(index)));
+    sendOutput(ElementIndex, makeShared<Int32>(static_cast<int>(index)));
 
-    auto geom = impl_->buildWidgetObject(field, get_state(), *this);
+    auto geom = impl_->buildWidgetObject(ifieldOption, field, fieldScale, get_state(), *this);
     sendOutput(GeneratedWidget, geom);
   }
 }
 
-FieldHandle GenerateSinglePointProbeFromField::GenerateOutputField(boost::optional<FieldHandle> ifieldOption)
+FieldHandle GenerateSinglePointProbeFromField::GenerateOutputField(std::optional<FieldHandle> ifieldOption)
 {
   FieldHandle ifield;
   const double THRESHOLD = 1e-6;
@@ -466,13 +483,22 @@ index_type GenerateSinglePointProbeFromField::GenerateIndex()
   return index;
 }
 
-GeometryHandle GenerateSinglePointProbeFromFieldImpl::buildWidgetObject(FieldHandle field, ModuleStateHandle state, const GeometryIDGenerator& idGenerator)
+GeometryHandle GenerateSinglePointProbeFromFieldImpl::buildWidgetObject(const std::optional<SharedPointer<Field>> ifield, FieldHandle ofield, double fieldScale, ModuleStateHandle state, const GeometryIDGenerator& idGenerator)
 {
   using namespace Parameters;
-  double radius = state->getValue(ProbeSize).toDouble();
-  auto mesh = field->vmesh();
-  mesh->synchronize(Mesh::NODES_E);
+  auto mesh = ofield->vmesh();
+  double radius;
+  if (state->getValue(UseBBoxSize).toBool())
+  {
+    if (ifield)
+      radius = fieldScale * (0.01*state->getValue(BBoxSize).toDouble());
+    else
+      THROW_INVALID_ARGUMENT("A field input must be given to use the Bounding Box scaling percentage.");
+  }
+  else
+    radius = state->getValue(ProbeSize).toDouble();
 
+  mesh->synchronize(Mesh::NODES_E);
   // todo: quicker way to get a single point
   VMesh::Node::iterator eiter;
   mesh->begin(eiter);
@@ -481,6 +507,7 @@ GeometryHandle GenerateSinglePointProbeFromFieldImpl::buildWidgetObject(FieldHan
 
   return SphereWidgetBuilder(idGenerator)
     .tag("GSPPFF")
+    .transformMapping({{WidgetInteraction::CLICK, singleMovementWidget(WidgetMovement::TRANSLATE)}})
     .scale(radius)
     .defaultColor(state->getValue(Parameters::ProbeColor).toString())
     .origin(point)

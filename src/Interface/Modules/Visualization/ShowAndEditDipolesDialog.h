@@ -30,7 +30,7 @@
 #define INTERFACE_MODULES_SHOW_AND_EDIT_DIPOLES_H
 
 #include "Interface/Modules/Visualization/ui_ShowAndEditDipoles.h"
-#include <boost/shared_ptr.hpp>
+#include <Core/Utils/SmartPointers.h>
 #include <Interface/Modules/Base/ModuleDialogGeneric.h>
 #include <Interface/Modules/Visualization/share.h>
 
@@ -45,7 +45,7 @@ class SCISHARE ShowAndEditDipolesDialog : public ModuleDialogGeneric,
 public:
   ShowAndEditDipolesDialog(const std::string& name,
     SCIRun::Dataflow::Networks::ModuleStateHandle state,
-    QWidget* parent = 0);
+    QWidget* parent = nullptr);
 private:
   Dataflow::Networks::ModuleStateHandle state_;
   private Q_SLOTS:

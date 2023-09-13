@@ -30,16 +30,20 @@
 #include <vector>
 #include <cstdio>
 
+
+#ifdef WITH_OSPRAY
 #include <ospray/ospray.h>
 #include <ospray/ospray_util.h>
 
 #include "OSPRayDataManager.h"
 #include "OSPRayCamera.h"
-#include "Core/Datatypes/Geometry.h"
+
+#include <Core/Datatypes/Geometry.h>
+#include <Interface/Modules/Render/Ospray/share.h>
 
 namespace SCIRun { namespace Render {
 
-class OSPRayRenderer
+class SCISHARE OSPRayRenderer
 {
 public:
   OSPRayRenderer();
@@ -54,6 +58,7 @@ public:
   void mouseMove(float x, float y, MouseButton btn);
   void mouseRelease();
   void mouseWheel(int32_t delta);
+  void autoView();
 
   //Data--------------------------------------------------------------------------------------------
   void updateGeometries(const std::vector<Core::Datatypes::OsprayGeometryObjectHandle>& geometries);
@@ -69,9 +74,15 @@ private:
   void addStructuredVolumeToGroup(Core::Datatypes::OsprayGeometryObject* geometryObject);
   void addMaterial(OSPGeometricModel model, Core::Datatypes::OsprayGeometryObject::Material& mat);
   void addTransferFunction(OSPVolumetricModel model,  Core::Datatypes::OsprayGeometryObject::TransferFunc& transFunc);
+  void addDirectionalLight(glm::vec3 col, glm::vec3 dir);
+  void addAmbientLight(glm::vec3 col, float intensity);
+  void addSphereLight(glm::vec3 col, glm::vec3 position, float radius, float intensity);
+  void addQuadLight(glm::vec3 col, glm::vec3 position, glm::vec3 edge1, glm::vec3 edge2, float intensity);
+  void setLightsAsObject();
 
   static int osprayRendererInstances;
   static OSPRayDataManager dataManager;
+  std::vector<OSPLight> lights_;
 
   uint32_t width_  {16};
   uint32_t height_ {16};
@@ -82,6 +93,7 @@ private:
   OSPFrameBuffer frameBuffer_ {nullptr};
   OSPRenderer    renderer_    {nullptr};
   OSPRayCamera*  camera_      {nullptr};
+  OSPCamera      parentCamera_{nullptr};
   OSPWorld       world_       {nullptr};
 
 
@@ -89,3 +101,5 @@ private:
 };
 
 }}
+
+#endif

@@ -135,7 +135,7 @@ public:
       const spire::ComponentGroup<gen::StaticCamera>& camera,
       const spire::ComponentGroup<ren::StaticGLState>& defaultGLState,
       const spire::ComponentGroup<ren::StaticVBOMan>& vboMan,
-      const spire::ComponentGroup<ren::StaticTextureMan>& texMan) override
+      const spire::ComponentGroup<ren::StaticTextureMan>&) override
   {
     /// \todo This needs to be moved to pre-execute.
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
@@ -143,7 +143,7 @@ public:
       return;
     }
 
-    if (!srstate.front().state.get(RenderState::IS_TEXT))
+    if (!srstate.front().state.get(RenderState::ActionFlags::IS_TEXT))
     {
       return;
     }
@@ -340,15 +340,15 @@ public:
             rlistTrafo, camera.front().data, time.front().globalTime);
 
         GL(glDrawElements(ibo.front().primMode, ibo.front().numPrims,
-                          ibo.front().primType, 0));
+                          ibo.front().primType, nullptr));
       }
     }
     else
     {
-      if (!srstate.front().state.get(RenderState::IS_DOUBLE_SIDED))
+      if (!srstate.front().state.get(RenderState::ActionFlags::IS_DOUBLE_SIDED))
       {
         GL(glDrawElements(ibo.front().primMode, ibo.front().numPrims,
-                          ibo.front().primType, 0));
+                          ibo.front().primType, nullptr));
       }
       else
       {
@@ -362,12 +362,12 @@ public:
         GL(glUniform1f(fdToggleLoc, 1.0f));
         glCullFace(GL_BACK);
         GL(glDrawElements(ibo.front().primMode, ibo.front().numPrims,
-                          ibo.front().primType, 0));
+                          ibo.front().primType, nullptr));
 
         GL(glUniform1f(fdToggleLoc, 0.0f));
         glCullFace(GL_FRONT);
         GL(glDrawElements(ibo.front().primMode, ibo.front().numPrims,
-                          ibo.front().primType, 0));
+                          ibo.front().primType, nullptr));
       }
     }
 

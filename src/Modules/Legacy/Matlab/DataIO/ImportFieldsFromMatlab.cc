@@ -32,16 +32,17 @@
  */
 
 #include <Modules/Legacy/Matlab/DataIO/ImportFieldsFromMatlab.h>
-#include <vector>
 
 // ReSharper disable once CppUnusedIncludeDirective
 #include <Core/Datatypes/Legacy/Field/Field.h>
 #include <Core/Datatypes/String.h>
+#include <boost/filesystem.hpp>
 
 #include <Core/Matlab/matlabfile.h>
 #include <Core/Matlab/matlabarray.h>
 #include <Core/Matlab/matlabconverter.h>
 #include <Core/Algorithms/Base/AlgorithmVariableNames.h>
+#include <Core/Algorithms/Base/VariableHelper.h>
 
 using namespace SCIRun;
 using namespace SCIRun::Modules::Matlab;
@@ -97,29 +98,32 @@ DatatypeHandle ImportFieldsFromMatlab::processMatlabData(const matlabarray& ma) 
 
 int ImportFieldsFromMatlab::indexMatlabFile(matlabconverter& converter, const matlabarray& mlarray, std::string& infostring) const
 {
-  return converter.sciFieldCompatible(mlarray, infostring);
+  return converter.sciFieldCompatible(mlarray, infostring, Core::Logging::LogSettings::Instance().verbose());
 }
 
 void MatlabFileIndexModule::executeImpl(const StringPortName<0>& filenameIn, const StringPortName<6>& filenameOut)
 {
   auto fileOption = getOptionalInput(filenameIn);
-
-  if (needToExecute())
+  auto state = get_state();
+  if (fileOption && *fileOption)
   {
-    auto state = get_state();
-    if (fileOption && *fileOption)
-  	{
-      state->setValue(Variables::Filename, (*fileOption)->value());
-  	}
+    state->setValue(Variables::Filename, (*fileOption)->value());
+  }
 
-    auto filename = state->getValue(Variables::Filename).toFilename().string();
+  auto filename = state->getValue(Variables::Filename).toFilename().string();
 
-    if (filename.empty())
-    {
-      error("No file name was specified");
-      return;
-    }
+  if (filename.empty())
+  {
+    error("No file name was specified");
+    return;
+  }
 
+  time_t new_filemodification = boost::filesystem::last_write_time(filename);
+
+  if (new_filemodification != old_filemodification_ ||
+    needToExecute())
+  {
+    old_filemodification_ = new_filemodification;
     indexmatlabfile();
 
     auto choices = toStringVector(state->getValue(Parameters::PortChoices).toVector());
@@ -153,7 +157,7 @@ void MatlabFileIndexModule::executeImpl(const StringPortName<0>& filenameIn, con
 
         auto data = processMatlabData(ma);
 
-        send_output_handle(outputPorts()[p]->id(), data);
+        send_output_handle(outputPorts()[p]->internalId(), data);
       }
 
       StringHandle filenameH(new String(filename));

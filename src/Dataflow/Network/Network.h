@@ -43,7 +43,7 @@ namespace SCIRun {
 namespace Dataflow {
 namespace Networks {
 
-  class SCISHARE Network : public NetworkInterface, boost::noncopyable
+  class SCISHARE Network : public NetworkStateInterface, boost::noncopyable
   {
   public:
     using Connections = std::map<ConnectionId, ConnectionHandle, OrderedByConnectionId>;
@@ -61,7 +61,7 @@ namespace Networks {
     ConnectionId connect(const ConnectionOutputPort&, const ConnectionInputPort&) override;
     bool disconnect(const ConnectionId&) override;
     size_t nconnections() const override;
-    void disable_connection(const ConnectionId&) override;
+    ConnectionHandle lookupConnection(const std::string& moduleIdFrom, int fromIndex, const std::string& moduleIdTo, int toIndex) const override;
     ConnectionDescriptionList connections(bool includeVirtual) const override;
     int errorCode() const override;
     void incrementErrorCode(const ModuleId& moduleId) override;
@@ -71,8 +71,6 @@ namespace Networks {
     void setModuleExecutionState(ModuleExecutionState::Value state, ModuleFilter filter) override;
     std::vector<ModuleExecutionState::Value> moduleExecutionStates() const override;
     void setExpandedModuleExecutionState(ModuleExecutionState::Value state, ModuleFilter filter) override;
-    boost::signals2::connection connectModuleInterrupted(ModuleInterruptedSignal::slot_function_type subscriber) const override;
-    void interruptModuleRequest(const ModuleId& id) override;
     void clear() override;
   private:
     ModuleFactoryHandle moduleFactory_;
@@ -81,7 +79,6 @@ namespace Networks {
     Modules modules_;
     int errorCode_;
     NetworkGlobalSettings settings_;
-    mutable ModuleInterruptedSignal interruptModule_;
   };
 
 }}}

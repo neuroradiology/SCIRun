@@ -25,16 +25,17 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-
-#include <Graphics/Widgets/WidgetFactory.h>
 #include <Graphics/Widgets/ArrowWidget.h>
+#include <Graphics/Widgets/BasicBoundingBoxWidget.h>
 #include <Graphics/Widgets/BoundingBoxWidget.h>
 #include <Graphics/Widgets/ConeWidget.h>
 #include <Graphics/Widgets/CylinderWidget.h>
 #include <Graphics/Widgets/DiskWidget.h>
-#include <Graphics/Widgets/SphereWidget.h>
 #include <Graphics/Widgets/GlyphFactory.h>
+#include <Graphics/Widgets/SphereWidget.h>
+#include <Graphics/Widgets/SuperquadricWidget.h>
 #include <Graphics/Widgets/WidgetBuilders.h>
+#include <Graphics/Widgets/WidgetFactory.h>
 
 using namespace SCIRun;
 using namespace SCIRun::Core::Geometry;
@@ -53,41 +54,77 @@ void WidgetFactory::setGlyphFactory(AbstractGlyphFactoryPtr glyphMaker) { glyphM
 WidgetHandle WidgetFactory::createArrowWidget(const WidgetBaseParameters& gen,
                                                        ArrowParameters params)
 {
-  return boost::make_shared<ArrowWidget>(packageWithGlyph(gen), params);
+  return makeShared<ArrowWidget>(packageWithGlyph(gen), params);
 }
 
-WidgetHandle WidgetFactory::createBox(const WidgetBaseParameters& gen,
-                                               BasicBoundingBoxParameters params)
+WidgetHandle WidgetFactory::createBasicBoundingBox(const WidgetBaseParameters& gen,
+                                                   BasicBoundingBoxParameters params)
 {
-  return boost::make_shared<BasicBoundingBoxWidget>(packageWithGlyph(gen), params);
+  return makeShared<BasicBoundingBoxWidget>(packageWithGlyph(gen), params);
+}
+
+WidgetHandle WidgetFactory::createBoundingBox(const WidgetBaseParameters& gen,
+                                              BoundingBoxParameters params)
+{
+  return makeShared<BoundingBoxWidget>(packageWithGlyph(gen), params);
 }
 
 WidgetHandle WidgetFactory::createSphere(const WidgetBaseParameters& gen,
                                          SphereParameters params)
 {
-  return boost::make_shared<SphereWidget>(packageWithGlyph(gen), params);
+  return makeShared<SphereWidget>(packageWithGlyph(gen), params);
 }
 
 WidgetHandle WidgetFactory::createCylinder(const WidgetBaseParameters& gen,
                                            CylinderParameters params)
 {
-  return boost::make_shared<CylinderWidget>(packageWithGlyph(gen), params);
+  return makeShared<CylinderWidget>(packageWithGlyph(gen), params);
 }
 
 WidgetHandle WidgetFactory::createCone(const WidgetBaseParameters& gen,
                                        ConeParameters params)
 {
-  return boost::make_shared<ConeWidget>(packageWithGlyph(gen), params);
+  return makeShared<ConeWidget>(packageWithGlyph(gen), params);
 }
 
 WidgetHandle WidgetFactory::createDisk(const WidgetBaseParameters& gen,
                                        DiskParameters params)
 {
-  return boost::make_shared<DiskWidget>(packageWithGlyph(gen), params);
+  return makeShared<DiskWidget>(packageWithGlyph(gen), params);
+}
+
+WidgetHandle WidgetFactory::createSuperquadric(const WidgetBaseParameters& gen,
+                                               SuperquadricParameters params)
+{
+  return makeShared<SuperquadricWidget>(packageWithGlyph(gen), params);
 }
 
 WidgetHandle SphereWidgetBuilder::build() const
 {
   return WidgetFactory::createSphere({ idGenerator_, tag_, mapping_ },
     { { scale_, defaultColor_, origin_, bbox_, resolution_ }, point_ });
+}
+
+WidgetHandle DiskWidgetBuilder::build() const
+{
+  return WidgetFactory::createDisk({ idGenerator_, tag_, mapping_ },
+    { { scale_, defaultColor_, origin_, bbox_, resolution_ }, p1_, p2_ });
+}
+
+WidgetHandle CylinderWidgetBuilder::build() const
+{
+  return WidgetFactory::createCylinder({ idGenerator_, tag_, mapping_ },
+    { { scale_, defaultColor_, origin_, bbox_, resolution_ }, p1_, p2_ });
+}
+
+WidgetHandle ConeWidgetBuilder::build() const
+{
+  return WidgetFactory::createCone({ idGenerator_, tag_, mapping_ },
+    { { { scale_, defaultColor_, origin_, bbox_, resolution_ }, p1_, p2_}, renderBase_ });
+}
+
+WidgetHandle SuperquadricWidgetBuilder::build() const
+{
+  return WidgetFactory::createSuperquadric({ idGenerator_, tag_, mapping_ },
+    { { scale_, defaultColor_, origin_, bbox_, resolution_ }, point_, tensor_, A_, B_ });
 }

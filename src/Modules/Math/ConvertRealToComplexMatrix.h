@@ -42,14 +42,14 @@ namespace Math {
   {
   public:
     ConvertRealToComplexMatrix();
-    virtual void execute() override;
-    virtual void setStateDefaults() override {}
+    void execute() override;
+    void setStateDefaults() override {}
 
     INPUT_PORT(0, RealPartMatrix, Matrix);
     INPUT_PORT(1, ComplexPartMatrix, Matrix);
     OUTPUT_PORT(0, Output, ComplexMatrix);
 
-    MODULE_TRAITS_AND_INFO(NoAlgoOrUI)
+    MODULE_TRAITS_AND_INFO(ModuleFlags::NoAlgoOrUI)
     NEW_HELP_WEBPAGE_ONLY
   };
 }}}

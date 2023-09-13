@@ -114,7 +114,7 @@ public:
       spire::ESCoreBase&, uint64_t /* entityID */,
       const spire::ComponentGroup<RenderBasicGeom>& geom,
       const spire::ComponentGroup<SRRenderState>& srstate,
-      const spire::ComponentGroup<RenderList>& rlist,
+      const spire::ComponentGroup<RenderList>&,
       const spire::ComponentGroup<LightingUniforms>& lightUniforms,
       const spire::ComponentGroup<ClippingPlaneUniforms>& clippingPlaneUniforms,
       const spire::ComponentGroup<gen::Transform>& trafo,
@@ -132,7 +132,7 @@ public:
       const spire::ComponentGroup<gen::StaticCamera>& camera,
       const spire::ComponentGroup<ren::StaticGLState>& defaultGLState,
       const spire::ComponentGroup<ren::StaticVBOMan>& vboMan,
-      const spire::ComponentGroup<ren::StaticTextureMan>& texMan) override
+      const spire::ComponentGroup<ren::StaticTextureMan>&) override
   {
     /// \todo This needs to be moved to pre-execute.
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
@@ -140,10 +140,10 @@ public:
       return;
     }
 
-    if (srstate.front().state.get(RenderState::USE_TRANSPARENCY) ||
-        srstate.front().state.get(RenderState::USE_TRANSPARENT_EDGES) ||
-        srstate.front().state.get(RenderState::USE_TRANSPARENT_NODES) ||
-        srstate.front().state.get(RenderState::IS_TEXT))
+    if (srstate.front().state.get(RenderState::ActionFlags::USE_TRANSPARENCY) ||
+        srstate.front().state.get(RenderState::ActionFlags::USE_TRANSPARENT_EDGES) ||
+        srstate.front().state.get(RenderState::ActionFlags::USE_TRANSPARENT_NODES) ||
+        srstate.front().state.get(RenderState::ActionFlags::IS_TEXT))
     {
       return;
     }
@@ -255,7 +255,7 @@ public:
 
     geom.front().attribs.bind();
 
-    GL(glDrawElements(ibo.front().primMode, ibo.front().numPrims, ibo.front().primType, 0));
+    GL(glDrawElements(ibo.front().primMode, ibo.front().numPrims, ibo.front().primType, nullptr));
 
     if (!depthMask)
     {

@@ -32,7 +32,6 @@
 #include <unordered_map>
 #include <cstdint>
 #include <memory>
-#include <Interface/Modules/Render/GLContext.h>
 #include <Interface/Modules/Render/ES/Core.h>
 
 //freetype
@@ -48,7 +47,14 @@
 #include <Interface/Modules/Render/ES/RendererInterface.h>
 #include <Interface/Modules/Render/ES/RendererCollaborators.h>
 #include <Interface/Modules/Render/share.h>
+#include <Core/Datatypes/Feedback.h>
 
+namespace ren
+{
+  class VBOMan;
+  class IBOMan;
+  class FBOMan;
+}
 
 namespace SCIRun
 {
@@ -66,7 +72,7 @@ namespace SCIRun
 
     public:
       explicit SRInterface(int frameInitLimit = 100);
-      ~SRInterface();
+      ~SRInterface() override;
       std::string toString(std::string prefix) const override;
 
       void setContext(QOpenGLContext* context) override {mContext = context;}
@@ -75,17 +81,15 @@ namespace SCIRun
       //       them and provide quick object feedback.
 
       //---------------- Input ---------------------------------------------------------------------
-      void widgetMouseDown(MouseButton btn, int x, int y) override;
-      void widgetMouseMove(MouseButton btn, int x, int y) override;
+      void widgetMouseMove(int x, int y) override;
       void widgetMouseUp() override;
-      void inputMouseDown(MouseButton btn, float x, float y) override;
+      void inputMouseDown(float x, float y) override;
       void inputMouseMove(MouseButton btn, float x, float y) override;
       void inputMouseUp() override;
       void inputMouseWheel(int32_t delta) override;
       void setMouseMode(MouseMode mode) override {mMouseMode = mode;}
       MouseMode getMouseMode() const override    {return mMouseMode;}
       void calculateScreenSpaceCoords(int x_in, int y_in, float& x_out, float& y_out) override;
-
 
       //---------------- Camera --------------------------------------------------------------------
       // Call this whenever the window is resized. This will modify the viewport appropriately.
@@ -104,27 +108,28 @@ namespace SCIRun
       void setLockZoom(bool lock) override;
       void setLockPanning(bool lock) override;
       void setLockRotation(bool lock) override;
+      glm::vec2 autoRotateVector() const override;
       void setAutoRotateVector(const glm::vec2& axis) override;
       void setAutoRotateSpeed(double speed) override;
-      const glm::mat4& getWorldToView() const override;
-      const glm::mat4& getViewToProjection() const override;
+      glm::mat4 getWorldToView() const override;
+      glm::mat4 getViewToProjection() const override;
 
       //---------------- Widgets -------------------------------------------------------------------
       // todo Selecting objects...
-      Graphics::Datatypes::WidgetHandle select(int x, int y, Graphics::Datatypes::WidgetList& widgets) override;
+      Graphics::Datatypes::WidgetHandle select(int x, int y, const Graphics::Datatypes::WidgetList& widgets) override;
+      std::tuple<uint32_t, std::string, std::vector<uint64_t>> addSelectPasses(SCIRun::Graphics::Datatypes::WidgetHandle widget);
+      void addSelectVertexBufferObjects(SCIRun::Graphics::Datatypes::WidgetHandle widget, std::shared_ptr<ren::VBOMan> vboMan);
+      void addSelectIndexBufferObjects(SCIRun::Graphics::Datatypes::WidgetHandle widget, std::shared_ptr<ren::IBOMan> iboMan);
+      GLenum computePrimitiveType(size_t indexSize);
+      GLenum computePrimitive(const SCIRun::Graphics::Datatypes::SpireIBO & ibo);
       glm::mat4 getWidgetTransform() override { return widgetUpdater_.widgetTransform(); }
+      void setWidgetInteractionMode(MouseButton btn) override;
 
       //---------------- Clipping Planes -----------------------------------------------------------
       StaticClippingPlanes* getClippingPlanes() override;
-      void setClippingPlaneVisible(bool value) override;
-      void setClippingPlaneFrameOn(bool value) override;
-      void reverseClippingPlaneNormal(bool value) override;
-      void setClippingPlaneX(double value) override;
-      void setClippingPlaneY(double value) override;
-      void setClippingPlaneZ(double value) override;
-      void setClippingPlaneD(double value) override;
-      void setClippingPlaneIndex(int index) override {clippingPlaneIndex_ = index;}
-      void doInitialWidgetUpdate(Graphics::Datatypes::WidgetHandle& widget, int x, int y) override;
+      void setClippingPlaneManager(ClippingPlaneManagerPtr cpm) override { clippingPlaneManager_ = cpm; }
+      void doInitialWidgetUpdate(Graphics::Datatypes::WidgetHandle widget, int x, int y) override;
+      bool updateClippingPlanes() override;
 
       //---------------- Data Handling ------------------------------------------------------------
       // Handles a new geometry object.
@@ -134,7 +139,8 @@ namespace SCIRun
       bool hasObject(const std::string& object) override;
       // Garbage collect all invalid objects not given in the valid objects vector.
       void gcInvalidObjects(const std::vector<std::string>& validObjects) override;
-      Core::Geometry::BBox getSceneBox() override {return mSceneBBox;}
+      Core::Geometry::BBox getSceneBox() override { return sceneBBox_; }
+      void cleanupSelect() override;
 
       bool hasShaderPromise() const override;
       void runGCOnNextExecution() override;
@@ -154,7 +160,7 @@ namespace SCIRun
       void showOrientation(bool value) override {showOrientation_ = value;}
       void setBackgroundColor(const QColor& color) override;
       void setFogColor(const glm::vec4 &color) override {mFogColor = color;}
-      void setTransparencyRendertype(RenderState::TransparencySortType rType) override {mRenderSortType = rType;}
+      void setTransparencyRenderType(RenderState::TransparencySortType rType) override {mRenderSortType = rType;}
 
       // Screen width retrieval. Dimensions are pixels.
       size_t getScreenWidthPixels() const override  { return screen_.width; }
@@ -182,9 +188,8 @@ namespace SCIRun
       static uint32_t getIDForVector(const glm::vec4& vec);
 
       //---------------- Clipping Planes -----------------------------------------------------------
-      void checkClippingPlanes(unsigned int n);// make sure clipping plane number matches
       double getMaxProjLength(const glm::vec3 &n);
-      void updateClippingPlanes();
+
 
       //---------------- Data Handling ------------------------------------------------------------
       // Adds a VBO to the given entityID.
@@ -209,8 +214,7 @@ namespace SCIRun
 
       bool                                showOrientation_    {true};   // Whether the coordinate axes will render or not.
       bool                                autoRotate_         {false};  // Whether the scene will continue to rotate.
-      bool                                tryAutoRotate       {false};
-      bool                                doAutoRotateOnDrag  {false};
+      bool                                tryAutoRotate_      {false};
 
       float                               orientSize          {1.0};    //  Size of coordinate axes
       float                               orientPosX          {0.5};    //  X Position of coordinate axes
@@ -223,17 +227,17 @@ namespace SCIRun
       ScreenParams screen_;
       WidgetUpdateService widgetUpdater_;
 
-      GLuint                              mFontTexture        {};       // 2D texture for fonts
+      GLuint                              mFontTexture        {0};       // 2D texture for fonts
+      std::optional<GLuint> widgetSelectFboId_ {};
 
       int                                 axesFailCount_      {0};
       std::vector<SRObject>               mSRObjects          {};       // All SCIRun objects.
-      Core::Geometry::BBox				  mSceneBBox          {};       // Scene's AABB. Recomputed per-frame.
+      Core::Geometry::BBox				        sceneBBox_ {};       // Scene's AABB. Recomputed per-frame.
       std::unordered_map<std::string, uint64_t> mEntityIdMap  {};
 
-      ESCore                              mCore               {};       // Entity system core.
+      ClippingPlaneManagerPtr clippingPlaneManager_;
 
-      std::vector<ClippingPlane>          clippingPlanes_     {};
-      int                                 clippingPlaneIndex_ {0};
+      ESCore                              mCore               {};       // Entity system core.
 
       ren::ShaderVBOAttribs<5>            mArrowAttribs       {};       // Pre-applied shader / VBO attributes.
       ren::CommonUniforms                 mArrowUniforms      {};       // Common uniforms used in the arrow shader.
@@ -244,7 +248,7 @@ namespace SCIRun
       double                              mMatDiffuse         {};
       double                              mMatSpecular        {};
       double                              mMatShine           {};
-      GLfloat                             mLastSelectionDepth {0.0};
+      float                               selectionDepth_ {0.0};
 
       //fog settings
       double                              mFogIntensity       {};
@@ -257,8 +261,8 @@ namespace SCIRun
       std::vector<glm::vec3>              mLightDirectionView {};
       std::vector<bool>                   mLightsOn           {};
 
-      glm::vec2                         autoRotateVector      {0.0, 0.0};
-      float                             autoRotateSpeed       {0.01f};
+      glm::vec2                         autoRotateVector_      {0.0, 0.0};
+      float                             autoRotateSpeed_       {0.01f};
 
       const int                         frameInitLimit_ {};
       QOpenGLContext*                   mContext        {};

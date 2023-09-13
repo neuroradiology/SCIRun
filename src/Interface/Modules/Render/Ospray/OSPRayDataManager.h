@@ -31,26 +31,24 @@
 
 #include <ospray/ospray.h>
 #include <ospray/ospray_util.h>
+#include <Core/Datatypes/Geometry.h>
+#include <Interface/Modules/Render/Ospray/share.h>
+
 
 namespace SCIRun { namespace Render {
 
-class OSPRayDataManager
+class SCISHARE OSPRayDataManager
 {
 public:
   OSPRayDataManager();
   virtual ~OSPRayDataManager();
 
-  OSPGeometry updateAndGetMesh(uint64_t id, uint64_t version,
-    float* vertices, float* normals, float* colors, float* texCoords, uint32_t* indices,
-    size_t numVertices, size_t numPolygons, uint32_t vertsPerPoly);
-  OSPGeometry addMesh(uint64_t id, uint64_t version, float* vertices, float* normals, float* colors,
-    float* texCoords, uint32_t* indices, size_t numVertices, size_t numPolygons, uint32_t vertsPerPoly);
+  OSPGeometry updateAndGetMesh(Core::Datatypes::OsprayGeometryObject* obj, uint32_t vertsPerPoly);
+  OSPGeometry addMesh(Core::Datatypes::OsprayGeometryObject* obj, uint32_t vertsPerPoly);
 
 
-  OSPVolume updateAndgetStructuredVolume(uint64_t id, uint64_t version, float gridOrigin[3],
-    float gridSpacing[3], uint32_t dataSize[3], float* data);
-  OSPVolume addStructuredVolume(uint64_t id, uint64_t version, float gridOrigin[3],
-    float gridSpacing[3], uint32_t dataSize[3], float* data);
+  OSPVolume updateAndgetStructuredVolume(Core::Datatypes::OsprayGeometryObject* obj);
+  OSPVolume addStructuredVolume(Core::Datatypes::OsprayGeometryObject* obj);
 
   OSPGeometry getMesh(uint64_t id);
   OSPVolume getVolume(uint64_t id);
@@ -85,7 +83,8 @@ private:
     }
   };
 
-  std::map<uint64_t, ObjectData> geomMap;
+  std::map<uint64_t, ObjectData> geomMap_;
+  const static int DIMENSIONS_ = 3;
 };
 
 }}

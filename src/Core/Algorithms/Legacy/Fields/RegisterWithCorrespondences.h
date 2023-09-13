@@ -30,13 +30,7 @@
 #define CORE_ALGORITHMS_FIELDS_REGISTERWITHCORRESPONDENCES_H 1
 
 #include <Core/Algorithms/Base/AlgorithmBase.h>
-#include <Core/Datatypes/MatrixFwd.h>
-#include <Core/Datatypes/Matrix.h>
-#include <Core/Datatypes/Legacy/Field/Mesh.h>
-#include <Core/Datatypes/Legacy/Field/Field.h>
-#include <Core/Datatypes/Legacy/Field/FieldInformation.h>
-#include <Core/GeometryPrimitives/Vector.h>
-#include <vector>
+#include <Core/Datatypes/Legacy/Field/FieldFwd.h>
 #include <Core/Algorithms/Legacy/Fields/share.h>
 
 namespace SCIRun {
@@ -61,7 +55,7 @@ public:
 	static const AlgorithmInputName Correspondences2;
   static const AlgorithmOutputName TransformMatrix;
 
-	AlgorithmOutput run(const AlgorithmInput& input) const;
+	AlgorithmOutput run(const AlgorithmInput& input) const override;
 
 private:
   Datatypes::DenseMatrixHandle runMorph(FieldHandle input, FieldHandle Cors1, FieldHandle Cors2, FieldHandle& output) const;

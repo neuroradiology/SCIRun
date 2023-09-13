@@ -26,6 +26,10 @@
 */
 
 
+#ifdef __APPLE__
+#define GL_SILENCE_DEPRECATION
+#endif
+
 #include <gl-shaders/GLShader.hpp>
 #include <glm/gtc/type_ptr.hpp>           // glm::value_ptr
 
@@ -66,10 +70,13 @@ void MatUniform::checkUniform(GLuint shaderID)
     }
   }
 
-  if (boundUniform == false)
+  if (!boundUniform)
   {
-    std::cerr << "Unable to find uniform with name: " << uniformName <<
-        " in shader with ID: " << shaderID << std::endl;
+    if (!spire::RepetitiveMessageTracker::hasPostedFor("MatUniform", shaderID, uniformName))
+    {
+      std::cerr << "Unable to find uniform with name: " << uniformName <<
+          " in shader with ID: " << shaderID << std::endl;
+    }
   }
 }
 

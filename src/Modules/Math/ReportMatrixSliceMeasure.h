@@ -45,13 +45,13 @@ namespace Math {
     CONVERTED_VERSION_OF_MODULE(ReportMatrixRowMeasure)
   public:
     ReportMatrixSliceMeasure();
-    virtual void execute() override;
-    virtual void setStateDefaults() override;
+    void execute() override;
+    void setStateDefaults() override;
 
     INPUT_PORT(0, InputMatrix, Matrix);
     OUTPUT_PORT(0, OutputMatrix, Matrix);
 
-    MODULE_TRAITS_AND_INFO(ModuleHasUIAndAlgorithm)
+    MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUIAndAlgorithm)
   };
 }}}
 

@@ -74,6 +74,8 @@ namespace SCIRun {
       public:
         double get_imat_val(int i, int j) const { return imat[i][j]; }
         void set_imat_val(int i, int j, double val) { imat[i][j] = val; }
+        void set_translation(double d);
+        void set_translation(const Point& v);
 
         static const Transform& Identity();
 
@@ -157,8 +159,9 @@ namespace SCIRun {
 
         /// Persistent I/O.
         static PersistentTypeID type_id;
-        virtual void io(Piostream &stream);
-        std::vector<Vector> get_rotation() const;
+        std::vector<Vector> get_rotation_vectors() const;
+        std::vector<Vector> get_transformation_vectors() const;
+        void io(Piostream &stream) override;
         Point get_translation() const;
       };
 

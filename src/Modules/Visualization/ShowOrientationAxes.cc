@@ -20,7 +20,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#include <Core/Algorithms/Visualization/RenderFieldState.h>
+#include <Graphics/Datatypes/RenderFieldState.h>
 #include <Core/Datatypes/Legacy/Field/Field.h>
 #include <Core/Datatypes/Legacy/Field/VMesh.h>
 #include <Core/GeometryPrimitives/BBox.h>
@@ -116,11 +116,11 @@ void ShowOrientationAxesImpl::setScale(double scale)
 RenderState ShowOrientationAxesImpl::getRenderState() const
 {
   RenderState renState;
-  renState.set(RenderState::USE_NORMALS, true);
-  renState.set(RenderState::IS_ON, true);
-  renState.set(RenderState::USE_TRANSPARENCY, false);
+  renState.set(RenderState::ActionFlags::USE_NORMALS, true);
+  renState.set(RenderState::ActionFlags::IS_ON, true);
+  renState.set(RenderState::ActionFlags::USE_TRANSPARENCY, false);
   renState.mGlyphType = RenderState::GlyphType::ARROW_GLYPH;
-  renState.set(RenderState::USE_DEFAULT_COLOR, false);
+  renState.set(RenderState::ActionFlags::USE_DEFAULT_COLOR, false);
   return renState;
 }
 
@@ -134,19 +134,19 @@ void ShowOrientationAxesImpl::addOrientationArrows(GlyphGeom& glyphs, const Poin
 
   // Positive
   glyphs.addArrow(pos, pos + Vector(vectorLength, 0, 0), radius, ARROW_RATIO_, RESOLUTION_,
-                  RED_, RED_, RENDER_CYLINDER_BASE_, RENDER_CONE_BASE_);
+                  RED_, RED_, RENDER_CYLINDER_BASE_, RENDER_CONE_BASE_, false, 0.0);
   glyphs.addArrow(pos, pos + Vector(0, vectorLength, 0), radius, ARROW_RATIO_, RESOLUTION_,
-                  GREEN_, GREEN_, RENDER_CYLINDER_BASE_, RENDER_CONE_BASE_);
+                  GREEN_, GREEN_, RENDER_CYLINDER_BASE_, RENDER_CONE_BASE_, false, 0.0);
   glyphs.addArrow(pos, pos + Vector(0, 0, vectorLength), radius, ARROW_RATIO_, RESOLUTION_,
-                  BLUE_, BLUE_, RENDER_CYLINDER_BASE_, RENDER_CONE_BASE_);
+                  BLUE_, BLUE_, RENDER_CYLINDER_BASE_, RENDER_CONE_BASE_, false, 0.0);
 
   // Negative
   glyphs.addArrow(pos, pos - Vector(vectorLength, 0, 0), radius, ARROW_RATIO_, RESOLUTION_,
-                  RED_NEGATIVE_, RED_NEGATIVE_, RENDER_CYLINDER_BASE_, RENDER_CONE_BASE_);
+                  RED_NEGATIVE_, RED_NEGATIVE_, RENDER_CYLINDER_BASE_, RENDER_CONE_BASE_, false, 0.0);
   glyphs.addArrow(pos, pos - Vector(0, vectorLength, 0), radius, ARROW_RATIO_, RESOLUTION_,
-                  GREEN_NEGATIVE_, GREEN_NEGATIVE_, RENDER_CYLINDER_BASE_, RENDER_CONE_BASE_);
+                  GREEN_NEGATIVE_, GREEN_NEGATIVE_, RENDER_CYLINDER_BASE_, RENDER_CONE_BASE_, false, 0.0);
   glyphs.addArrow(pos, pos - Vector(0, 0, vectorLength), radius, ARROW_RATIO_, RESOLUTION_,
-                  BLUE_NEGATIVE_, BLUE_NEGATIVE_, RENDER_CYLINDER_BASE_, RENDER_CONE_BASE_);
+                  BLUE_NEGATIVE_, BLUE_NEGATIVE_, RENDER_CYLINDER_BASE_, RENDER_CONE_BASE_, false, 0.0);
 }
 
 BBox ShowOrientationAxesImpl::getBBox(const Point& pos) const
@@ -170,9 +170,9 @@ GeometryHandle ShowOrientationAxesImpl::makeGeometry(const GeometryIDGenerator& 
   addOrientationArrows(glyphs, pos);
   BBox bbox = getBBox(pos);
 
-  auto geom(boost::make_shared<GeometryObjectSpire>(idGen, "ShowOrientationAxes", true));
+  auto geom(makeShared<GeometryObjectSpire>(idGen, "ShowOrientationAxes", true));
   glyphs.buildObject(*geom, geom->uniqueID(), false, 1.0, ColorScheme::COLOR_IN_SITU,
-                     getRenderState(), SpireIBO::PRIMITIVE::TRIANGLES, bbox, true, nullptr);
+                     getRenderState(), bbox, true, nullptr);
   return geom;
 }
 
@@ -202,7 +202,7 @@ void ShowOrientationAxes::execute()
   {
     auto state = get_state();
     if (inputField)
-      impl_->setField(inputField.get());
+      impl_->setField(*inputField);
 
     impl_->setFieldScaling(state->getValue(ScaleByField).toBool() && inputField);
     if (state->getValue(ScaleByScaleFactor).toBool())

@@ -33,18 +33,15 @@
 /// \todo Make this definition specific to windows.
 #define NOMINMAX
 #include <Interface/Modules/Base/ModuleDialogGeneric.h>
+#include <Interface/Modules/Render/Ospray/OSPRayRenderer.h>
+#include <Interface/Modules/Render/Ospray/QOSPRayWidget.h>
 #include <Core/Datatypes/Geometry.h>
+#include <Core/Datatypes/Feedback.h>
 #include <Interface/Modules/Render/share.h>
 
 
 
 namespace SCIRun {
-
-namespace Render {
-  class QOSPRayWidget;
-  class OSPRayRenderer;
-  enum class MouseButton;
-}
 
 namespace Gui {
 
@@ -59,18 +56,18 @@ public:
     Dataflow::Networks::ModuleStateHandle state,
     QWidget* parent = nullptr);
   ~OsprayViewerDialog();
-  void adjustToolbar() override;
+  void adjustToolbar(double factor) override;
 
 Q_SIGNALS:
   void newGeometryValueForwarder();
 
 protected:
-  virtual void pullSpecial() override;
+  void pullSpecial() override;
   void mousePressEvent(QMouseEvent* event) override;
   void mouseMoveEvent(QMouseEvent* event) override;
   void mouseReleaseEvent(QMouseEvent* event) override;
   void wheelEvent(QWheelEvent* event) override;
-  void contextMenuEvent(QContextMenuEvent* evt) override {}
+  void contextMenuEvent(QContextMenuEvent*) override {}
 
 private Q_SLOTS:
   void newGeometryValue();
@@ -100,7 +97,7 @@ private:
   void addToolbarButton(QPushButton* button);
   void toggleLockColor(bool locked);
   void mousePositionToScreenSpace(int xIn, int yIn, float& xOut, float& yOut);
-  Render::MouseButton getRenderButton(QMouseEvent* event);
+  MouseButton getRenderButton(QMouseEvent* event);
 
   float getFloat(const Core::Algorithms::Name& name) const;
 

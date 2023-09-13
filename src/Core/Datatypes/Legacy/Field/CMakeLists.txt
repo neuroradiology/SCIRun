@@ -96,6 +96,7 @@ SET(Core_Datatypes_Legacy_Field_SRCS
   VFDataT_0.cc
   VFDataT_1.cc
   VFDataT_2.cc
+  VFDataT_3.cc
   VMesh.cc
 )
 
@@ -109,22 +110,12 @@ TARGET_LINK_LIBRARIES(Core_Datatypes_Legacy_Field
   Core_Exceptions_Legacy
   Core_Geometry_Primitives
   Core_Math
-  #Core_Persistent
   Core_Thread
-  #Core_Thread_Legacy
   Core_Utils
   Core_Util_Legacy
   Core_Datatypes
   Core_Datatypes_Legacy_Base
   ${SCI_BOOST_LIBRARY}
-  #${GL_LIBRARY}
-  #${M_LIBRARY}
-  #${CBLAS_LIBRARY}
-  #${F_LIBRARY}
-  #${SCI_TEEM_LIBRARY}
-  #${SCI_PNG_LIBRARY}
-  #${SCI_ZLIB_LIBRARY}
-  #${SCI_SLIVR_LIBRARY}
 )
 
 IF(BUILD_SHARED_LIBS)

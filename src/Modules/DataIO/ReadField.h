@@ -45,17 +45,17 @@ namespace DataIO {
   public:
     typedef GenericReader<FieldHandle, FieldPortTag> my_base;
     ReadField();
-    virtual void execute() override;
-    virtual bool useCustomImporter(const std::string& filename) const override;
-    virtual bool call_importer(const std::string& filename, FieldHandle& handle) override;
+    void execute() override;
+    bool useCustomImporter(const std::string& filename) const override;
+    bool call_importer(const std::string& filename, FieldHandle& handle) override;
 
     OUTPUT_PORT(0, Field, Field);
 
     static std::string fileTypeList();
 
-    MODULE_TRAITS_AND_INFO(ModuleHasUI)
+    MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
   protected:
-    virtual std::string defaultFileTypeName() const override;
+    std::string defaultFileTypeName() const override;
   };
 
 }}}

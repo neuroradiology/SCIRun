@@ -42,13 +42,13 @@ namespace Math {
   {
   public:
     ConvertScalarToMatrix();
-    virtual void execute() override;
-    virtual void setStateDefaults() override {}
+    void execute() override;
+    void setStateDefaults() override {}
 
     INPUT_PORT(0, Input, Scalar);
     OUTPUT_PORT(0, Output, Matrix);
 
-    MODULE_TRAITS_AND_INFO(NoAlgoOrUI)
+    MODULE_TRAITS_AND_INFO(ModuleFlags::NoAlgoOrUI)
     NEW_HELP_WEBPAGE_ONLY
   };
 }}}

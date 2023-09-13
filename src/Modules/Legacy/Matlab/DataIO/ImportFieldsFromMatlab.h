@@ -61,6 +61,7 @@ namespace Matlab {
     void executeImpl(const StringPortName<0>& filenameIn, const StringPortName<6>& filenameOut);
     virtual SCIRun::Core::Datatypes::DatatypeHandle processMatlabData(const MatlabIO::matlabarray&) const = 0;
     virtual int indexMatlabFile(MatlabIO::matlabconverter& converter, const MatlabIO::matlabarray& mlarray, std::string& infostring) const = 0;
+    time_t old_filemodification_{0};
   };
 
   class SCISHARE ImportFieldsFromMatlab : public MatlabFileIndexModule,
@@ -69,26 +70,26 @@ namespace Matlab {
   {
   public:
     ImportFieldsFromMatlab();
-    virtual void execute() override;
-    virtual void setStateDefaults() override;
-    INPUT_PORT(0, Filename, String);
-    OUTPUT_PORT(0, Field1, Field);
-    OUTPUT_PORT(1, Field2, Field);
-    OUTPUT_PORT(2, Field3, Field);
-    OUTPUT_PORT(3, Field4, Field);
-    OUTPUT_PORT(4, Field5, Field);
-    OUTPUT_PORT(5, Field6, Field);
-    OUTPUT_PORT(6, FilenameOut, String);
+    void execute() override;
+    void setStateDefaults() override;
+    INPUT_PORT(0, Filename, String)
+    OUTPUT_PORT(0, Field1, Field)
+    OUTPUT_PORT(1, Field2, Field)
+    OUTPUT_PORT(2, Field3, Field)
+    OUTPUT_PORT(3, Field4, Field)
+    OUTPUT_PORT(4, Field5, Field)
+    OUTPUT_PORT(5, Field6, Field)
+    OUTPUT_PORT(6, FilenameOut, String)
     enum { NUMPORTS = 6 };
 
     LEGACY_MATLAB_MODULE
 
-    MODULE_TRAITS_AND_INFO(ModuleHasUI)
+    MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
 
   protected:
-    virtual void postStateChangeInternalSignalHookup() override;
-    virtual SCIRun::Core::Datatypes::DatatypeHandle processMatlabData(const MatlabIO::matlabarray&) const override;
-    virtual int indexMatlabFile(MatlabIO::matlabconverter& converter, const MatlabIO::matlabarray& mlarray, std::string& infostring) const override;
+    void postStateChangeInternalSignalHookup() override;
+    SCIRun::Core::Datatypes::DatatypeHandle processMatlabData(const MatlabIO::matlabarray&) const override;
+    int indexMatlabFile(MatlabIO::matlabconverter& converter, const MatlabIO::matlabarray& mlarray, std::string& infostring) const override;
   };
 
 }}}

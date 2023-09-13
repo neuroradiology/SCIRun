@@ -51,19 +51,19 @@ namespace SCIRun {
           Datatypes::ComplexDenseMatrixHandle runComplexMatrix(FieldHandle input) const;
           NrrdDataHandle runNrrd(FieldHandle input) const;
 
-          virtual AlgorithmOutput run(const AlgorithmInput& input) const override;
+          AlgorithmOutput run(const AlgorithmInput& input) const override;
 
         private:
           template <class MatrixReturnType>
-          boost::shared_ptr<MatrixReturnType> runImplGeneric(FieldHandle input) const;
+          SharedPointer<MatrixReturnType> runImplGeneric(FieldHandle input) const;
           template <class MatrixReturnType>
-          bool GetScalarFieldDataV(FieldHandle input, boost::shared_ptr<MatrixReturnType>& output) const;
+          bool GetScalarFieldDataV(FieldHandle input, SharedPointer<MatrixReturnType>& output) const;
           template <class ValueType>
-          bool GetScalarFieldDataVDenseImpl(FieldHandle input, boost::shared_ptr<Datatypes::DenseMatrixGeneric<ValueType>>& output) const;
+          bool GetScalarFieldDataVDenseImpl(FieldHandle input, SharedPointer<Datatypes::DenseMatrixGeneric<ValueType>>& output) const;
           template <class MatrixReturnType>
-          bool GetVectorFieldDataV(FieldHandle input, boost::shared_ptr<MatrixReturnType>& output) const { return false; }
+          bool GetVectorFieldDataV(FieldHandle, SharedPointer<MatrixReturnType>&) const { return false; }
           template <class MatrixReturnType>
-          bool GetTensorFieldDataV(FieldHandle input, boost::shared_ptr<MatrixReturnType>& output) const { return false; }
+          bool GetTensorFieldDataV(FieldHandle, SharedPointer<MatrixReturnType>&) const { return false; }
         };
 
       }

@@ -35,9 +35,7 @@
 # pragma once
 #endif
 
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/recursive_mutex.hpp>
-#include <boost/thread/shared_mutex.hpp>
+#include <mutex>
 #include <boost/noncopyable.hpp>
 
 namespace SCIRun
@@ -48,8 +46,8 @@ namespace Core
 class Lockable : boost::noncopyable
 {
 public:
-	typedef boost::mutex mutex_type;
-	typedef boost::unique_lock< mutex_type > lock_type;
+	typedef std::mutex mutex_type;
+	typedef std::unique_lock< mutex_type > lock_type;
 
 	Lockable() {}
 	~Lockable() {}
@@ -66,32 +64,11 @@ private:
 class RecursiveLockable : boost::noncopyable
 {
 public:
-	typedef boost::recursive_mutex mutex_type;
-	typedef boost::unique_lock< mutex_type > lock_type;
+	typedef std::recursive_mutex mutex_type;
+	typedef std::unique_lock< mutex_type > lock_type;
 
 	RecursiveLockable() {}
 	~RecursiveLockable() {}
-
-	mutex_type& get_mutex() const
-	{
-		return this->mutex_;
-	}
-
-private:
-	mutable mutex_type mutex_;
-};
-
-class SharedLockable : boost::noncopyable
-{
-public:
-	typedef boost::shared_mutex mutex_type;
-	typedef boost::unique_lock< mutex_type > lock_type;
-	typedef boost::shared_lock< mutex_type > shared_lock_type;
-	typedef boost::upgrade_lock< mutex_type > upgrade_lock_type;
-	typedef boost::upgrade_to_unique_lock< mutex_type > upgrade_to_unique_lock_type;
-
-	SharedLockable() {}
-	~SharedLockable() {}
 
 	mutex_type& get_mutex() const
 	{

@@ -44,8 +44,8 @@ namespace Math {
   {
   public:
     BooleanCompare();
-    virtual void execute() override;
-    virtual void setStateDefaults() override;
+    void execute() override;
+    void setStateDefaults() override;
 
     INPUT_PORT(0, MatrixA, Matrix);
     INPUT_PORT(1, MatrixB, Matrix);
@@ -53,7 +53,7 @@ namespace Math {
     OUTPUT_PORT(0, OutputMatrix, Matrix);
     OUTPUT_PORT(1, BooleanResult, Matrix);
 
-    MODULE_TRAITS_AND_INFO(ModuleHasUIAndAlgorithm)
+    MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUIAndAlgorithm)
     NEW_HELP_WEBPAGE_ONLY
 
   };

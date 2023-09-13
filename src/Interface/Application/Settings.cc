@@ -177,7 +177,7 @@ struct Stringifier<QStringList>
 template <typename T>
 struct Stringifier<QList<T>>
 {
-  std::string operator()(const QList<T>& t) const
+  std::string operator()(const QList<T>&) const
   {
     return "<list>";
   }
@@ -186,7 +186,7 @@ struct Stringifier<QList<T>>
 template <>
 struct Stringifier<QByteArray>
 {
-  std::string operator()(const QByteArray& t) const
+  std::string operator()(const QByteArray&) const
   {
     return "<byte array>";
   }
@@ -232,7 +232,7 @@ public:
     settings.setValue(name_, retriever_());
   }
 private:
-  boost::optional<T> value_;
+  std::optional<T> value_;
   const QString name_;
   ReadConverter<T> readConverter_;
   std::function<void(const T&)> postRead_;
@@ -307,6 +307,12 @@ void SCIRunMainWindow::readSettings()
     makeSetting("autoRotateViewerOnMouseRelease", toBool,
       [this](bool b) { prefsWindow_->setAutoRotateViewerOnMouseRelease(b); },
       []() { return prefs.autoRotateViewerOnMouseRelease.val(); }),
+    makeSetting("toolBarPopupShowDelay", toInt,
+      [this](int d) { prefsWindow_->setToolBarPopupShowDelay(d); },
+      []() { return prefs.toolBarPopupShowDelay.val(); }),
+    makeSetting("toolBarPopupHideDelay", toInt,
+      [this](int d) { prefsWindow_->setToolBarPopupHideDelay(d); },
+      []() { return prefs.toolBarPopupHideDelay.val(); }),
     makeSetting("moduleExecuteDownstreamOnly", toBool,
       [this](bool b) { prefsWindow_->setModuleExecuteDownstreamOnly(b); },
       []() { return prefs.moduleExecuteDownstreamOnly.val(); }),
@@ -322,6 +328,9 @@ void SCIRunMainWindow::readSettings()
     makeSetting("dataDirectory", toString,
       [this](const QString& s) { setDataDirectory(s); },
       []() { return QString::fromStdString(prefs.dataDirectory().string()); }),
+    makeSetting("screenshotDirectory", toString,
+      [this](const QString& s) { setScreenshotDirectory(s); },
+      []() { return QString::fromStdString(prefs.screenshotDirectory().string()); }),
     makeSetting("networkDirectory", toString,
       [this](const QString& s) { latestNetworkDirectory_.setPath(s); },
       [this]() { return latestNetworkDirectory_.path(); }),
@@ -343,6 +352,12 @@ void SCIRunMainWindow::readSettings()
     makeSetting("toolkitFiles", toStringList,
       [this](const QStringList& qsl) { toolkitFiles_ = qsl; },
       [this]() { return toolkitFiles_; }),
+    makeSetting("recentModules", toStringList,
+      [this](const QStringList& qsl) { recentModules_ = qsl; },
+      [this]() { return recentModules_; }),
+    makeSetting("frequentModules", toMap,
+      [this](const QMap<QString, QVariant>& qmap) { frequentModulesSettings_ = qmap; },
+      [this]() { return frequentModulesSettings_; }),
     makeSetting("triggeredScripts", toMap,
       [this](const QMap<QString, QVariant>& qmap) { triggeredEventsWindow_->setScripts(toStrMap(qmap)); },
       [this]() { return fromStrMap(triggeredEventsWindow_->scripts()); }),
@@ -371,7 +386,6 @@ void SCIRunMainWindow::readSettings()
     setting->read();
     setting->postRead();
   }
-
   //TODO: extract QSettings logic into "PreferencesIO" class
   //TODO: set up signal/slot for each prefs variable to make it easy to track changes from arbitrary widgets
 }
@@ -380,6 +394,9 @@ void SCIRunMainWindow::writeSettings()
 {
   for (auto& setting : settingsValues_)
   {
-    setting->write();
+    if (setting)
+    {
+      setting->write();
+    }
   }
 }

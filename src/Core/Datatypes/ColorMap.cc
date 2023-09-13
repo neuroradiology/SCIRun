@@ -44,20 +44,6 @@ using namespace SCIRun::Core::Logging;
 
 const static std::vector<ColorRGB> grayscaleData = {{0.0, 0.0, 0.0}, {1.0, 1.0, 1.0}};
 
-const static std::vector<ColorRGB> orangeTintData = {{0.0784314, 0.0392157, 0}, {1, 0.960784, 0.921569}};
-
-const static std::vector<ColorRGB> redTintData = {{0.0784314, 0, 0}, {1, 0.921569, 0.921569}};
-
-const static std::vector<ColorRGB> yellowTintData = {{0.0784314, 0.0784314, 0}, {1, 1, 0.921569}};
-
-const static std::vector<ColorRGB> greenTintData = {{0, 0.0784314, 0}, {0.921569, 1, 0.921569}};
-
-const static std::vector<ColorRGB> cyanTintData = {{0, 0.0784314, 0.0784314}, {0.921569, 1, 1}};
-
-const static std::vector<ColorRGB> blueTintData = {{0, 0, 0.0784314}, {0.921569, 0.921569, 1}};
-
-const static std::vector<ColorRGB> purpleTintData = {{0.0392157, 0, 0.0784314}, {0.960784, 0.921569, 1}};
-
 const static std::vector<ColorRGB> bpSeismicData = {{0.000000, 0.000000, 1.000000}, {1.000000, 1.000000, 1.000000}, {1.000000, 0.000000, 0.000000}};
 
 const static std::vector<ColorRGB> donData = {{0, 0.352941, 1}, {0.2, 0.407843, 1}, {0.403922, 0.458824, 1}, {0.65098, 0.513725, 0.960784}, {0.709804, 0.509804, 0.847059}, {0.752941, 0.505882, 0.729412}, {0.772549, 0.501961, 0.67451}, {0.901961, 0.494118, 0.384314}, {0.941176, 0.494118, 0.192157}, {1, 0.521569, 0}};
@@ -104,13 +90,6 @@ const static std::map<std::string, const std::vector<ColorRGB>*> standardColorMa
   { "Rainbow", &rainbowData},
   { "Old Rainbow", &oldRainbowData},
   { "Grayscale", &grayscaleData},
-  //{ "Red Tint", &redTintData},
-  //{ "Orange Tint", &orangeTintData},
-  //{ "Yellow Tint", &yellowTintData},
-  //{ "Green Tint", &greenTintData},
-  //{ "Cyan Tint", &cyanTintData},
-  //{ "Blue Tint", &blueTintData},
-  //{ "Purple Tint", &purpleTintData},
   { "Blackbody", &blackbodyData},
   { "Darkhue", &darkhueData},
   { "Lighthue", &lighthueData},
@@ -132,20 +111,22 @@ ColorMapHandle StandardColorMapFactory::create(const std::string& name, const si
   const double &shift, const bool &invert, const double &rescale_scale, const double &rescale_shift,
   const std::vector<double>& alphaPoints)
 {
-  const std::vector<ColorRGB>* colorData = &rainbowData;
+  auto colorData = &rainbowData;
 
-  auto entry = standardColorMaps.find(name);
-  if (entry != standardColorMaps.end()) colorData = entry->second;
-  else logError("Color map name not implemented/recognized. Returning Rainbow.");
+  const auto entry = standardColorMaps.find(name);
+  if (entry != standardColorMaps.end())
+    colorData = entry->second;
+  else
+    logError("Color map name not implemented/recognized. Returning Rainbow.");
 
-  return boost::make_shared<ColorMap>(*colorData, name, resolution, shift, invert, rescale_scale, rescale_shift, alphaPoints);
+  return makeShared<ColorMap>(*colorData, name, resolution, shift, invert, rescale_scale, rescale_shift, alphaPoints);
 }
 
 ColorMapHandle StandardColorMapFactory::create(const std::vector<ColorRGB>& colorData,
   const std::string& name, const size_t &resolution, const double &shift, const bool &invert,
   const double &rescale_scale,  const double &rescale_shift, const std::vector<double>& alphaPoints)
 {
-  return boost::make_shared<ColorMap>(colorData, name, resolution, shift, invert, rescale_scale, rescale_shift, alphaPoints);
+  return makeShared<ColorMap>(colorData, name, resolution, shift, invert, rescale_scale, rescale_shift, alphaPoints);
 }
 
 std::vector<std::string> StandardColorMapFactory::getList()
@@ -154,8 +135,6 @@ std::vector<std::string> StandardColorMapFactory::getList()
   boost::copy(standardColorMaps | boost::adaptors::map_keys, std::back_inserter(names));
   return names;
 }
-
-
 
 ColorMap::ColorMap(const std::vector<ColorRGB>& colorData, const std::string& name, const size_t resolution, const double shift,
   const bool invert, const double rescale_scale, const double rescale_shift, const std::vector<double>& alphaPoints)
@@ -198,17 +177,6 @@ inline static double mix(double a, double b, double c)
   return a * ( 1.0 - c) + b * c;
 }
 
-//const static double cmap_gamma = 2.2;
-//inline static ColorRGB gammaCorrect(const ColorRGB& in)
-//{
-//    return ColorRGB(pow(in.r(), 1.0/cmap_gamma), pow(in.g(), 1.0/cmap_gamma), pow(in.b(), 1.0/cmap_gamma));
-//}
-//
-//inline static ColorRGB reverseGammaCorrect(const ColorRGB& in)
-//{
-//    return ColorRGB(pow(in.r(), cmap_gamma), pow(in.g(), cmap_gamma), pow(in.b(), cmap_gamma));
-//}
-
 inline static ColorRGB readColorFromArray(const std::vector<ColorRGB>& v, double f)
 {
   uint32_t segments = v.size() - 1;
@@ -218,23 +186,25 @@ inline static ColorRGB readColorFromArray(const std::vector<ColorRGB>& v, double
   ColorRGB c1 = v[std::min(index + 1, segments)];
   m = m - index;
 
-  ColorRGB out = ColorRGB(mix(c0.r(), c1.r(), m), mix(c0.g(), c1.g(), m), mix(c0.b(), c1.b(), m));
-  return out;
+  return ColorRGB(mix(c0.r(), c1.r(), m), mix(c0.g(), c1.g(), m), mix(c0.b(), c1.b(), m));
 }
 
-double ColorMap::alpha(double transformedValue) const
+double ColorMap::alpha(double v) const
 {
+  // This rescales the value so the alpha values match the color
+  v = clamp(static_cast<double>((v + rescale_shift_) * rescale_scale_), 0.0, 1.0);
+
   if (alphaLookup_.empty()) return 0.5;
   size_t i;
-  for(i = 0; (i < alphaLookup_.size()) && (alphaLookup_[i] < transformedValue); i += 2);
+  for(i = 0; (i < alphaLookup_.size()) && (alphaLookup_[i] < v); i += 2);
 
   double startx = 0.0f, starty, endx = 1.0f, endy;
-  if(i == 0)
+  if (i == 0)
   {
     endx = alphaLookup_[0];
     starty = endy = alphaLookup_[1];
   }
-  else if(i == alphaLookup_.size())
+  else if (i == alphaLookup_.size())
   {
     startx = alphaLookup_[i - 2];
     endy = starty = alphaLookup_[i - 1];
@@ -247,7 +217,7 @@ double ColorMap::alpha(double transformedValue) const
     endy = alphaLookup_[i + 1];
   }
 
-  double interp = (transformedValue - startx) / (endx - startx);
+  double interp = (v - startx) / (endx - startx);
   double value = ((1.0f - interp) * starty + (interp) * endy);
   return value;
 }
@@ -255,14 +225,14 @@ double ColorMap::alpha(double transformedValue) const
 ColorRGB ColorMap::applyAlpha(double transformed, ColorRGB colorWithoutAlpha) const
 {
   double a = alpha(transformed);
-  return ColorRGB(colorWithoutAlpha.r(), colorWithoutAlpha.g(), colorWithoutAlpha.b(), a);
+  return {colorWithoutAlpha.r(), colorWithoutAlpha.g(), colorWithoutAlpha.b(), a};
 }
 
 ColorRGB ColorMap::getColorMapVal(double v) const
 {
   double f = getTransformedValue(v);
   auto colorWithoutAlpha = readColorFromArray(colorData_, f);
-  return applyAlpha(f, colorWithoutAlpha);
+  return applyAlpha(v, colorWithoutAlpha);
 }
 
 ColorRGB ColorMap::valueToColor(double scalar) const
@@ -301,61 +271,57 @@ double ColorMap::valueToIndex(Tensor &tensor) const
   return getTransformedValue(magnitude);
 }
 
-
-
-//TODO: heavily refactor
-ColorMap_OSP_helper::ColorMap_OSP_helper(const std::string& name)
+std::string ColorMap::styleSheet() const
 {
-  opacityList.push_back(0.5);
-  opacityList.push_back(0.5);
+  if (styleSheet_.empty())
+  {  //TODO: cache these values, GUI is slow to update.
+    std::stringstream ss;
+    ss << "background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0,";
+    for (double i = 0.001; i < 1.0; i += 0.001)
+    { //styling values need to be in the range [0,1]
+      ss << " stop:" << i;
+      ss << " rgba(";
+      auto c = valueToColor(i * 2. - 1.); //need to match default ColorMap data range [-1,1]
+      ss << int(255.*c.r()) << ", " << int(255.*c.g()) << ", " << int(255.*c.b()) << ", 255),";
+    }
+    ss << ");";
+    styleSheet_ = ss.str();
+  }
+  return styleSheet_;
+}
 
+std::string ColorMap::info() const
+{
+  std::ostringstream ostr;
+  ostr <<
+    "Name: " << getColorMapName() <<
+    "\nResolution: " << getColorMapResolution() <<
+    "\nInvert: " << std::boolalpha << getColorMapInvert() <<
+    "\nShift: " << getColorMapShift() <<
+    "\nScale: " << getColorMapRescaleScale() <<
+    "\nRescale Shift: " << getColorMapRescaleShift();
+  return ostr.str();
+}
+
+ColorMap_OSP_helper::ColorMap_OSP_helper(ColorMapHandle cmap)
+{
   const std::vector<ColorRGB>* colorData;
-  auto entry = standardColorMaps.find(name);
+  auto entry = standardColorMaps.find(cmap->getColorMapName());
   if (entry != standardColorMaps.end()) colorData = entry->second;
   else                                  colorData = &rainbowData;
 
-  for(auto &color : *colorData)
+  min_ = -cmap->getColorMapRescaleShift();
+  auto range = (1.0/cmap->getColorMapRescaleScale());
+  max_ = min_ + range;
+  auto v = min_;
+  auto inc = range/colorData->size();
+  for (int i = 0; i <= colorData->size(); ++i)
   {
-    colorList.push_back(color.r());
-    colorList.push_back(color.g());
-    colorList.push_back(color.b());
+    auto color = cmap->valueToColor(v);
+    colorList_.push_back(color.r());
+    colorList_.push_back(color.g());
+    colorList_.push_back(color.b());
+    opacityList_.push_back(color.a());
+    v += inc;
   }
-
-  /*
-  if(name.compare("Rainbow") == 0){
-    colorList.push_back(0); colorList.push_back(0);     colorList.push_back(1);
-    colorList.push_back(0); colorList.push_back(0.75);  colorList.push_back(0.75);
-    colorList.push_back(0); colorList.push_back(1);     colorList.push_back(0);
-    colorList.push_back(1); colorList.push_back(0.5);   colorList.push_back(0);
-    colorList.push_back(1); colorList.push_back(0);     colorList.push_back(0);
-  }else if(name.compare("Old Rainbow") == 0){
-    colorList.push_back(0); colorList.push_back(0);  colorList.push_back(1);
-    colorList.push_back(0); colorList.push_back(1);  colorList.push_back(1);
-    colorList.push_back(0); colorList.push_back(1);  colorList.push_back(0);
-    colorList.push_back(1); colorList.push_back(1);  colorList.push_back(0);
-    colorList.push_back(1); colorList.push_back(0);  colorList.push_back(0);
-  }else if(name.compare("Blackbody") == 0){
-    colorList.push_back(0); colorList.push_back(0);  colorList.push_back(0);
-    colorList.push_back(1); colorList.push_back(0);  colorList.push_back(0);
-    colorList.push_back(1); colorList.push_back(1);  colorList.push_back(0);
-    colorList.push_back(1); colorList.push_back(1);  colorList.push_back(1);
-  }else if(name.compare("Grayscale") == 0){
-    colorList.push_back(0); colorList.push_back(0);     colorList.push_back(0);
-    colorList.push_back(1); colorList.push_back(1);     colorList.push_back(1);
-  }else if(name.compare("Orange,Black,Lime") == 0){
-    colorList.push_back(1); colorList.push_back(0.5); colorList.push_back(0);
-    colorList.push_back(0); colorList.push_back(0);   colorList.push_back(0);
-    colorList.push_back(0); colorList.push_back(1);   colorList.push_back(0);
-  }else if(name.compare("Darkhue") == 0){
-    colorList.push_back(0); colorList.push_back(0);   colorList.push_back(0);
-    colorList.push_back(0); colorList.push_back(0);   colorList.push_back(0.333333f);
-    colorList.push_back(0.5); colorList.push_back(0); colorList.push_back(0.5);
-    colorList.push_back(1); colorList.push_back(0);   colorList.push_back(0);
-    colorList.push_back(1); colorList.push_back(0);     colorList.push_back(0.25f*2.6666666f);
-  }else if(name.compare("BP Seismic") == 0){
-    colorList.push_back(0); colorList.push_back(0);  colorList.push_back(1);
-    colorList.push_back(1); colorList.push_back(1);  colorList.push_back(1);
-    colorList.push_back(1); colorList.push_back(0);  colorList.push_back(0);
-  }
-  */
 }

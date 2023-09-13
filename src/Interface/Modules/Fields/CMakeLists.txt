@@ -37,7 +37,6 @@ SET(Interface_Modules_Fields_FORMS
   SplitFieldByConnectedRegionDialog.ui
   CreateFieldData.ui
   CalculateFieldData.ui
-  InterfaceWithCleaverDialog.ui
   InterfaceWithCleaver2.ui
   InterfaceWithTetGen.ui
   SetFieldDataDialog.ui
@@ -79,6 +78,10 @@ SET(Interface_Modules_Fields_FORMS
   CreateImageDialog.ui
   GetCentroidsFromMeshDialog.ui
   CalculateMeshNodes.ui
+  ApplyFilterToFieldData.ui
+  CalculateFieldDataMetric.ui
+  CalculateBundleDifference.ui
+  ReportScalarFieldStats.ui
 )
 
 SET(Interface_Modules_Fields_HEADERS
@@ -92,7 +95,6 @@ SET(Interface_Modules_Fields_HEADERS
   ReportFieldInfoDialog.h
   SplitFieldByDomainDialog.h
   SplitFieldByConnectedRegionDialog.h
-  InterfaceWithCleaverDialog.h
   InterfaceWithCleaver2Dialog.h
   SetFieldDataDialog.h
   SetFieldDataToConstantValueDialog.h
@@ -135,6 +137,10 @@ SET(Interface_Modules_Fields_HEADERS
   GetCentroidsFromMeshDialog.h
   CalculateMeshNodesDialog.h
   InterfaceWithTetGenDialog.h
+  ApplyFilterToFieldDataDialog.h
+  CalculateFieldDataMetricDialog.h
+  CalculateBundleDifferenceDialog.h
+  ReportScalarFieldStatsDialog.h
 )
 
 SET(Interface_Modules_Fields_SOURCES
@@ -149,7 +155,6 @@ SET(Interface_Modules_Fields_SOURCES
   ReportFieldInfoDialog.cc
   SplitFieldByDomainDialog.cc
   SplitFieldByConnectedRegionDialog.cc
-  InterfaceWithCleaverDialog.cc
   InterfaceWithCleaver2Dialog.cc
   SetFieldDataDialog.cc
   SetFieldDataToConstantValueDialog.cc
@@ -190,6 +195,10 @@ SET(Interface_Modules_Fields_SOURCES
   GetCentroidsFromMeshDialog.cc
   CalculateMeshNodesDialog.cc
   InterfaceWithTetGenDialog.cc
+  ApplyFilterToFieldDataDialog.cc
+  CalculateFieldDataMetricDialog.cc
+  CalculateBundleDifferenceDialog.cc
+  ReportScalarFieldStatsDialog.cc
 )
 
 QT_WRAP_UI(Interface_Modules_Fields_FORMS_HEADERS "${Interface_Modules_Fields_FORMS}")
@@ -216,4 +225,5 @@ IF(BUILD_SHARED_LIBS)
   ADD_DEFINITIONS(-DBUILD_Interface_Modules_Fields)
 ENDIF(BUILD_SHARED_LIBS)
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../Base/CustomWidgets/CTK)
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})

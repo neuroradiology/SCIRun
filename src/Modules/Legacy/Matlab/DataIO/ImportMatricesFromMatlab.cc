@@ -36,7 +36,7 @@
 // ReSharper disable once CppUnusedIncludeDirective
 #include <Core/Datatypes/String.h>
 #include <Core/Datatypes/Matrix.h>
-
+#include <Core/Algorithms/Base/VariableHelper.h>
 #include <Core/Matlab/matlabfile.h>
 #include <Core/Matlab/matlabarray.h>
 #include <Core/Matlab/matlabconverter.h>
@@ -92,5 +92,5 @@ DatatypeHandle ImportMatricesFromMatlab::processMatlabData(const matlabarray& ma
 
 int ImportMatricesFromMatlab::indexMatlabFile(matlabconverter& converter, const matlabarray& mlarray, std::string& infostring) const
 {
-  return converter.sciMatrixCompatible(mlarray, infostring);
+  return converter.sciMatrixCompatible(mlarray, infostring, Core::Logging::LogSettings::Instance().verbose());
 }

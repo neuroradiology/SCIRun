@@ -42,14 +42,14 @@ namespace SCIRun {
       {
       public:
         JoinStrings();
-        virtual void execute() override;
-        virtual void setStateDefaults() override {}
+        void execute() override;
+        void setStateDefaults() override {}
         HAS_DYNAMIC_PORTS
 
         INPUT_PORT_DYNAMIC(0, Input, String);
         OUTPUT_PORT(0, Output, String);
 
-        MODULE_TRAITS_AND_INFO(NoAlgoOrUI)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::NoAlgoOrUI)
       };
     }}}
 

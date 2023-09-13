@@ -42,12 +42,12 @@ namespace SCIRun {
 		{
 			public:
 				ConvertMatrixToString();
-        virtual void setStateDefaults() override {}
-        virtual void execute() override;
+        void setStateDefaults() override {}
+        void execute() override;
 
 				INPUT_PORT(0, InputMatrix, Matrix);
 				OUTPUT_PORT(0, ResultString, String);
-				MODULE_TRAITS_AND_INFO(ModuleHasAlgorithm)
+				MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasAlgorithm)
 		};
 }}}
 

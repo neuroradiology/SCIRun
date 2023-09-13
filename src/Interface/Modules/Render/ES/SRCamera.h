@@ -32,9 +32,11 @@
 #ifndef SPIRE_APPSPECIFIC_SCIRUN_SRUNCAMERA_H
 #define SPIRE_APPSPECIFIC_SCIRUN_SRUNCAMERA_H
 
+#include <Core/Datatypes/Feedback.h>
 #include <Interface/Modules/Render/ES/RendererInterfaceFwd.h>
 #include <arc-look-at/ArcLookAt.hpp>
 #include <Interface/Modules/Render/share.h>
+#include <Core/Datatypes/Feedback.h>
 
 namespace SCIRun{
   namespace Render{
@@ -52,7 +54,7 @@ namespace SCIRun{
       void setAsOrthographic(float halfWidth, float halfHeight);
 
       /// Handle mouse down.
-      void mouseDownEvent(MouseButton btn, const glm::vec2 &pos);
+      void mouseDownEvent(const glm::vec2 &pos);
 
       /// Handle mouse movement.
       void mouseMoveEvent(MouseButton btn, const glm::vec2 &pos);
@@ -80,9 +82,9 @@ namespace SCIRun{
       void rotate(glm::vec2);
 
       // P  = Projection matrix | IV = Inverse view matrix |  V  = View matrix
-      const glm::mat4& getWorldToView() const        {return mV;}
+      const glm::mat4 getWorldToView() const { return mArcLookAt->getWorldViewTransform(); }
       const glm::mat4& getViewToProjection() const   {return mP;}
-      const glm::mat4 getWorldToProjection() const   {return mP * mV;}
+      const glm::mat4 getWorldToProjection() const   {return getViewToProjection() * getWorldToView();}
 
       /// Default camera settings
       static float getDefaultFOVY()   {return 32.0f * (glm::pi<float>() / 180.0f);}
@@ -126,9 +128,8 @@ namespace SCIRun{
       glm::vec2             mouseMoveVecR {0.0, 0.0};
       glm::vec2             autoRotateVec {0.0, 0.0};
 
-      glm::mat4             mVP           {};   ///< Projection * View transformation.
-      glm::mat4             mV            {};   ///< View transformation.
-      glm::mat4             mP            {};   ///< Projection transformation.
+      glm::mat4             mVP           {1.0f};   ///< Projection * View transformation.
+      glm::mat4             mP            {1.0f};   ///< Projection transformation.
 
       const ScreenParameters*             screenParameters_{nullptr};
       std::shared_ptr<spire::ArcLookAt>   mArcLookAt{};

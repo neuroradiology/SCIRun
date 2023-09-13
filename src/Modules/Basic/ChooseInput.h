@@ -55,16 +55,16 @@ namespace SCIRun {
         CONVERTED_VERSION_OF_MODULE(ChooseMatrix)
       public:
         ChooseInput();
-        virtual void execute() override;
-        virtual void setStateDefaults() override;
+        void execute() override;
+        void setStateDefaults() override;
         HAS_DYNAMIC_PORTS
-        virtual void portAddedSlot(const Dataflow::Networks::ModuleId& mid, const Dataflow::Networks::PortId& pid) override;
-        virtual void portRemovedSlot(const Dataflow::Networks::ModuleId& mid, const Dataflow::Networks::PortId& pid) override;
+        void portAddedSlot(const Dataflow::Networks::ModuleId& mid, const Dataflow::Networks::PortId& pid) override;
+        void portRemovedSlot(const Dataflow::Networks::ModuleId& mid, const Dataflow::Networks::PortId& pid) override;
 
         INPUT_PORT_DYNAMIC(0, Input, Datatype);
         OUTPUT_PORT(0, Output, Datatype);
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUI)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
       private:
         void portChangeImpl();
       };

@@ -45,8 +45,8 @@ namespace SCIRun {
       {
       public:
         InsertStringsIntoBundle();
-        virtual void setStateDefaults() override;
-        virtual void execute() override;
+        void setStateDefaults() override;
+        void execute() override;
         HAS_DYNAMIC_PORTS
 
         INPUT_PORT(0, InputBundle, Bundle);
@@ -58,7 +58,7 @@ namespace SCIRun {
         static const Core::Algorithms::AlgorithmParameterName StringNames;
         static const Core::Algorithms::AlgorithmParameterName StringReplace;
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUI)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
       };
 
     }

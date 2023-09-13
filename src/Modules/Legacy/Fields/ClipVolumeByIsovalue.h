@@ -43,14 +43,14 @@ namespace SCIRun {
       public:
         ClipVolumeByIsovalue();
 
-        virtual void execute() override;
-        virtual void setStateDefaults() override;
+        void execute() override;
+        void setStateDefaults() override;
 
         INPUT_PORT(0, InputField, Field);
         INPUT_PORT(1, Isovalue, Matrix);
         OUTPUT_PORT(0, OutputField, Field);
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUIAndAlgorithm)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUIAndAlgorithm)
       };
 
     }

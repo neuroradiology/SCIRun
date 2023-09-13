@@ -92,6 +92,7 @@ TARGET_LINK_LIBRARIES(Modules_Factory
   Modules_Legacy_Converters
   Modules_Legacy_Teem_DataIO
   Modules_Legacy_Teem_Misc
+  Modules_Legacy_Teem_Tend
   Modules_Legacy_Teem_Converters
   Modules_Legacy_String
 )
@@ -104,6 +105,6 @@ IF(BUILD_SHARED_LIBS)
   ADD_DEFINITIONS(-DBUILD_Modules_Factory)
 ENDIF(BUILD_SHARED_LIBS)
 
-IF(BUILD_TESTING OR TRAVIS_BUILD)
+IF(BUILD_TESTING)
   ADD_SUBDIRECTORY(Tests)
 ENDIF()

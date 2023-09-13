@@ -178,7 +178,7 @@ private:
   GLuint sortObjects(const Core::Geometry::Vector& dir,
     const spire::ComponentGroup<ren::IBO>& ibo,
     const spire::ComponentGroup<SpireSubPass>& pass,
-    const spire::ComponentGroup<ren::StaticIBOMan>& iboMan)
+    const spire::ComponentGroup<ren::StaticIBOMan>&)
   {
     char* vbo_buffer = reinterpret_cast<char*>(pass.front().vbo.data->getBuffer());
     uint32_t* ibo_buffer = reinterpret_cast<uint32_t*>(pass.front().ibo.data->getBuffer());
@@ -210,7 +210,7 @@ private:
 
     std::vector<char> sorted_buffer(pass.front().ibo.data->getBufferSize());
     char* ibuffer = reinterpret_cast<char*>(pass.front().ibo.data->getBuffer());
-    char* sbuffer = !sorted_buffer.empty() ? reinterpret_cast<char*>(&sorted_buffer[0]) : 0;
+    char* sbuffer = !sorted_buffer.empty() ? reinterpret_cast<char*>(&sorted_buffer[0]) : nullptr;
     GLuint result = ibo.front().glid;
     if (sbuffer && num_triangles > 0)
     {
@@ -252,7 +252,7 @@ private:
       const spire::ComponentGroup<ren::StaticGLState>& defaultGLState,
       const spire::ComponentGroup<ren::StaticVBOMan>& vboMan,
       const spire::ComponentGroup<ren::StaticIBOMan>& iboMan,
-      const spire::ComponentGroup<ren::StaticTextureMan>& texMan) override
+      const spire::ComponentGroup<ren::StaticTextureMan>&) override
   {
     /// \todo This needs to be moved to pre-execute.
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
@@ -260,14 +260,14 @@ private:
       return;
     }
 
-    if (srstate.front().state.get(RenderState::IS_TEXT))
+    if (srstate.front().state.get(RenderState::ActionFlags::IS_TEXT))
     {
       return;
     }
 
-    bool doRender = srstate.front().state.get(RenderState::USE_TRANSPARENCY) ||
-      srstate.front().state.get(RenderState::USE_TRANSPARENT_EDGES) ||
-      srstate.front().state.get(RenderState::USE_TRANSPARENT_NODES);
+    bool doRender = srstate.front().state.get(RenderState::ActionFlags::USE_TRANSPARENCY) ||
+      srstate.front().state.get(RenderState::ActionFlags::USE_TRANSPARENT_EDGES) ||
+      srstate.front().state.get(RenderState::ActionFlags::USE_TRANSPARENT_NODES);
 
     if (!doRender)
     {
@@ -563,15 +563,15 @@ private:
             rlistTrafo, camera.front().data, time.front().globalTime);
 
         GL(glDrawElements(ibo.front().primMode, ibo.front().numPrims,
-                          ibo.front().primType, 0));
+                          ibo.front().primType, nullptr));
       }
     }
     else
     {
-      if (!srstate.front().state.get(RenderState::IS_DOUBLE_SIDED))
+      if (!srstate.front().state.get(RenderState::ActionFlags::IS_DOUBLE_SIDED))
       {
         GL(glDrawElements(ibo.front().primMode, ibo.front().numPrims,
-                          ibo.front().primType, 0));
+                          ibo.front().primType, nullptr));
       }
       else
       {
@@ -585,12 +585,12 @@ private:
         GL(glUniform1f(fdToggleLoc, 1.0f));
         glCullFace(GL_BACK);
         GL(glDrawElements(ibo.front().primMode, ibo.front().numPrims,
-                          ibo.front().primType, 0));
+                          ibo.front().primType, nullptr));
 
         GL(glUniform1f(fdToggleLoc, 0.0f));
         glCullFace(GL_FRONT);
         GL(glDrawElements(ibo.front().primMode, ibo.front().numPrims,
-                          ibo.front().primType, 0));
+                          ibo.front().primType, nullptr));
       }
     }
 

@@ -54,14 +54,14 @@ class SCISHARE ModelTMSCoil : public SCIRun::Dataflow::Networks::Module,
   public:
     ModelTMSCoil();
 
-    virtual void execute() override;
-    virtual void setStateDefaults() override;
+    void execute() override;
+    void setStateDefaults() override;
 
     OUTPUT_PORT(0, Mesh, Field);
 
     NEW_BRAIN_STIMULATOR_MODULE
 
-    MODULE_TRAITS_AND_INFO(ModuleHasUIAndAlgorithm)
+    MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUIAndAlgorithm)
 };
 
 }}}

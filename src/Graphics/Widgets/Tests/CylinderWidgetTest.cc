@@ -37,14 +37,14 @@ TEST(CylinderWidgetTest, CanCreateSingleCylinderReal)
 {
   StubGeometryIDGenerator idGen;
 
-  CylinderWidget cylinder({{idGen, "testCylinder1"}, boost::make_shared<RealGlyphFactory>()},
+  CylinderWidget cylinder({{idGen, "testCylinder1"}, makeShared<RealGlyphFactory>()},
   {
     {10.0, "red", {1,2,3}, {{0,0,0}, {1,1,1}}, 10},
     {1,1,0}, {2,2,0}
   });
 
   EXPECT_EQ(Point(1.5,1.5,0), cylinder.position());
-  EXPECT_EQ("<dummyGeomId>CylinderWidget::testCylinder1widget10100", cylinder.name());
+  EXPECT_EQ("<dummyGeomId>CylinderWidget::testCylinder10widget10100", cylinder.name());
 
 
   //FAIL() << "todo";
@@ -54,7 +54,7 @@ TEST(CylinderWidgetTest, CanCreateSingleCylinderStubbed)
 {
   StubGeometryIDGenerator idGen;
 
-  CylinderWidget cylinder({{idGen, "testCylinder1"}, boost::make_shared<StubGlyphFactory>()},
+  CylinderWidget cylinder({{idGen, "testCylinder1"}, makeShared<StubGlyphFactory>()},
   {
     {10.0, "red", {1,2,3}, {{0,0,0}, {1,1,1}}, 10},
     {1,1,0}, {2,2,0}

@@ -129,14 +129,14 @@ void OsprayViewer::setStateDefaults()
   state->setValue(Parameters::ZoomSpeed, 1.0);
 }
 
-void OsprayViewer::portRemovedSlotImpl(const PortId& pid)
+void OsprayViewer::portRemovedSlotImpl(const PortId&)
 {
   sendCompositeGeometry();
 }
 
-void OsprayViewer::asyncExecute(const PortId& pid, DatatypeHandle data)
+void OsprayViewer::asyncExecute(const PortId&, DatatypeHandle data)
 {
-  auto geom = boost::dynamic_pointer_cast<OsprayGeometryObject>(data);
+  auto geom = std::dynamic_pointer_cast<OsprayGeometryObject>(data);
   if (!geom)
   {
     error("Logical error: not a geometry object on OsprayViewer");

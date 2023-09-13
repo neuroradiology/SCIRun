@@ -45,8 +45,8 @@ namespace SCIRun {
       {
       public:
         GetStringsFromBundle();
-        virtual void setStateDefaults() override;
-        virtual void execute() override;
+        void setStateDefaults() override;
+        void execute() override;
 
         INPUT_PORT(0, InputBundle, Bundle);
         OUTPUT_PORT(0, OutputBundle, Bundle);
@@ -61,7 +61,7 @@ namespace SCIRun {
         static const Core::Algorithms::AlgorithmParameterName StringNames[];
         static const int NUM_BUNDLE_OUT = 6; //TODO: get from class def
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUI)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
       private:
         std::string makeStringNameList(const Core::Datatypes::Bundle& bundle) const;
       };

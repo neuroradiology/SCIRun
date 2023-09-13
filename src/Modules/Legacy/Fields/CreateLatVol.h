@@ -53,8 +53,8 @@ namespace SCIRun {
       public:
         CreateLatVol();
 
-        virtual void execute() override;
-        virtual void setStateDefaults() override;
+        void execute() override;
+        void setStateDefaults() override;
 
         INPUT_PORT(0, InputField, Field);
         INPUT_PORT(1, LatVolSize, DenseMatrix);
@@ -67,13 +67,13 @@ namespace SCIRun {
         static const Core::Algorithms::AlgorithmParameterName DataAtLocation;
         static const Core::Algorithms::AlgorithmParameterName ElementSizeNormalized;
 
-        enum DataLocation { NODES, CELLS, NONE };
-        enum MeshDimensions { ELEMENTS_NORMALIZED, ELEMENT_SIZE_ONE };
+        enum class DataLocation { NODES, CELLS, NONE };
+        enum class MeshDimensions { ELEMENTS_NORMALIZED, ELEMENT_SIZE_ONE };
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUI)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
 
       private:
-        enum DataTypeEnum { SCALAR, VECTOR, TENSOR };
+        enum class DataTypeEnum { SCALAR, VECTOR, TENSOR };
       };
     }
   }

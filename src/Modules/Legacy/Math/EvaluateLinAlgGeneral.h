@@ -42,8 +42,8 @@ namespace SCIRun {
       {
       public:
         EvaluateLinearAlgebraGeneral();
-        virtual void execute() override;
-        virtual void setStateDefaults() override;
+        void execute() override;
+        void setStateDefaults() override;
         INPUT_PORT(0, i1, Matrix);
         INPUT_PORT(1, i2, Matrix);
         INPUT_PORT(2, i3, Matrix);
@@ -55,7 +55,7 @@ namespace SCIRun {
         OUTPUT_PORT(3, o4, Matrix);
         OUTPUT_PORT(4, o5, Matrix);
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUI)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
       };
 }}}
 

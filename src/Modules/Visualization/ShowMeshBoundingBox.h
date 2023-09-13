@@ -37,24 +37,24 @@ namespace Modules {
 namespace Visualization {
   class ShowMeshBoundingBoxImpl;
 
-  class SCISHARE ShowMeshBoundingBox : public Dataflow::Networks::GeometryGeneratingModule,
-    public Has1InputPort<FieldPortTag>, public Has1OutputPort<GeometryPortTag>
+  class SCISHARE ShowMeshBoundingBox final : public Dataflow::Networks::GeometryGeneratingModule,
+                                             public Has1InputPort<FieldPortTag>, public Has1OutputPort<GeometryPortTag>
   {
   public:
     ShowMeshBoundingBox();
-    virtual void execute();
-    virtual void setStateDefaults();
+    void execute() override;
+    void setStateDefaults() override;
 
     INPUT_PORT(0, InputField, Field);
     OUTPUT_PORT(0, OutputGeom, GeometryObject);
 
-    MODULE_TRAITS_AND_INFO(ModuleHasUI)
+    MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
 
     static const Core::Algorithms::AlgorithmParameterName XSize;
     static const Core::Algorithms::AlgorithmParameterName YSize;
     static const Core::Algorithms::AlgorithmParameterName ZSize;
   private:
-    boost::shared_ptr<ShowMeshBoundingBoxImpl> impl_;
+    SharedPointer<ShowMeshBoundingBoxImpl> impl_;
   };
 }}}
 

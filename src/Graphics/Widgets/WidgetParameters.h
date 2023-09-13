@@ -29,6 +29,8 @@ DEALINGS IN THE SOFTWARE.
 #ifndef Graphics_Graphics_Widgets_WidgetParameters_H
 #define Graphics_Graphics_Widgets_WidgetParameters_H
 
+#include <Core/Datatypes/Feedback.h>
+#include <Core/Datatypes/Dyadic3DTensor.h>
 #include <Core/GeometryPrimitives/Point.h>
 #include <Graphics/Datatypes/GeometryImpl.h>
 #include <Graphics/Widgets/share.h>
@@ -54,6 +56,15 @@ namespace SCIRun
         Core::Geometry::Point point;
       };
 
+      struct SCISHARE SuperquadricParameters
+      {
+        CommonWidgetParameters common;
+        Core::Geometry::Point point;
+        Core::Datatypes::Dyadic3DTensor tensor;
+        double A;
+        double B;
+      };
+
       struct SCISHARE CylinderParameters
       {
         CommonWidgetParameters common;
@@ -70,19 +81,22 @@ namespace SCIRun
 
       struct SCISHARE BoxPosition
       {
-        Core::Geometry::Point center_, right_, down_, in_;
+        Core::Geometry::Point center_;
+        std::vector<Core::Geometry::Vector> scaledEigvecs_;
 
-        void setPosition(const Core::Geometry::Point &center,
-                         const Core::Geometry::Point &right,
-                         const Core::Geometry::Point &down,
-                         const Core::Geometry::Point &in);
-        void getPosition(Core::Geometry::Point &center,
-                         Core::Geometry::Point &right,
-                         Core::Geometry::Point &down,
-                         Core::Geometry::Point &in) const;
+        // void setPosition(const Core::Geometry::Point &center,
+                         // const std::vector<Core::Geometry::Vector>& scaledEigvecs);
+        // Core::Geometry::Point getCenter() const;
+        // const std::vector<Core::Geometry::Vector>& getScaledEigvecs() const;
       };
 
       struct SCISHARE BasicBoundingBoxParameters
+      {
+        CommonWidgetParameters common;
+        BoxPosition pos;
+      };
+
+      struct SCISHARE BoundingBoxParameters
       {
         CommonWidgetParameters common;
         BoxPosition pos;
@@ -97,30 +111,49 @@ namespace SCIRun
         size_t widget_num, widget_iter;
       };
 
-      // These will give different types of widget movement through ViewScene.
-      // To use rotation and scaling, an origin point must be given.
-      enum class WidgetMovement
+      // Whether a widget's movement can be propagated using a shared transform calculator.
+      enum class WidgetMovementSharing
       {
-        NONE,
-        TRANSLATE,
-        ROTATE,
-        SCALE
+        SHARED,
+        UNIQUE
+      };
+
+      using WidgetMovementFamilyMap = std::map<Core::Datatypes::WidgetMovement, WidgetMovementSharing>;
+
+      struct SCISHARE WidgetMovementFamily
+      {
+        Core::Datatypes::WidgetMovement base;
+        WidgetMovementFamilyMap propagated;
       };
 
       enum class WidgetInteraction
       {
         CLICK,
+        RIGHT_CLICK,
         OTHER_TYPE_OF_CLICK //TODO
       };
 
-      using TransformMapping = std::map<WidgetInteraction, WidgetMovement>;
-      using TransformMappingParams = std::initializer_list<TransformMapping::value_type>;
+      using TransformMapping = std::map<WidgetInteraction, WidgetMovementFamily>;
+
+      class SCISHARE WidgetMovementFamilyBuilder
+      {
+      public:
+        explicit WidgetMovementFamilyBuilder(Core::Datatypes::WidgetMovement base) : base_(base) {}
+        WidgetMovementFamilyBuilder& sharedMovements(std::initializer_list<Core::Datatypes::WidgetMovement> moves);
+        WidgetMovementFamilyBuilder& uniqueMovements(std::initializer_list<Core::Datatypes::WidgetMovement> moves);
+        WidgetMovementFamily build() const { return { base_, wmf_ }; }
+      private:
+        Core::Datatypes::WidgetMovement base_;
+        WidgetMovementFamilyMap wmf_;
+      };
+
+      SCISHARE WidgetMovementFamily singleMovementWidget(Core::Datatypes::WidgetMovement base);
 
       struct SCISHARE WidgetBaseParameters
       {
         const Core::GeometryIDGenerator& idGenerator;
         std::string tag;
-        TransformMappingParams mapping;
+        TransformMapping mapping;
       };
 
       class AbstractGlyphFactory;
@@ -132,56 +165,42 @@ namespace SCIRun
         AbstractGlyphFactoryPtr glyphMaker;
       };
 
-      using SimpleWidgetEventFunc = std::function<void(const std::string&)>;
-      struct SimpleWidgetEvent
-      {
-        WidgetMovement moveType;
-        SimpleWidgetEventFunc func;
-      };
+      class WidgetBase;
 
-      //TODO: generify
-      struct SimpleWidgetEventKey
-      {
-        WidgetMovement operator()(const SimpleWidgetEvent& e) const { return e.moveType; }
-      };
-
-      struct SimpleWidgetEventValue
-      {
-        SimpleWidgetEventFunc operator()(const SimpleWidgetEvent& e) const { return e.func; }
-      };
-
-      template <class Observer, class EventKey, class Event, class KeyFunc, class ObserveFunc, class IdFunc>
-      class Observable
+      class SCISHARE WidgetEvent
       {
       public:
-        Observable() {}
-        void registerObserver(const EventKey& event, const Observer& observer)
+        virtual ~WidgetEvent() {}
+        virtual Core::Datatypes::WidgetMovement baseMovement() const = 0;
+        virtual void move(WidgetBase* widget, Core::Datatypes::WidgetMovement moveType) const = 0;
+      };
+
+      using WidgetEventPtr = SharedPointer<WidgetEvent>;
+
+      class SCISHARE WidgetMovementMediator
+      {
+      public:
+        WidgetMovementMediator() {}
+
+        void registerObserver(Core::Datatypes::WidgetMovement clickedMovement, WidgetBase* observer, Core::Datatypes::WidgetMovement observerMovement)
         {
-          observers_[event].push_back(observer);
+          observers_[clickedMovement][observerMovement].push_back(observer);
         }
 
-        void notify(const Event& event) const
-        {
-          auto eventObservers = observers_.find(keyFunc_(event));
-          if (eventObservers != observers_.cend())
-          {
-            for (const auto& obs : eventObservers->second)
-              observeFunc_(event)(idFunc_(obs));
-          }
-        }
+        void mediate(WidgetBase* sender, WidgetEventPtr event) const;
+
+        glm::mat4 latestTransform() const;
 
       private:
-        KeyFunc keyFunc_;
-        ObserveFunc observeFunc_;
-        IdFunc idFunc_;
-        std::map<EventKey, std::vector<Observer>> observers_;
+        using SubwidgetMovementMap = std::map<Core::Datatypes::WidgetMovement, std::vector<WidgetBase*>>;
+        std::map<Core::Datatypes::WidgetMovement, SubwidgetMovementMap> observers_;
       };
 
       class SCISHARE InputTransformMapper
       {
       public:
-        explicit InputTransformMapper(TransformMappingParams pairs);
-        WidgetMovement movementType(WidgetInteraction interaction) const;
+        explicit InputTransformMapper(const TransformMapping& tm);
+        WidgetMovementFamily movementType(WidgetInteraction interaction) const;
       private:
         TransformMapping interactionMap_;
       };
@@ -192,6 +211,7 @@ namespace SCIRun
       };
 
       using TransformParametersPtr = std::shared_ptr<TransformParameters>;
+      using MultiTransformParameters = std::vector<TransformParametersPtr>;
 
       struct SCISHARE Rotation : TransformParameters
       {
@@ -199,23 +219,48 @@ namespace SCIRun
         const Core::Geometry::Point origin;
       };
 
-      struct SCISHARE Scaling : Rotation
+      struct SCISHARE Scaling : Rotation //TODO change inheritance
       {
         explicit Scaling(const Core::Geometry::Point& p, const Core::Geometry::Vector& v) : Rotation(p), flip(v) {}
         const Core::Geometry::Vector flip;
       };
 
-      SCISHARE Core::Geometry::Point getRotationOrigin(TransformParametersPtr t);
-      SCISHARE Core::Geometry::Vector getScaleFlipVector(TransformParametersPtr t);
+      struct SCISHARE AxisTransformParameters : TransformParameters
+      {
+        explicit AxisTransformParameters(const Core::Geometry::Vector& sa)
+          : scaleAxis(sa) {}
+        const Core::Geometry::Vector scaleAxis;
+      };
+
+      struct SCISHARE AxisScaling : AxisTransformParameters
+      {
+        explicit AxisScaling(const Core::Geometry::Point& p, const Core::Geometry::Vector& sa,
+                             const size_t scaleAxisIndex)
+          : AxisTransformParameters(sa), origin(p), scaleAxisIndex(scaleAxisIndex) {}
+        const Core::Geometry::Point origin;
+        const size_t scaleAxisIndex;
+      };
+
+     struct SCISHARE AxisTranslation : AxisTransformParameters
+     {
+        explicit AxisTranslation(const Core::Geometry::Vector& sa)
+          : AxisTransformParameters(sa) {}
+     };
+
+      SCISHARE Core::Geometry::Point getRotationOrigin(const MultiTransformParameters& t);
+      SCISHARE Core::Geometry::Vector getScaleFlipVector(const MultiTransformParameters& t);
+      SCISHARE Core::Geometry::Vector getAxisVector(const MultiTransformParameters& t);
+      SCISHARE size_t getAxisIndex(const MultiTransformParameters& t);
+      SCISHARE glm::mat4 getScaleAxisTrans(const MultiTransformParameters& t);
 
       class SCISHARE Transformable
       {
       public:
-        TransformParametersPtr transformParameters() const { return transformParameters_; }
+        const MultiTransformParameters& transformParameters() const { return transformParameters_; }
         template <class TransformType, class ... Params>
-        void setTransformParameters(Params&&... t) { transformParameters_ = std::make_shared<TransformType>(t...); }
+        void addTransformParameters(Params&&... t) { transformParameters_.push_back(std::make_shared<TransformType>(t...)); }
       private:
-        TransformParametersPtr transformParameters_;
+        MultiTransformParameters transformParameters_;
       };
     }
   }

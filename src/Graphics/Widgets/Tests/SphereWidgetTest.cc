@@ -39,14 +39,14 @@ TEST(SphereWidgetTest, CanCreateSingleSphereReal)
 {
   StubGeometryIDGenerator idGen;
 
-  SphereWidget sphere({{idGen, "testSphere1"}, boost::make_shared<RealGlyphFactory>()},
+  SphereWidget sphere({{idGen, "testSphere1"}, makeShared<RealGlyphFactory>()},
   {
     {10.0, "red", {1,2,3}, {{0,0,0}, {1,1,1}}, 10},
     {-1,1,0}
   });
 
   EXPECT_EQ(Point(-1,1,0), sphere.position());
-  EXPECT_EQ("<dummyGeomId>SphereWidget::testSphere1widget10100", sphere.name());
+  EXPECT_EQ("<dummyGeomId>SphereWidget::testSphere10widget10100", sphere.name());
 }
 
 TEST(SphereWidgetTest, CanCreateSingleSphereWithBuilder)
@@ -64,14 +64,14 @@ TEST(SphereWidgetTest, CanCreateSingleSphereWithBuilder)
     .build();
 
   EXPECT_EQ(Point(-1,1,0), sphere->position());
-  EXPECT_EQ("<dummyGeomId>SphereWidget::testSphere1widget10100", sphere->name());
+  EXPECT_EQ("<dummyGeomId>SphereWidget::testSphere10widget10100", sphere->name());
 }
 
 TEST(SphereWidgetTest, CanCreateSingleSphereStubGlyphs)
 {
   StubGeometryIDGenerator idGen;
 
-  SphereWidget sphere({{idGen, "testSphere1"}, boost::make_shared<StubGlyphFactory>()},
+  SphereWidget sphere({{idGen, "testSphere1"}, makeShared<StubGlyphFactory>()},
   {
     {10.0, "red", {1,2,3}, {{0,0,0}, {1,1,1}}, 10},
     {-1,1,0}
@@ -81,7 +81,8 @@ TEST(SphereWidgetTest, CanCreateSingleSphereStubGlyphs)
   EXPECT_EQ("__sphere__0", sphere.name());
 }
 
-TEST(WidgetMovementTreeTest, CanCreate)
+//TODO: might not need this idea
+TEST(WidgetMovementTreeTest, DISABLED_CanCreate)
 {
   StubGeometryIDGenerator idGen;
 

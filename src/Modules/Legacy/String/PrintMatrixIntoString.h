@@ -45,15 +45,15 @@ namespace SCIRun {
       {
       public:
         PrintMatrixIntoString();
-        virtual void execute() override;
-        virtual void setStateDefaults() override;
-        virtual bool hasDynamicPorts() const override { return true; }
+        void execute() override;
+        void setStateDefaults() override;
+        bool hasDynamicPorts() const override { return true; }
 
         INPUT_PORT(0, Format, String);
         INPUT_PORT_DYNAMIC(1, Input, Matrix);
         OUTPUT_PORT(0, Output, String);
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUI)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
       };
     }}}
 

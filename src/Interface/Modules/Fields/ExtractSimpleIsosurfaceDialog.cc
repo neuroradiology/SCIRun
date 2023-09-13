@@ -51,12 +51,11 @@ ExtractSimpleIsosurfaceDialog::ExtractSimpleIsosurfaceDialog(const std::string& 
   addDoubleSpinBoxManager(manualMaxDoubleSpinBox_, Parameters::ManualMaximumIsovalue);
   WidgetStyleMixin::tabStyle(tabWidget);
   addTabManager(tabWidget, Parameters::IsovalueChoice);
-  connect(singleHorizontalSlider_, SIGNAL(sliderReleased()), this, SLOT(sliderChanged()));
+  connect(singleHorizontalSlider_, &QSlider::sliderReleased, this, &ExtractSimpleIsosurfaceDialog::sliderChanged);
 }
 
 void ExtractSimpleIsosurfaceDialog::sliderChanged()
 {
-  //qDebug() << __FUNCTION__ << value;
   auto value = singleHorizontalSlider_->value();
   auto percent = static_cast<double>(value) / (singleHorizontalSlider_->maximum() - singleHorizontalSlider_->minimum());
   auto minmax = transient_value_cast<std::pair<double, double>>(state_->getTransientValue("fieldMinMax"));

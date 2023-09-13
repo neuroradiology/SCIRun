@@ -48,8 +48,8 @@ namespace SCIRun {
       public:
         GetDomainBoundary();
 
-        virtual void execute() override;
-        virtual void setStateDefaults() override;
+        void execute() override;
+        void setStateDefaults() override;
 
         INPUT_PORT(0, InputField, Field);
         INPUT_PORT(1, MinValue, Double);
@@ -57,7 +57,7 @@ namespace SCIRun {
         INPUT_PORT(3, ElemLink, SparseRowMatrix);
         OUTPUT_PORT(0, BoundaryField, Field);
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUIAndAlgorithm)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUIAndAlgorithm)
       };
 
     }

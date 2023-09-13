@@ -44,8 +44,8 @@ namespace Fields {
   {
   public:
     ReportFieldInfo();
-    virtual void execute() override;
-    virtual void setStateDefaults() override {}
+    void execute() override;
+    void setStateDefaults() override {}
     INPUT_PORT(0, InputField, Field);
     OUTPUT_PORT(0, NumNodes, Int32);
     OUTPUT_PORT(1, NumElements, Int32);
@@ -57,7 +57,7 @@ namespace Fields {
     OUTPUT_PORT(7, Dimensions, DenseMatrix);
     OUTPUT_PORT(8, GeomSize, Double);
 
-    MODULE_TRAITS_AND_INFO(ModuleHasUIAndAlgorithm)
+    MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUIAndAlgorithm)
   };
 }}}
 

@@ -38,18 +38,29 @@ using namespace SCIRun::Gui;
 using namespace SCIRun::Dataflow::Networks;
 using namespace SCIRun::Core::Logging;
 
-NetworkEditorControllerGuiProxy::NetworkEditorControllerGuiProxy(boost::shared_ptr<NetworkEditorController> controller, NetworkEditor* editor)
+NetworkEditorControllerGuiProxy::NetworkEditorControllerGuiProxy(SharedPointer<NetworkEditorController> controller, NetworkEditor* editor)
   : controller_(controller), editor_(editor)
 {
-  connections_.emplace_back(controller_->connectModuleAdded(boost::bind(&NetworkEditorControllerGuiProxy::moduleAdded, this, _1, _2, _3)));
-  connections_.emplace_back(controller_->connectModuleRemoved(boost::bind(&NetworkEditorControllerGuiProxy::moduleRemoved, this, _1)));
-  connections_.emplace_back(controller_->connectConnectionAdded(boost::bind(&NetworkEditorControllerGuiProxy::connectionAdded, this, _1)));
-  connections_.emplace_back(controller_->connectConnectionRemoved(boost::bind(&NetworkEditorControllerGuiProxy::connectionRemoved, this, _1)));
-  connections_.emplace_back(controller_->connectPortAdded(boost::bind(&NetworkEditorControllerGuiProxy::portAdded, this, _1, _2)));
-  connections_.emplace_back(controller_->connectPortRemoved(boost::bind(&NetworkEditorControllerGuiProxy::portRemoved, this, _1, _2)));
-  connections_.emplace_back(controller_->connectNetworkExecutionStarts([&]() { executionStarted(); }));
-  connections_.emplace_back(controller_->connectNetworkExecutionFinished(boost::bind(&NetworkEditorControllerGuiProxy::executionFinished, this, _1)));
-  connections_.emplace_back(controller_->connectNetworkDoneLoading(boost::bind(&NetworkEditorControllerGuiProxy::networkDoneLoading, this, _1)));
+  connections_.emplace_back(controller_->connectModuleAdded([this](const std::string& name, ModuleHandle module, const ModuleCounter& count)
+    { moduleAdded(name, module, count); }));
+  connections_.emplace_back(controller_->connectModuleRemoved([this](const ModuleId& id)
+    { moduleRemoved(id); }));
+  connections_.emplace_back(controller_->connectConnectionAdded([this](const ConnectionDescription& cd)
+    { connectionAdded(cd); }));
+  connections_.emplace_back(controller_->connectConnectionRemoved([this](const ConnectionId& id)
+    { connectionRemoved(id); }));
+  connections_.emplace_back(controller_->connectPortAdded([this](const ModuleId& mid, const PortId& pid)
+    { portAdded(mid, pid); }));
+  connections_.emplace_back(controller_->connectPortRemoved([this](const ModuleId& mid, const PortId& pid)
+    { portRemoved(mid, pid); }));
+  connections_.emplace_back(controller_->connectConnectionStatusChanged([this](const ConnectionId& id, bool status)
+    { connectionStatusChanged(id, status); }));
+  connections_.emplace_back(controller_->connectStaticNetworkExecutionStarts([this]()
+    { executionStarted(); }));
+  connections_.emplace_back(controller_->connectStaticNetworkExecutionFinished([this](int ret)
+    { executionFinished(ret); }));
+  connections_.emplace_back(controller_->connectNetworkDoneLoading([this](int nMod)
+    { networkDoneLoading(nMod); }));
 }
 
 NetworkEditorControllerGuiProxy::~NetworkEditorControllerGuiProxy()
@@ -58,9 +69,9 @@ NetworkEditorControllerGuiProxy::~NetworkEditorControllerGuiProxy()
     c.disconnect();
 }
 
-boost::shared_ptr<NetworkEditorControllerGuiProxy> NetworkEditorControllerGuiProxy::withSubnet(NetworkEditor* subnet) const
+SCIRun::SharedPointer<NetworkEditorControllerGuiProxy> NetworkEditorControllerGuiProxy::withSubnet(NetworkEditor* subnet) const
 {
-  return boost::make_shared<NetworkEditorControllerGuiProxy>(controller_, subnet);
+  return makeShared<NetworkEditorControllerGuiProxy>(controller_, subnet);
 }
 
 void NetworkEditorControllerGuiProxy::addModule(const std::string& moduleName)
@@ -80,12 +91,7 @@ void NetworkEditorControllerGuiProxy::removeModule(const ModuleId& id)
   controller_->removeModule(id);
 }
 
-void NetworkEditorControllerGuiProxy::interrupt(const ModuleId& id)
-{
-  controller_->interruptModule(id);
-}
-
-boost::optional<ConnectionId> NetworkEditorControllerGuiProxy::requestConnection(const PortDescriptionInterface* from, const PortDescriptionInterface* to)
+std::optional<ConnectionId> NetworkEditorControllerGuiProxy::requestConnection(const PortDescriptionInterface* from, const PortDescriptionInterface* to)
 {
   return controller_->requestConnection(from, to);
 }
@@ -115,14 +121,19 @@ void NetworkEditorControllerGuiProxy::appendToNetwork(const NetworkFileHandle& x
   controller_->appendToNetwork(xml);
 }
 
-void NetworkEditorControllerGuiProxy::executeAll(const ExecutableLookup& lookup)
+void NetworkEditorControllerGuiProxy::setExecutableLookup(const ExecutableLookup* lookup)
 {
-  controller_->executeAll(&lookup);
+  controller_->setExecutableLookup(lookup);
 }
 
-void NetworkEditorControllerGuiProxy::executeModule(const ModuleHandle& module, const ExecutableLookup& lookup, bool executeUpstream)
+void NetworkEditorControllerGuiProxy::executeAll()
 {
-  controller_->executeModule(module, &lookup, executeUpstream);
+  controller_->executeAll();
+}
+
+void NetworkEditorControllerGuiProxy::executeModule(const ModuleHandle& module, bool executeUpstream)
+{
+  controller_->executeModule(module, executeUpstream);
 }
 
 size_t NetworkEditorControllerGuiProxy::numModules() const
@@ -165,7 +176,7 @@ const ModuleDescriptionMap& NetworkEditorControllerGuiProxy::getAllAvailableModu
   return controller_->getAllAvailableModuleDescriptions();
 }
 
-boost::shared_ptr<DisableDynamicPortSwitch> NetworkEditorControllerGuiProxy::createDynamicPortSwitch()
+SCIRun::SharedPointer<DisableDynamicPortSwitch> NetworkEditorControllerGuiProxy::createDynamicPortSwitch()
 {
   return controller_->createDynamicPortSwitch();
 }

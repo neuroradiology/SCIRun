@@ -42,12 +42,12 @@ namespace SCIRun {
       {
       public:
         GetNetworkFileName();
-        virtual void execute() override;
-        virtual void setStateDefaults() override {}
+        void execute() override;
+        void setStateDefaults() override {}
 
         OUTPUT_PORT(0, Current_FileName, String);
 
-        MODULE_TRAITS_AND_INFO(NoAlgoOrUI)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::NoAlgoOrUI)
       };
     }}}
 

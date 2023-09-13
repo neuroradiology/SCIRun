@@ -31,9 +31,10 @@
 #ifndef CORE_UTILS_TYPEIDTABLE_H
 #define CORE_UTILS_TYPEIDTABLE_H
 
-#include <boost/thread/mutex.hpp>
+#include <Core/Thread/Mutex.h>
+#include <map>
+#include <optional>
 #include <boost/noncopyable.hpp>
-#include <boost/optional.hpp>
 #include <Core/Utils/share.h>
 
 namespace SCIRun
@@ -48,12 +49,12 @@ namespace Utility
   class TypeIDTable : boost::noncopyable
   {
   public:
-    typedef boost::optional<const CtorInfo&> CtorInfoOption;
+    typedef std::optional<CtorInfo> CtorInfoOption;
 
     //do locking internally
     CtorInfoOption findConstructorInfo(const std::string& key) const
     {
-      boost::mutex::scoped_lock s(lock_);
+      Core::Thread::Guard s(lock_);
       auto iter = lookup_.find(key);
       if (iter == lookup_.end())
         return CtorInfoOption();
@@ -62,7 +63,7 @@ namespace Utility
 
     bool registerConstructorInfo(const std::string& key, const CtorInfo& info)
     {
-      boost::mutex::scoped_lock s(lock_);
+      Core::Thread::Guard s(lock_);
       auto iter = lookup_.find(key);
       if (iter != lookup_.end())
       {
@@ -81,7 +82,7 @@ namespace Utility
     size_t size() const { return lookup_.size(); }
 
   private:
-    mutable boost::mutex lock_;
+    mutable Thread::Mutex lock_;
     std::map<std::string, CtorInfo> lookup_;
   };
 

@@ -121,7 +121,7 @@ void WriteG3D::execute()
 #endif
 }
 
-bool WriteG3D::useCustomExporter(const std::string& filename) const
+bool WriteG3D::useCustomExporter(const std::string&) const
 {
   return true;
 }
@@ -161,8 +161,6 @@ void WriteG3D::calculateColors()
 
     while (eiter != eiter_end)
     {
-      checkForInterruption();
-
       Point p;
       mesh->get_point(p, *eiter);
 

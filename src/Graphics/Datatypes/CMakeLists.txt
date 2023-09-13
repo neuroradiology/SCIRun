@@ -28,10 +28,13 @@
 
 SET(Graphics_Datatypes_SRCS
   GeometryImpl.cc
+  DataConversions.cc
 )
 
 SET(Graphics_Datatypes_HEADERS
   GeometryImpl.h
+  RenderFieldState.h
+  DataConversions.h
   share.h
 )
 
@@ -43,11 +46,10 @@ SCIRUN_ADD_LIBRARY(Graphics_Datatypes
 TARGET_LINK_LIBRARIES(Graphics_Datatypes
   Core_Datatypes
   Core_Geometry_Primitives
-  Core_Algorithms_Visualization
 )
 
 IF(BUILD_SHARED_LIBS)
   ADD_DEFINITIONS(-DBUILD_Graphics_Datatypes)
 ENDIF(BUILD_SHARED_LIBS)
 
-#SCIRUN_ADD_TEST_DIR(Tests)
+SCIRUN_ADD_TEST_DIR(Tests)

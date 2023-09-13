@@ -35,9 +35,8 @@
 #include <Core/Datatypes/Legacy/Field/VField.h>
 #include <Core/Datatypes/Legacy/Field/FieldInformation.h>
 #include <Core/Datatypes/Color.h>
-#include <Core/Datatypes/ColorMap.h>
 #include <Core/Datatypes/Legacy/Field/VMesh.h>
-#include <Core/Algorithms/Visualization/RenderFieldState.h>
+#include <Graphics/Datatypes/RenderFieldState.h>
 #include <Core/Datatypes/Geometry.h>
 #include <Graphics/Datatypes/GeometryImpl.h>
 #include <Core/GeometryPrimitives/Vector.h>
@@ -50,8 +49,7 @@ namespace SCIRun{
 // This class takes in input information from the port and hands back coloring and scalar, vector, and tensor data
       class ShowFieldGlyphsPortHandler
       {
-      private:
-        enum FieldDataType
+        enum class FieldDataType
           {
            Scalar,
            Vector,
@@ -60,24 +58,24 @@ namespace SCIRun{
           };
 
         const Dataflow::Networks::Module* module_;
-        RenderState::InputPort secondaryVecInput;
+        RenderState::GlyphInputPort secondaryVecInput;
         VField* p_vfld{ nullptr };
         VField* s_vfld{ nullptr };
         VField* t_vfld{ nullptr };
         FieldHandle pf_handle;
         FieldInformation pf_info;
         Graphics::Datatypes::ColorScheme colorScheme;
-        RenderState::InputPort colorInput;
+        RenderState::GlyphInputPort colorInput;
         Core::Datatypes::ColorRGB defaultColor;
-        boost::optional<Core::Datatypes::ColorMapHandle> colorMap;
+        Core::Datatypes::ColorMapHandle colorMap_;
         Core::Datatypes::ColorMapHandle coordinateMap {nullptr}, textureMap {nullptr};
-        boost::optional<Core::Geometry::Tensor> pinputTensor, sinputTensor, tinputTensor;
-        boost::optional<Core::Geometry::Vector> pinputVector, sinputVector, tinputVector;
-        boost::optional<double> pinputScalar, sinputScalar, tinputScalar;
+        std::optional<Core::Geometry::Tensor> pinputTensor, sinputTensor, tinputTensor;
+        std::optional<Core::Geometry::Vector> pinputVector, sinputVector, tinputVector;
+        std::optional<double> pinputScalar, sinputScalar, tinputScalar;
         double current_index;
         bool colorMapGiven;
         bool secondaryFieldGiven, tertiaryFieldGiven;
-        FieldDataType pf_data_type{ UNKNOWN }, sf_data_type{ UNKNOWN }, tf_data_type{ UNKNOWN };
+        FieldDataType pf_data_type{FieldDataType::UNKNOWN }, sf_data_type{ FieldDataType::UNKNOWN }, tf_data_type{FieldDataType::UNKNOWN };
 
         void getFieldData(int index);
 
@@ -90,14 +88,13 @@ namespace SCIRun{
      public:
         ShowFieldGlyphsPortHandler(
                     const Dataflow::Networks::Module* mod_,
-                    Dataflow::Networks::ModuleStateHandle state,
                     const RenderState renState,
                     FieldHandle pf,
-                    boost::optional<FieldHandle> sf,
-                    boost::optional<FieldHandle> tf,
-                    boost::optional<Core::Datatypes::ColorMapHandle> pcolorMap,
-                    boost::optional<Core::Datatypes::ColorMapHandle> scolorMap,
-                    boost::optional<Core::Datatypes::ColorMapHandle> tcolorMap);
+                    std::optional<FieldHandle> sf,
+                    std::optional<FieldHandle> tf,
+                    std::optional<Core::Datatypes::ColorMapHandle> pcolorMap,
+                    std::optional<Core::Datatypes::ColorMapHandle> scolorMap,
+                    std::optional<Core::Datatypes::ColorMapHandle> tcolorMap);
 
         // Verifies that data is valid. Run this after initialization
         void checkForErrors();

@@ -42,8 +42,8 @@ namespace SCIRun {
       {
       public:
         AddLinkedNodesToLinearSystem();
-        virtual void setStateDefaults() override {}
-        virtual void execute() override;
+        void setStateDefaults() override {}
+        void execute() override;
 
         INPUT_PORT(0, LHS, SparseRowMatrix);
         INPUT_PORT(1, RHS, DenseColumnMatrix);
@@ -52,7 +52,7 @@ namespace SCIRun {
 	      OUTPUT_PORT(1, OutputRHS, Matrix);
         OUTPUT_PORT(2, Mapping, SparseRowMatrix);
 
-        MODULE_TRAITS_AND_INFO(NoAlgoOrUI)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::NoAlgoOrUI)
       };
 
     }

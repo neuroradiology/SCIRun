@@ -25,31 +25,12 @@
 #  DEALINGS IN THE SOFTWARE.
 #
 
-
-IF(UNIX)
-  # temporary - needed to make Travis CI build work
-  # TODO: revisit and delete when CMake 2.8.11 or greater is available
-  # or switch to another CI tool
-  CMAKE_MINIMUM_REQUIRED(VERSION 2.8.7 FATAL_ERROR)
-ELSE()
-  CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11 FATAL_ERROR)
-ENDIF()
-
-IF(POLICY CMP0042)
-  # TODO: when support for versions older than 2.8.12 is dropped,
-  # enable new policy and get rid of version check
-  #
-  # see https://cmake.org/cmake/help/v3.0/policy/CMP0042.html
-  CMAKE_POLICY(SET CMP0042 OLD)
-ENDIF()
-IF(POLICY CMP0043)
-  CMAKE_POLICY(SET CMP0043 OLD)
-ENDIF()
-IF(POLICY CMP0049)
-  CMAKE_POLICY(SET CMP0049 NEW)
-ENDIF()
+CMAKE_MINIMUM_REQUIRED(VERSION 3.9 FATAL_ERROR)
 
 PROJECT(SCIRun)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 IF(GENERATE_COMPILATION_DATABASE)
   set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -66,6 +47,8 @@ IF(${CMAKE_SOURCE_DIR} MATCHES ${CMAKE_BINARY_DIR})
   MESSAGE( "" )
   MESSAGE( FATAL_ERROR "Goodbye." )
 ENDIF()
+
+include(CheckCCompilerFlag)
 
 ########################################################################
 # Build shared libraries by default
@@ -192,11 +175,9 @@ IF(BUILD_TESTING)
   SET(BUILDNAME "${BUILDNAME_SCIRun}" CACHE STRING "Name of build on the dashboard")
   MARK_AS_ADVANCED(BUILDNAME)
 
-  #INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/CMake/TestDataConfig.cmake)
-  #TEST_DATA()
-
   OPTION(RUN_UNIT_TESTS "Run gtest unit tests" ON)
   OPTION(RUN_BASIC_REGRESSION_TESTS "Run basic regression tests" ON)
+  OPTION(RUN_IMPORT_TESTS "Run v4 import tests" ON)
 
   IF(NOT EXISTS "${SCIRUN_TEST_RESOURCE_DIR}")
     MESSAGE( WARNING "Test resource path does not exist. Please set it correctly to run all the unit and regression tests. Clone this github repo to get all the files: https://github.com/CIBC-Internal/SCIRunTestData" )
@@ -229,9 +210,6 @@ ENDMACRO()
 
 CONFIG_STANDARD_EXTERNAL( Zlib ZlibConfig.cmake ${Zlib_DIR} )
 INCLUDE(${ZLIB_USE_FILE})
-
-CONFIG_STANDARD_EXTERNAL( LibPNG LibPNGConfig.cmake ${LibPNG_DIR} )
-INCLUDE(${PNG_USE_FILE})
 
 CONFIG_STANDARD_EXTERNAL( SQLite SQLiteConfig.cmake ${SQLite_DIR} )
 INCLUDE(${SQLITE_USE_FILE})
@@ -285,34 +263,9 @@ ENDIF()
 # TODO: Better compiler check for OS X?
 # Try CMAKE_<LANG>_COMPILER_ID MATCHES Clang? Or check for Intel, GNU?
 IF(UNIX)
-  SET(CXX_LANGUAGE_STANDARD_FLAG "-std=c++11")
-  CHECK_CXX_COMPILER_FLAG(${CXX_LANGUAGE_STANDARD_FLAG} USE_CXX11_FLAG)
-  IF(NOT USE_CXX11_FLAG)
-    SET(CXX_LANGUAGE_STANDARD_FLAG "-std=c++0x")
-    CHECK_CXX_COMPILER_FLAG(${CXX_LANGUAGE_STANDARD_FLAG} USE_CXX0x_FLAG)
-    IF(NOT USE_CXX0x_FLAG)
-      SET(CXX_LANGUAGE_STANDARD_FLAG "")
-    ENDIF()
-  ENDIF()
-
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_LANGUAGE_STANDARD_FLAG} -Wall")
-
-  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth=1024")
-  endif()
-
   IF(NOT APPLE)
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--no-as-needed -ldl -lrt")
   ENDIF()
-ENDIF()
-
-IF(APPLE)
-  SET(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++11")
-  SET(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -ftemplate-depth=256")
-  SET(CMAKE_CXX_FLAGS_DEBUG "-Wshorten-64-to-32 ${CMAKE_CXX_FLAGS_DEBUG}")
-
-  ADD_DEFINITIONS(-DGTEST_USE_OWN_TR1_TUPLE=1)
 ENDIF()
 
 ########################################################################
@@ -332,7 +285,7 @@ MARK_AS_ADVANCED(BUILD_BUNDLE)
 # should be installed by default, searching system paths only
 IF(APPLE)
   FIND_PROGRAM(MACDEPLOYQT
-    HINTS ${Qt5_PATH} ${Qt5_PATH}/bin
+    HINTS ${Qt_PATH} ${Qt_PATH}/bin
     NAMES macdeployqt
     NO_DEFAULT_PATH
   )
@@ -370,18 +323,6 @@ IF(BUILD_DOXYGEN_DOCUMENTATION)
   ENDIF()
 ENDIF()
 
-# TODO: uncomment when LaTeX files are available
-# OPTION(BUILD_LATEX_DOCUMENTATION "Compile SCIRun LaTeX manuals and tutorials to PDF." OFF)
-# MARK_AS_ADVANCED(BUILD_LATEX_DOCUMENTATION)
-#
-# IF(BUILD_LATEX_DOCUMENTATION)
-#   FIND_PACKAGE(LATEX)
-#   IF(PDFLATEX_COMPILER)
-#     IF(BUILD_DOCUMENTATION)
-#     ADD_SUBDIRECTORY(Documentation/Manuals)
-#   ENDIF()
-# ENDIF()
-
 ########################################################################
 # Configure ospray module build
 
@@ -398,6 +339,12 @@ MARK_AS_ADVANCED(RENDERER_TRACE_ON)
 IF(RENDERER_TRACE_ON)
   ADD_DEFINITIONS(-DRENDERER_TRACE_ON)
 ENDIF()
+
+########################################################################
+# Matlab i/o option--see issue #1727 and #1692
+
+OPTION(MATLAB_STRING_OUTPUT_SIGNED_TYPE_FIX_FOR_SCIPY "Toggle quasi-fix for Issue #1692." OFF)
+MARK_AS_ADVANCED(MATLAB_STRING_OUTPUT_SIGNED_TYPE_FIX_FOR_SCIPY)
 
 ########################################################################
 # Copy Spire-SCIRun specific assets and shaders
@@ -463,56 +410,65 @@ FIND_PACKAGE(OpenGL REQUIRED)
 # Find and configure Qt
 
 IF(NOT BUILD_HEADLESS)
-  FIND_PACKAGE(Qt5 COMPONENTS Core Gui Widgets Network OpenGL Concurrent PrintSupport Svg REQUIRED HINTS ${Qt5_PATH})
+  if (${QT_VERSION_MAJOR} STREQUAL "6")
+    FIND_PACKAGE(Qt${QT_VERSION_MAJOR} COMPONENTS DBus DBusTools Core Gui Widgets Network OpenGL Concurrent PrintSupport Svg CoreTools GuiTools WidgetsTools OpenGLWidgets REQUIRED HINTS ${Qt_PATH})
+  else()
+    FIND_PACKAGE(Qt${QT_VERSION_MAJOR} COMPONENTS Core Gui Widgets Network OpenGL Concurrent PrintSupport Svg REQUIRED HINTS ${Qt_PATH})
+  endif()
 
-  IF(Qt5Core_FOUND)
-    MESSAGE(STATUS "Found Qt version: ${Qt5Core_VERSION_STRING}")
-    ADD_DEFINITIONS(-DQT5_VERSION=${Qt5Core_VERSION_STRING})
-    INCLUDE_DIRECTORIES(${Qt5Core_INCLUDE_DIRS})
-	  INCLUDE_DIRECTORIES(${Qt5Widgets_INCLUDE_DIRS})
-    INCLUDE_DIRECTORIES(${Qt5Gui_INCLUDE_DIRS})
-    INCLUDE_DIRECTORIES(${Qt5Network_INCLUDE_DIRS})
-    INCLUDE_DIRECTORIES(${Qt5OpenGL_INCLUDE_DIRS})
-    INCLUDE_DIRECTORIES(${Qt5Concurrent_INCLUDE_DIRS})
-    INCLUDE_DIRECTORIES(${Qt5PrintSupport_INCLUDE_DIRS})
-    INCLUDE_DIRECTORIES(${Qt5Svg_INCLUDE_DIRS})
-    ADD_DEFINITIONS(${Qt5Core_DEFINITIONS})
-    ADD_DEFINITIONS(${Qt5Widgets_DEFINITIONS})
-    ADD_DEFINITIONS(${Qt5Gui_DEFINITIONS})
-    ADD_DEFINITIONS(${Qt5Network_DEFINITIONS})
-    ADD_DEFINITIONS(${Qt5OpenGL_DEFINITIONS})
-    ADD_DEFINITIONS(${Qt5Concurrent_DEFINITIONS})
-    ADD_DEFINITIONS(${Qt5PrintSupport_DEFINITIONS})
-    ADD_DEFINITIONS(${Qt5Svg_DEFINITIONS})
-    SET(QT_LIBRARIES Qt5::Widgets)
+  IF(Qt${QT_VERSION_MAJOR}Core_FOUND)
+    MESSAGE(STATUS "Found Qt version: ${Qt${QT_VERSION_MAJOR}Core_VERSION_STRING}")
+    INCLUDE_DIRECTORIES(${Qt${QT_VERSION_MAJOR}Core_INCLUDE_DIRS})
+	  INCLUDE_DIRECTORIES(${Qt${QT_VERSION_MAJOR}Widgets_INCLUDE_DIRS})
+    INCLUDE_DIRECTORIES(${Qt${QT_VERSION_MAJOR}Gui_INCLUDE_DIRS})
+    INCLUDE_DIRECTORIES(${Qt${QT_VERSION_MAJOR}Network_INCLUDE_DIRS})
+    INCLUDE_DIRECTORIES(${Qt${QT_VERSION_MAJOR}OpenGL_INCLUDE_DIRS})
+    INCLUDE_DIRECTORIES(${Qt${QT_VERSION_MAJOR}Concurrent_INCLUDE_DIRS})
+    INCLUDE_DIRECTORIES(${Qt${QT_VERSION_MAJOR}PrintSupport_INCLUDE_DIRS})
+    INCLUDE_DIRECTORIES(${Qt${QT_VERSION_MAJOR}Svg_INCLUDE_DIRS})
+    INCLUDE_DIRECTORIES(${Qt${QT_VERSION_MAJOR}DBus_INCLUDE_DIRS})
   ELSE()
-    MESSAGE(FATAL_ERROR "Qt5 is required for building the SCIRun GUI")
+    MESSAGE(FATAL_ERROR "Qt is required for building the SCIRun GUI")
   ENDIF()
 
-  IF(Qt5Core_FOUND)
+  IF(Qt${QT_VERSION_MAJOR}Core_FOUND)
     INCLUDE_DIRECTORIES(${QT_INCLUDE_DIR})
     ADD_DEFINITIONS(${QT_DEFINITIONS})
   ELSE()
-    MESSAGE(FATAL_ERROR "QT 5.13 or greater is required to build SCIRun")
+    MESSAGE(FATAL_ERROR "Qt 5.13 or greater is required to build SCIRun")
   ENDIF()
 
   ADD_DEFINITIONS(-DQT_NO_KEYWORDS)
 
-  MACRO(QT_WRAP_UI arg1 arg2)
-    QT5_WRAP_UI(${arg1} ${arg2})
-  ENDMACRO(QT_WRAP_UI)
+  if (${QT_VERSION_MAJOR} STREQUAL "6")
+    ADD_DEFINITIONS(-DSCIRUN_QT6_ENABLED)
+  endif()
 
-  MACRO(QT_WRAP_CPP arg1 arg2)
-    QT5_WRAP_CPP(${arg1} ${arg2})
-  ENDMACRO(QT_WRAP_CPP)
+  if (${QT_VERSION_MAJOR} STREQUAL "5")
+    MACRO(QT_WRAP_UI arg1 arg2)
+      QT5_WRAP_UI(${arg1} ${arg2})
+    ENDMACRO(QT_WRAP_UI)
 
-  MACRO(QT_ADD_RESOURCES arg1 arg2)
-    QT5_ADD_RESOURCES(${arg1} ${arg2})
-  ENDMACRO(QT_ADD_RESOURCES)
+    MACRO(QT_WRAP_CPP arg1 arg2)
+      QT5_WRAP_CPP(${arg1} ${arg2})
+    ENDMACRO(QT_WRAP_CPP)
+
+    MACRO(QT_ADD_RESOURCES arg1 arg2)
+      QT5_ADD_RESOURCES(${arg1} ${arg2})
+    ENDMACRO(QT_ADD_RESOURCES)
+
+    SET(QT_GRAPHICS_LIBRARIES Qt5::OpenGL)
+    SET(QT_NETWORK_LIBRARIES Qt5::Network)
+    SET(QT_LIBRARIES Qt5::Widgets)
+  else()
+    SET(QT_GRAPHICS_LIBRARIES Qt::OpenGL Qt::OpenGLWidgets)
+    SET(QT_NETWORK_LIBRARIES Qt::Network)
+    SET(QT_LIBRARIES Qt::Widgets)
+  endif()
 
 ENDIF()
 
-IF(TRAVIS_BUILD OR Qt5Widgets_VERSION VERSION_LESS 5.13.0)
+IF(Qt${QT_VERSION_MAJOR}Widgets_VERSION VERSION_LESS 5.13.0)
   ADD_DEFINITIONS(-DOLDER_QT_SUPPORT_NEEDED)
 ENDIF()
 
@@ -528,6 +484,9 @@ ENDIF()
 # Includes
 
 SET(CMAKE_INCLUDE_DIRECTORIES_BEFORE ON)
+
+#message("SCI_CTK_INCLUDE")
+#message(${SCI_CTK_INCLUDE})
 
 INCLUDE_DIRECTORIES(
   ${CMAKE_CURRENT_BINARY_DIR}
@@ -576,6 +535,19 @@ ENDMACRO()
 
 MACRO(SCIRUN_ADD_LIBRARY library)
   ADD_LIBRARY(${library} ${ARGN})
+
+  if(MSVC)
+    # TODO:
+    # target_compile_options(${library} PRIVATE /W4 /WX)
+  else()
+    # TODO:
+    if(APPLE)
+      target_compile_options(${library} PRIVATE -Wall -Werror -Wunused-parameter -Winfinite-recursion)
+          #eventually: -Wall -Wextra -pedantic -Werror)
+    else()
+      target_compile_options(${library} PRIVATE -Wall -Wunused-parameter)
+    endif()
+  endif()
 
   # Set up installer package (Release build only)
   IF(WIN32)
@@ -779,14 +751,18 @@ SET_PROPERTY(TARGET Modules_Legacy_Matlab_DataIO PROPERTY FOLDER "Modules/DataIO
 SET_PROPERTY(TARGET Modules_Legacy_Visualization   PROPERTY FOLDER "Modules/Visualization")
 SET_PROPERTY(TARGET Modules_Legacy_Teem_DataIO   PROPERTY FOLDER "Modules/Teem")
 SET_PROPERTY(TARGET Modules_Legacy_Teem_Misc   PROPERTY FOLDER "Modules/Teem")
+SET_PROPERTY(TARGET Modules_Legacy_Teem_Tend   PROPERTY FOLDER "Modules/Teem")
 SET_PROPERTY(TARGET Modules_Legacy_Teem_Converters   PROPERTY FOLDER "Modules/Teem")
 SET_PROPERTY(TARGET Modules_Factory   PROPERTY FOLDER "Modules")
 
 SET_PROPERTY(TARGET Graphics_Glyphs   PROPERTY FOLDER "Graphics")
 SET_PROPERTY(TARGET Graphics_Widgets   PROPERTY FOLDER "Graphics")
 SET_PROPERTY(TARGET Graphics_Datatypes   PROPERTY FOLDER "Graphics")
+SET_PROPERTY(TARGET spire   PROPERTY FOLDER "Graphics")
 
-IF(BUILD_TESTING OR TRAVIS_BUILD)
+SET_PROPERTY(TARGET pugixml   PROPERTY FOLDER "Externals")
+
+IF(BUILD_TESTING)
   SET_PROPERTY(TARGET gmock         PROPERTY FOLDER "Testing Support")
   SET_PROPERTY(TARGET gmock_main   PROPERTY FOLDER "Testing Support")
   SET_PROPERTY(TARGET gtest         PROPERTY FOLDER "Testing Support")
@@ -828,6 +804,8 @@ IF(BUILD_TESTING)
   SET_PROPERTY(TARGET Core_DatabaseManager_Tests         PROPERTY FOLDER "Core/Tests")
   SET_PROPERTY(TARGET Core_ImportExport_Tests         PROPERTY FOLDER "Core/Tests")
   SET_PROPERTY(TARGET Core_IEPlugin_Tests         PROPERTY FOLDER "Core/Tests")
+  SET_PROPERTY(TARGET Graphics_Widgets_Tests         PROPERTY FOLDER "Graphics/Tests")
+  SET_PROPERTY(TARGET Graphics_Datatypes_Tests PROPERTY FOLDER "Graphics/Tests")
 
   SET_PROPERTY(TARGET Engine_Network_Tests   PROPERTY FOLDER "Dataflow/Engine/Tests")
   SET_PROPERTY(TARGET Engine_Scheduler_Tests   PROPERTY FOLDER "Dataflow/Engine/Tests")
@@ -862,7 +840,6 @@ IF(BUILD_TESTING)
   ENDIF()
 ENDIF()
 
-SET_PROPERTY(TARGET cleaver PROPERTY FOLDER "Externals")
 SET_PROPERTY(TARGET xml2 PROPERTY FOLDER "Externals")
 
 IF(BUILD_WITH_PYTHON)

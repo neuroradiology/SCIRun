@@ -54,6 +54,8 @@ namespace SCIRun {
         ALGORITHM_PARAMETER_DECL(ProbeColor);
         ALGORITHM_PARAMETER_DECL(SnapToNode);
         ALGORITHM_PARAMETER_DECL(SnapToElement);
+        ALGORITHM_PARAMETER_DECL(BBoxSize);
+        ALGORITHM_PARAMETER_DECL(UseBBoxSize);
       }
     }
   }
@@ -68,22 +70,22 @@ namespace SCIRun {
       public:
         GenerateSinglePointProbeFromField();
 
-        virtual void execute() override;
-        virtual void setStateDefaults() override;
+        void execute() override;
+        void setStateDefaults() override;
 
         INPUT_PORT(0, InputField, Field);
         OUTPUT_PORT(0, GeneratedWidget, GeometryObject);
         OUTPUT_PORT(1, GeneratedPoint, Field);
         OUTPUT_PORT(2, ElementIndex, Int32);
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUI)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
       private:
-        boost::shared_ptr<class GenerateSinglePointProbeFromFieldImpl> impl_;
+        SharedPointer<class GenerateSinglePointProbeFromFieldImpl> impl_;
         Core::Geometry::Point currentLocation() const;
         void processWidgetFeedback(const Core::Datatypes::ModuleFeedback& var);
         void adjustPositionFromTransform(const Core::Geometry::Transform& transformMatrix);
 
-        FieldHandle GenerateOutputField(boost::optional<FieldHandle> ifieldOption);
+        FieldHandle GenerateOutputField(std::optional<FieldHandle> ifieldOption);
         index_type GenerateIndex();
         void setNearestNode(const Core::Geometry::Point& location);
         void setNearestElement(const Core::Geometry::Point& location);

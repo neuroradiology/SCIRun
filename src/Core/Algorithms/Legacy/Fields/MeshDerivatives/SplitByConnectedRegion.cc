@@ -28,11 +28,13 @@
 
 #include <Core/Algorithms/Base/AlgorithmPreconditions.h>
 #include <Core/Algorithms/Legacy/Fields/MeshDerivatives/SplitByConnectedRegion.h>
+#include <Core/Algorithms/Legacy/Fields/DomainFields/SplitFieldByDomainAlgo.h>
 #include <Core/Algorithms/Base/AlgorithmVariableNames.h>
 #include <Core/Datatypes/Legacy/Field/FieldInformation.h>
 #include <Core/Datatypes/Legacy/Field/Mesh.h>
 #include <Core/Datatypes/Legacy/Field/VMesh.h>
 #include <Core/Datatypes/Legacy/Field/VField.h>
+#include <Core/Datatypes/Legacy/Bundle/Bundle.h>
 
 using namespace SCIRun;
 using namespace SCIRun::Core::Algorithms;
@@ -40,62 +42,59 @@ using namespace SCIRun::Core::Algorithms::Fields;
 using namespace SCIRun::Core::Datatypes;
 using namespace SCIRun::Core::Geometry;
 
-AlgorithmInputName SplitFieldByConnectedRegionAlgo::InputField("InputField");
-AlgorithmOutputName SplitFieldByConnectedRegionAlgo::OutputField1("OutputField1");
-AlgorithmOutputName SplitFieldByConnectedRegionAlgo::OutputField2("OutputField2");
-AlgorithmOutputName SplitFieldByConnectedRegionAlgo::OutputField3("OutputField3");
-AlgorithmOutputName SplitFieldByConnectedRegionAlgo::OutputField4("OutputField4");
-AlgorithmOutputName SplitFieldByConnectedRegionAlgo::OutputField5("OutputField5");
-AlgorithmOutputName SplitFieldByConnectedRegionAlgo::OutputField6("OutputField6");
-AlgorithmOutputName SplitFieldByConnectedRegionAlgo::OutputField7("OutputField7");
-AlgorithmOutputName SplitFieldByConnectedRegionAlgo::OutputField8("OutputField8");
+ALGORITHM_PARAMETER_DEF(Fields, SortDomainBySize);
+const AlgorithmOutputName SplitFieldByConnectedRegionAlgo::OutputField1("OutputField1");
+const AlgorithmOutputName SplitFieldByConnectedRegionAlgo::OutputField2("OutputField2");
+const AlgorithmOutputName SplitFieldByConnectedRegionAlgo::OutputField3("OutputField3");
+const AlgorithmOutputName SplitFieldByConnectedRegionAlgo::OutputField4("OutputField4");
+const AlgorithmOutputName SplitFieldByConnectedRegionAlgo::OutputField5("OutputField5");
+const AlgorithmOutputName SplitFieldByConnectedRegionAlgo::OutputField6("OutputField6");
+const AlgorithmOutputName SplitFieldByConnectedRegionAlgo::OutputField7("OutputField7");
+const AlgorithmOutputName SplitFieldByConnectedRegionAlgo::OutputField8("OutputField8");
+const AlgorithmOutputName SplitFieldByConnectedRegionAlgo::OutputBundle("OutputBundle");
 
-AlgorithmParameterName SplitFieldByConnectedRegionAlgo::SortDomainBySize() { return AlgorithmParameterName("SortDomainBySize"); }
-AlgorithmParameterName SplitFieldByConnectedRegionAlgo::SortAscending() { return AlgorithmParameterName("SortAscending"); }
-
-/// TODO: These should be refactored to hold const std::vector<double>& rather than double*
-class SortSizes : public std::binary_function<index_type,index_type,bool>
+class SortSizes
 {
   public:
-    SortSizes(double* sizes) : sizes_(sizes) {}
+    explicit SortSizes(const std::vector<double>& sizes) : sizes_(sizes) {}
 
-    bool operator()(index_type i1, index_type i2)
+    bool operator()(index_type i1, index_type i2) const
     {
       return (sizes_[i1] > sizes_[i2]);
     }
 
   private:
-    double*      sizes_;
+   const std::vector<double>&      sizes_;
 };
-/// TODO: These should be refactored to hold const std::vector<double>& rather than double*
-class AscSortSizes : public std::binary_function<index_type,index_type,bool>
+
+class AscSortSizes
 {
   public:
-    AscSortSizes(double* sizes) : sizes_(sizes) {}
+    explicit AscSortSizes(const std::vector<double>& sizes) : sizes_(sizes) {}
 
-    bool operator()(index_type i1, index_type i2)
+    bool operator()(index_type i1, index_type i2) const
     {
       return (sizes_[i1] < sizes_[i2]);
     }
 
   private:
-    double*      sizes_;
+    const std::vector<double>&      sizes_;
 };
 
 SplitFieldByConnectedRegionAlgo::SplitFieldByConnectedRegionAlgo()
 {
-  addParameter(SortDomainBySize(), false);
-  addParameter(SortAscending(), false);
+  addParameter(Parameters::SortDomainBySize, false);
+  addParameter(Parameters::SortAscending, false);
 }
 
 std::vector<FieldHandle> SplitFieldByConnectedRegionAlgo::run(FieldHandle input) const
 {
- bool sortDomainBySize = get(SortDomainBySize()).toBool();
- bool sortAscending = get(SortAscending()).toBool();
+ bool sortDomainBySize = get(Parameters::SortDomainBySize).toBool();
+ bool sortAscending = get(Parameters::SortAscending).toBool();
 
  if (!input)
  {
-      THROW_ALGORITHM_INPUT_ERROR("Input mesh is empty.");
+   THROW_ALGORITHM_INPUT_ERROR("Input mesh is empty.");
  }
 
  std::vector<FieldHandle> output;
@@ -298,11 +297,11 @@ std::vector<FieldHandle> SplitFieldByConnectedRegionAlgo::run(FieldHandle input)
     {
       if (sortAscending)
       {
-        std::sort(order.begin(), order.end(), AscSortSizes(&(sizes[0])));
+        std::sort(order.begin(), order.end(), AscSortSizes(sizes));
       }
       else
       {
-        std::sort(order.begin(), order.end(), SortSizes(&(sizes[0])));
+        std::sort(order.begin(), order.end(), SortSizes(sizes));
       }
     }
 
@@ -355,6 +354,14 @@ AlgorithmOutput SplitFieldByConnectedRegionAlgo::run(const AlgorithmInput& input
     output[OutputField8]=output_fields[7];
 
  /// TODO: enable dynamic output ports
-
+ 
+    auto boutput = std::make_shared<Bundle>();
+    for (size_t j = 0; j < output_fields.size() ; ++j)
+    {
+      boutput->set("Field" + std::to_string(j), output_fields.at(j));
+    }
+    
+    output[OutputBundle]=boutput;
+    
  return output;
 }

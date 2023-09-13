@@ -28,8 +28,6 @@
 
 #include <memory>
 #include <numeric>
-#include <boost/lexical_cast.hpp>
-#include <boost/bind.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <chrono>
 #include <atomic>
@@ -38,6 +36,7 @@
 #include <Core/Algorithms/Base/AlgorithmVariableNames.h>
 #include <Core/Datatypes/MetadataObject.h>
 #include <Dataflow/Network/PortManager.h>
+#include <Dataflow/Network/ModuleExceptions.h>
 #include <Dataflow/Network/ModuleStateInterface.h>
 #include <Dataflow/Network/Module.h>
 #include <Dataflow/Network/NullModuleState.h>
@@ -79,19 +78,19 @@ namespace detail
   {
   public:
     PerTypeInstanceCountIdGenerator() : mapLock_("moduleCounts") {}
-    virtual int makeId(const std::string& name) override final
+    int makeId(const std::string& name) override final
     {
       Guard g(mapLock_.get());
       return instanceCounts_[name]++;
     }
-    virtual bool takeId(const std::string& name, int id) override final
+    bool takeId(const std::string& name, int id) override final
     {
       Guard g(mapLock_.get());
       int next = instanceCounts_[name];
       instanceCounts_[name] = std::max(next, id + 1);
       return true;
     }
-    virtual void reset() override final
+    void reset() override final
     {
       Guard g(mapLock_.get());
       instanceCounts_.clear();
@@ -105,15 +104,15 @@ namespace detail
   class ModuleExecutionStateImpl : public ModuleExecutionState
   {
   public:
-    virtual Value currentState() const override
+    Value currentState() const override
     {
       return current_;
     }
-    virtual boost::signals2::connection connectExecutionStateChanged(const ExecutionStateChangedSignalType::slot_type& subscriber) override
+    boost::signals2::connection connectExecutionStateChanged(const ExecutionStateChangedSignalType::slot_type& subscriber) override
     {
       return signal_.connect(subscriber);
     }
-    virtual bool transitionTo(Value state) override
+    bool transitionTo(Value state) override
     {
       if (current_ != state)
       {
@@ -124,16 +123,16 @@ namespace detail
       setExpandedState(state);
       return true;
     }
-    virtual std::string currentColor() const override
+    std::string currentColor() const override
     {
       return "not implemented";
     }
-    virtual Value expandedState() const override
+    Value expandedState() const override
     {
       return expandedState_.value_or(currentState());
     }
 
-    virtual void setExpandedState(Value state) override
+    void setExpandedState(Value state) override
     {
       expandedState_ = state;
     }
@@ -141,7 +140,7 @@ namespace detail
   private:
     Value current_;
     ExecutionStateChangedSignalType signal_;
-    boost::optional<Value> expandedState_;
+    std::optional<Value> expandedState_;
   };
 }
 
@@ -166,11 +165,11 @@ namespace SCIRun
           has_ui_(hasUi),
           state_(stateFactory ? stateFactory->make_state(info_.module_name_) : new NullModuleState),
           metadata_(state_),
-          executionState_(boost::make_shared<detail::ModuleExecutionStateImpl>())
+          executionState_(makeShared<detail::ModuleExecutionStateImpl>())
         {
           // this captures the virtual call add_input_port, which will ensure dynamic ports have their asyncExecute listener attached (solves #957)
-          iports_.setModuleDynamicAddFunc([=](PortHandle p) { return module_->add_input_port(boost::dynamic_pointer_cast<InputPort>(p)); });
-          oports_.setModuleDynamicAddFunc([=](PortHandle p) { return module_->add_output_port(boost::dynamic_pointer_cast<OutputPort>(p)); });
+          iports_.setModuleDynamicAddFunc([=](PortHandle p) { return module_->add_input_port(std::dynamic_pointer_cast<InputPort>(p)); });
+          oports_.setModuleDynamicAddFunc([=](PortHandle p) { return module_->add_output_port(std::dynamic_pointer_cast<OutputPort>(p)); });
         }
 
         boost::atomic<bool> inputsChanged_ { false };
@@ -188,7 +187,7 @@ namespace SCIRun
         ExecuteBeginsSignalType executeBegins_;
         ExecuteEndsSignalType executeEnds_;
         ErrorSignalType errorSignal_;
-        std::vector<boost::shared_ptr<boost::signals2::scoped_connection>> portConnections_;
+        std::vector<SharedPointer<boost::signals2::scoped_connection>> portConnections_;
         ModuleInterface::ExecutionSelfRequestSignalType executionSelfRequested_;
 
         ModuleReexecutionStrategyHandle reexecute_;
@@ -204,6 +203,8 @@ namespace SCIRun
         std::string description_;
 
         bool returnCode_{ false };
+
+        NetworkInterface* network_ { nullptr };
       };
     }
   }
@@ -214,7 +215,7 @@ namespace SCIRun
 
 /*static*/ void Module::resetIdGenerator() { DefaultModuleFactories::idGenerator_->reset(); }
 
-const int Module::TraitFlags = SCIRun::Modules::UNDEFINED_MODULE_FLAG;
+const int Module::TraitFlags = static_cast<int>(Modules::ModuleFlags::UNDEFINED_MODULE_FLAG);
 
 Module::Module(const ModuleLookupInfo& info,
   bool hasUi,
@@ -222,10 +223,12 @@ Module::Module(const ModuleLookupInfo& info,
   ModuleStateFactoryHandle stateFactory,
   ReexecuteStrategyFactoryHandle reexFactory)
 {
-  impl_ = boost::make_shared<ModuleImpl>(this, info, hasUi, stateFactory);
+  //logCritical("Module() begin: {}", );
+
+  impl_ = makeShared<ModuleImpl>(this, info, hasUi, stateFactory);
 
   setLogger(DefaultModuleFactories::defaultLogger_);
-  setUpdaterFunc([](double x) {});
+  setUpdaterFunc([](double) {});
 
   LOG_TRACE("Module created: {} with id: {}", info.module_name_, impl_->id_.id_);
 
@@ -241,7 +244,7 @@ Module::Module(const ModuleLookupInfo& info,
   if (reexFactory)
     setReexecutionStrategy(reexFactory->create(*this));
 
-  impl_->executionState_->transitionTo(ModuleExecutionState::NotExecuted);
+  impl_->executionState_->transitionTo(ModuleExecutionState::Value::NotExecuted);
   setProgrammableInputPortEnabled(false);
 }
 
@@ -376,6 +379,11 @@ bool Module::executeWithSignals() NOEXCEPT
 {
   auto starting = "STARTING MODULE: " + id().id_;
 
+  if (isStoppable())
+  {
+    dynamic_cast<Stoppable*>(this)->resetStoppability();
+  }
+
   runProgrammablePortInput();
 
 #ifdef BUILD_HEADLESS //TODO: better headless logging
@@ -397,7 +405,7 @@ bool Module::executeWithSignals() NOEXCEPT
   status(starting);
   /// @todo: need separate logger per module
   //LOG_DEBUG("STARTING MODULE: " << id_.id_);
-  impl_->executionState_->transitionTo(ModuleExecutionState::Executing);
+  impl_->executionState_->transitionTo(ModuleExecutionState::Value::Executing);
   impl_->returnCode_ = false;
   bool threadStopValue = false;
 
@@ -416,7 +424,7 @@ bool Module::executeWithSignals() NOEXCEPT
   catch (PortNotFoundException& e)
   {
     std::ostringstream ostr;
-    ostr << "Port not found, it may need initializing the module constructor. " << std::endl << "Message: " << e.what() << std::endl;
+    ostr << "Port not found, it may need initializing in the module constructor. " << std::endl << "Message: " << e.what() << std::endl;
     error(ostr.str());
   }
   catch (AlgorithmParameterNotFound& e)
@@ -424,6 +432,11 @@ bool Module::executeWithSignals() NOEXCEPT
     std::ostringstream ostr;
     ostr << "State key not found, it may need initializing in ModuleClass::setStateDefaults(). " << std::endl << "Message: " << e.what() << std::endl;
     error(ostr.str());
+  }
+  catch (const ThreadStopped&)
+  {
+    error("MODULE ERROR: execution thread interrupted by user.");
+    threadStopValue = true;
   }
   catch (Core::ExceptionBase& e)
   {
@@ -439,11 +452,6 @@ bool Module::executeWithSignals() NOEXCEPT
   catch (const std::exception& e)
   {
     error(std::string("MODULE ERROR: std::exception caught: ") + e.what());
-  }
-  catch (const boost::thread_interrupted&)
-  {
-    error("MODULE ERROR: execution thread interrupted by user.");
-    threadStopValue = true;
   }
   catch (...)
   {
@@ -470,9 +478,9 @@ bool Module::executeWithSignals() NOEXCEPT
 #endif
 
   //TODO: brittle dependency on Completed with executor
-  impl_->executionState_->transitionTo(ModuleExecutionState::Completed);
+  impl_->executionState_->transitionTo(ModuleExecutionState::Value::Completed);
 
-  auto expandedEndState = impl_->returnCode_ ? ModuleExecutionState::Completed : ModuleExecutionState::Errored;
+  auto expandedEndState = impl_->returnCode_ ? ModuleExecutionState::Value::Completed : ModuleExecutionState::Value::Errored;
   impl_->executionState_->setExpandedState(expandedEndState);
 
   if (!executionDisabled())
@@ -610,7 +618,7 @@ std::vector<DatatypeHandleOption> Module::get_dynamic_input_handles(const PortId
   auto getData = [](InputPortHandle input) { return input->getData(); };
   std::transform(portsWithName.begin(), portsWithName.end(), std::back_inserter(options), getData);
 
-  impl_->metadata_.setMetadata("Input " + pid.toString(), metaInfo(options.empty() ? boost::none : options[0]));
+  impl_->metadata_.setMetadata("Input " + pid.toString(), metaInfo(options.empty() ? DatatypeHandleOption() : options[0]));
 
   return options;
 }
@@ -660,13 +668,13 @@ class DummyModule : public Module
 {
 public:
   explicit DummyModule(const ModuleLookupInfo& info) : Module(info) {}
-  virtual void execute() override
+  void execute() override
   {
     std::ostringstream ostr;
     ostr << "Module " << name() << " executing for " << 3.14 << " seconds." << std::endl;
     status(ostr.str());
   }
-  virtual void setStateDefaults() override
+  void setStateDefaults() override
   {}
 };
 
@@ -710,7 +718,7 @@ ModuleBuilder& ModuleBuilder::add_input_port(const Port::ConstructionParams& par
 void ModuleBuilder::addInputPortImpl(const Port::ConstructionParams& params) const
 {
   DatatypeSinkInterfaceHandle sink(sink_maker_ ? sink_maker_() : nullptr);
-  auto port(boost::make_shared<InputPort>(module_.get(), params, sink));
+  auto port(makeShared<InputPort>(module_.get(), params, sink));
   port->setIndex(module_->add_input_port(port));
 }
 
@@ -719,7 +727,7 @@ ModuleBuilder& ModuleBuilder::add_output_port(const Port::ConstructionParams& pa
   if (module_)
   {
     DatatypeSourceInterfaceHandle source(source_maker_ ? source_maker_() : nullptr);
-    auto port(boost::make_shared<OutputPort>(module_.get(), params, source));
+    auto port(makeShared<OutputPort>(module_.get(), params, source));
     port->setIndex(module_->add_output_port(port));
   }
   return *this;
@@ -732,7 +740,7 @@ PortId ModuleBuilder::cloneInputPort(ModuleHandle module, const PortId& id) cons
   {
     InputPortHandle newPort(m->getInputPort(id)->clone());
     newPort->setIndex(m->add_input_port(newPort));
-    return newPort->id();
+    return newPort->internalId();
   }
   THROW_INVALID_ARGUMENT("Don't know how to clone ports on other Module types");
 }
@@ -818,6 +826,11 @@ bool Module::oport_connected(const PortId& id) const
 void Module::removeInputPort(const PortId& id)
 {
   impl_->iports_.remove(id);
+}
+
+void Module::removeOutputPort(const PortId& id)
+{
+  impl_->oports_.remove(id);
 }
 
 void Module::setStateBoolFromAlgo(const AlgorithmParameterName& name)
@@ -956,7 +969,7 @@ void ModuleWithAsyncDynamicPorts::execute()
 size_t ModuleWithAsyncDynamicPorts::add_input_port(InputPortHandle h)
 {
   if (h->isDynamic())
-    h->connectDataOnPortHasChanged(boost::bind(&ModuleWithAsyncDynamicPorts::asyncExecute, this, _1, _2));
+    h->connectDataOnPortHasChanged([this](const PortId& pid, DatatypeHandle data) { asyncExecute(pid, data); });
   return Module::add_input_port(h);
 }
 
@@ -1034,7 +1047,7 @@ bool OutputPortsCachedCheckerImpl::outputPortsCached() const
   */
 }
 
-DynamicReexecutionStrategyFactory::DynamicReexecutionStrategyFactory(const boost::optional<std::string>& reexMode)
+DynamicReexecutionStrategyFactory::DynamicReexecutionStrategyFactory(const std::optional<std::string>& reexMode)
   : reexecuteMode_(reexMode)
 {
 }
@@ -1044,13 +1057,13 @@ ModuleReexecutionStrategyHandle DynamicReexecutionStrategyFactory::create(const 
   if (reexecuteMode_ && *reexecuteMode_ == "always")
   {
     LOG_DEBUG("Using Always reexecute mode for module execution.");
-    return boost::make_shared<AlwaysReexecuteStrategy>();
+    return makeShared<AlwaysReexecuteStrategy>();
   }
 
-  return boost::make_shared<DynamicReexecutionStrategy>(
-    boost::make_shared<InputsChangedCheckerImpl>(module),
-    boost::make_shared<StateChangedCheckerImpl>(module),
-    boost::make_shared<OutputPortsCachedCheckerImpl>(module));
+  return makeShared<DynamicReexecutionStrategy>(
+    makeShared<InputsChangedCheckerImpl>(module),
+    makeShared<StateChangedCheckerImpl>(module),
+    makeShared<OutputPortsCachedCheckerImpl>(module));
 }
 
 bool SCIRun::Dataflow::Networks::canReplaceWith(ModuleHandle module, const ModuleDescription& potentialReplacement)
@@ -1144,18 +1157,24 @@ std::string GeometryGeneratingModule::generateGeometryID(const std::string& tag)
 
 bool Module::isStoppable() const
 {
-  return dynamic_cast<const Interruptible*>(this) != nullptr;
+  return dynamic_cast<const Stoppable*>(this) != nullptr;
 }
 
 void Module::sendFeedbackUpstreamAlongIncomingConnections(const ModuleFeedback& feedback) const
 {
+  std::set<OutputPortHandle> outputPortsNotifed;
   for (const auto& inputPort : inputPorts())
   {
     if (inputPort->nconnections() > 0)
     {
       auto connection = inputPort->connection(0); // only one incoming connection for input ports
       //TODO: extract port method
-      connection->oport_->sendConnectionFeedback(feedback);
+      // one feedback per upstream OUTPUT--see issue #2397
+      if (outputPortsNotifed.find(connection->oport_) == outputPortsNotifed.end())
+      {
+        connection->oport_->sendConnectionFeedback(feedback);
+        outputPortsNotifed.insert(connection->oport_);
+      }
     }
   }
 }
@@ -1174,5 +1193,20 @@ std::string Module::helpPageUrl() const
 
 std::string Module::newHelpPageUrl() const
 {
-  return "https://sciinstitute.github.io/SCIRun/modules.html#" + name();
+  return "https://scirun.readthedocs.io/en/latest/modules/" + get_categoryname() + "/" + name() + ".html";
+}
+
+void Module::disconnectStateListeners()
+{
+  get_state()->disconnectAll();
+}
+
+NetworkInterface* Module::network() const
+{
+  return impl_->network_;
+}
+
+void Module::setNetwork(NetworkInterface* net)
+{
+  impl_->network_ = net;
 }

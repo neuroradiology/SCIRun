@@ -26,7 +26,7 @@
 
    Author:               Moritz Dannhauer
    Last Modification:    March 16 2014 (ported from SCIRun4)
-   TODO:                 Nrrd aoutput
+   TODO:                 Nrrd output
 */
 
 #include <Core/Algorithms/Legacy/Fields/Mapping/MapFieldDataFromElemToNode.h>
@@ -54,7 +54,7 @@ bool
   FieldHandle& input,
   FieldHandle& output)
 {
-  std::string method = algo->getOption(MapFieldDataFromElemToNodeAlgo::Method);
+  std::string method = algo->getOption(Variables::Method);
 
   VField *ifield = input->vfield();
   VField *ofield = output->vfield();
@@ -86,7 +86,7 @@ bool
   {
     while (it != eit)
     {
-      Interruptible::checkForInterruption();
+
       mesh->get_elems(elems, *(it));
       size_t nsize = elems.size();
       DATA val(0);
@@ -111,7 +111,7 @@ bool
   {
     while (it != eit)
     {
-      Interruptible::checkForInterruption();
+
       mesh->get_elems(elems, *(it));
       size_t nsize = elems.size();
       DATA val(0);
@@ -139,7 +139,7 @@ bool
   {
     while (it != eit)
     {
-      Interruptible::checkForInterruption();
+
       mesh->get_elems(elems, *it);
       size_t nsize = elems.size();
       DATA val(0);
@@ -167,7 +167,7 @@ bool
   {
     while (it != eit)
     {
-      Interruptible::checkForInterruption();
+
       mesh->get_elems(elems, *(it));
       size_t nsize = elems.size();
       DATA val(0);
@@ -192,7 +192,7 @@ bool
     std::vector<DATA> valarray;
     while (it != eit)
     {
-      Interruptible::checkForInterruption();
+
       mesh->get_elems(elems, *(it));
       size_t nsize = elems.size();
       valarray.resize(nsize);
@@ -224,10 +224,8 @@ bool
 
 MapFieldDataFromElemToNodeAlgo::MapFieldDataFromElemToNodeAlgo()
 {
-  addOption(Method,"Interpolation","Interpolation|Average|Min|Max|Sum|Median|None");
+  addOption(Variables::Method,"Interpolation","Interpolation|Average|Min|Max|Sum|Median|None");
 }
-
-AlgorithmParameterName MapFieldDataFromElemToNodeAlgo::Method("Method");
 
 AlgorithmOutput MapFieldDataFromElemToNodeAlgo::run(const AlgorithmInput& input) const
 {

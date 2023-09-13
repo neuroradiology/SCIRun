@@ -43,8 +43,8 @@ namespace SCIRun {
       {
       public:
         ShowFieldWithOspray();
-        virtual void execute() override;
-        virtual void setStateDefaults() override;
+        void execute() override;
+        void setStateDefaults() override;
 
         INPUT_PORT(0, Field, Field);
         INPUT_PORT(1, ColorMapObject, ColorMap);
@@ -52,7 +52,7 @@ namespace SCIRun {
 
         uint32_t id;
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUIAndAlgorithm)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUIAndAlgorithm)
       };
     }
   }

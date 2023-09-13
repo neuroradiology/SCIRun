@@ -42,8 +42,8 @@ namespace Basic {
   {
   public:
     NeedToExecuteTester();
-    virtual void execute() override;
-    virtual void setStateDefaults() override;
+    void execute() override;
+    void setStateDefaults() override;
 
     INPUT_PORT(0, TestMatrixIn, DenseMatrix);
     OUTPUT_PORT(0, TestMatrixOut, DenseMatrix);
@@ -53,7 +53,7 @@ namespace Basic {
     bool expensiveComputationDone_, executeCalled_;
     void resetFlags();
 
-    MODULE_TRAITS_AND_INFO(NoAlgoOrUI)
+    MODULE_TRAITS_AND_INFO(ModuleFlags::NoAlgoOrUI)
   };
 
 }}}

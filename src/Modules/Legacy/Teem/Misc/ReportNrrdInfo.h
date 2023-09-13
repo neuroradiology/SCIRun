@@ -42,17 +42,16 @@ namespace Teem {
   {
   public:
     ReportNrrdInfo();
-    virtual void execute() override;
-    virtual void setStateDefaults() override;
+    void execute() override;
+    void setStateDefaults() override;
 
-    INPUT_PORT(0, Query_Nrrd, NrrdDataType);
+    INPUT_PORT(0, Query_Nrrd, NrrdDataType)
 
-    MODULE_TRAITS_AND_INFO(ModuleHasUI)
+    MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
   private:
     void update_input_attributes(NrrdDataHandle nrrd);
     template <typename T>
-    void update_axis_var(std::ostringstream& info, const char *name, int axis, const T& val,
-                         const char *pname);
+    void update_axis_var(std::ostringstream& info, const T& val, const char *pname);
   };
 
 }}}

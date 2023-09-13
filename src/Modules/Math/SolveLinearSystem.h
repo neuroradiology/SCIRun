@@ -44,14 +44,14 @@ namespace Math {
   {
   public:
     SolveLinearSystem();
-    virtual void execute() override;
-    virtual void setStateDefaults() override;
+    void execute() override;
+    void setStateDefaults() override;
 
     INPUT_PORT(0, LHS, Matrix);
     INPUT_PORT(1, RHS, Matrix);
     OUTPUT_PORT(0, Solution, Matrix);
 
-    MODULE_TRAITS_AND_INFO(ModuleHasUIAndAlgorithm)
+    MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUIAndAlgorithm)
   };
 
 }}}

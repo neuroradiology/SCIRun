@@ -42,14 +42,14 @@ namespace SCIRun {
 			{
 				public:
 					ComputeSVD();
-					virtual void setStateDefaults() override {}
-					virtual void execute() override;
+					void setStateDefaults() override {}
+					void execute() override;
 
 					INPUT_PORT(0, InputMatrix, Matrix);
 					OUTPUT_PORT(0, LeftSingularMatrix, DenseMatrix);
 					OUTPUT_PORT(1, SingularValues, DenseMatrix);
 					OUTPUT_PORT(2, RightSingularMatrix, DenseMatrix);
-					MODULE_TRAITS_AND_INFO(ModuleHasAlgorithm)
+					MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasAlgorithm)
 			};
 
 }}};

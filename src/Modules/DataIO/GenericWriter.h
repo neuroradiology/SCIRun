@@ -54,8 +54,8 @@ class GenericWriter : public Dataflow::Networks::Module,
 public:
   GenericWriter(const std::string &name, const std::string &category, const std::string &package, const std::string& stateFilename);
 
-  virtual void setStateDefaults() override;
-  virtual void execute() override;
+  void setStateDefaults() override;
+  void execute() override;
 
   INPUT_PORT(1, Filename, String);
 
@@ -72,7 +72,7 @@ protected:
   //GuiInt			confirm_once_;
 
   virtual bool useCustomExporter(const std::string& filename) const = 0;
-  virtual bool call_exporter(const std::string &filename) { return false; }
+  virtual bool call_exporter(const std::string& /*filename*/) { return false; }
 
   virtual bool overwrite() { return true; } /// @todo
 };
@@ -146,14 +146,16 @@ void GenericWriter<HType, PortTag, PortDescriber>::execute()
   {
     MODULE_ERROR_WITH_TYPE(Dataflow::Networks::GeneralModuleError, "No filename specified.");
   }
-  if (needToExecute())
+
+  if (!boost::filesystem::exists(filename_) || needToExecute())
   {
 #ifdef SCIRUN4_CODE_TO_BE_ENABLED_LATER
     update_state(Executing);
 #endif
     remark("saving file " + filename_);
 
-    if (!overwrite()) return;
+    if (!overwrite())
+      return;
 
     if (useCustomExporter(filename_))
     {

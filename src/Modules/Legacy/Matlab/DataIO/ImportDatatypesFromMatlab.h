@@ -43,8 +43,8 @@ namespace DataIO {
   {
   public:
     ImportDatatypesFromMatlab();
-    virtual void execute() override;
-    virtual void setStateDefaults() override;
+    void execute() override;
+    void setStateDefaults() override;
     INPUT_PORT(0, Filename, String);
 
     //TODO: dynamic/wildcard output ports
@@ -52,7 +52,7 @@ namespace DataIO {
     OUTPUT_PORT(1, OutputMatrix, Matrix);
     OUTPUT_PORT(2, FilenameOut, String);
 
-    MODULE_TRAITS_AND_INFO(ModuleHasUI)
+    MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
   };
 
 }}}}

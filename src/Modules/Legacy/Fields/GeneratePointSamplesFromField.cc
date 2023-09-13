@@ -37,6 +37,7 @@
 ///
 
 #include <Core/Datatypes/DenseMatrix.h>
+#include <Core/Datatypes/Feedback.h>
 #include <Core/Datatypes/Legacy/Field/Field.h>
 #include <Core/Datatypes/Legacy/Field/FieldInformation.h>
 #include <Core/Datatypes/Legacy/Field/Mesh.h>
@@ -48,6 +49,7 @@
 #include <Graphics/Widgets/WidgetBuilders.h>
 #include <Modules/Legacy/Fields/GeneratePointSamplesFromField.h>
 #include <Modules/Legacy/Fields/GenerateSinglePointProbeFromField.h>
+#include <Core/Algorithms/Base/VariableHelper.h>
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
 
@@ -65,6 +67,8 @@ using namespace Graphics::Datatypes;
 ALGORITHM_PARAMETER_DEF(Fields, NumSeeds);
 ALGORITHM_PARAMETER_DEF(Fields, ProbeScale);
 ALGORITHM_PARAMETER_DEF(Fields, PointPositions);
+ALGORITHM_PARAMETER_DEF(Fields, BBoxScale);
+ALGORITHM_PARAMETER_DEF(Fields, UseBBoxScale);
 
 MODULE_INFO_DEF(GeneratePointSamplesFromField, NewField, SCIRun)
 
@@ -119,6 +123,8 @@ void GeneratePointSamplesFromField::setStateDefaults()
   state->setValue(Parameters::NumSeeds, 1);
   state->setValue(Parameters::ProbeScale, 0.23);
   state->setValue(Parameters::PointPositions, VariableList());
+  state->setValue(Parameters::BBoxScale, 10.0);
+  state->setValue(Parameters::UseBBoxScale, false);
   getOutputPort(GeneratedWidget)->connectConnectionFeedbackListener([this](const ModuleFeedback& var) { processWidgetFeedback(var); });
 }
 
@@ -189,6 +195,11 @@ FieldHandle GeneratePointSamplesFromField::GenerateOutputField()
 
   auto bbox = ifieldhandle->vmesh()->get_bounding_box();
 
+  // First, the total needs to be scaled to half since we need the radius instead of the diameter
+  // Second, we want to divide by 3 to get the average of the bbox lengths
+  const static double SCALE_CORRECTION = 1.0 / 6.0;
+  double fieldScale = SCALE_CORRECTION * (bbox.x_length() + bbox.y_length() + bbox.z_length());
+
   Point center;
   Point bmin = bbox.get_min();
   Point bmax = bbox.get_max();
@@ -220,7 +231,12 @@ FieldHandle GeneratePointSamplesFromField::GenerateOutputField()
 
   auto state = get_state();
   auto numSeeds = state->getValue(Parameters::NumSeeds).toInt();
-  auto scale = state->getValue(Parameters::ProbeScale).toDouble();
+  double scale;
+  if (state->getValue(Parameters::UseBBoxScale).toBool())
+    scale = fieldScale * (0.01*state->getValue(Parameters::BBoxScale).toDouble());
+  else
+    scale = state->getValue(Parameters::ProbeScale).toDouble();
+
   auto widgetName = [](int i) { return "GPSFF(" + std::to_string(i) + ")"; };
   if (impl_->pointWidgets_.size() != numSeeds)
   {
@@ -239,6 +255,7 @@ FieldHandle GeneratePointSamplesFromField::GenerateOutputField()
 
         auto seed = SphereWidgetBuilder(*this)
           .tag(widgetName(i))
+          .transformMapping({{WidgetInteraction::CLICK, singleMovementWidget(WidgetMovement::TRANSLATE)}})
           .scale(scale)
           .defaultColor("Color(0.5,0.5,0.5)")
           .origin(location)
@@ -260,6 +277,7 @@ FieldHandle GeneratePointSamplesFromField::GenerateOutputField()
     {
       auto seed = SphereWidgetBuilder(*this)
         .tag(widgetName(counter++) + std::string(moveCount_, ' '))
+        .transformMapping({{WidgetInteraction::CLICK, singleMovementWidget(WidgetMovement::TRANSLATE)}})
         .scale(scale)
         .defaultColor("Color(0.5,0.5,0.5)")
         .origin(oldWidget->position())

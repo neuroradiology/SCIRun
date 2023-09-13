@@ -41,7 +41,7 @@ namespace Math {
   class SCISHARE EvaluateLinearAlgebraBinaryAlgorithm : public AlgorithmBase
   {
   public:
-    enum Operator
+    enum class Operator
     {
       ADD,
       SUBTRACT,
@@ -60,7 +60,7 @@ namespace Math {
 
     Outputs run(const Inputs& inputs, const Parameters& params) const;
 
-    AlgorithmOutput run(const AlgorithmInput& input) const;
+    AlgorithmOutput run(const AlgorithmInput& input) const override;
   };
 
 }}}}

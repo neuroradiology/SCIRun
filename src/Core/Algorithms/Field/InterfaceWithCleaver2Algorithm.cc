@@ -27,7 +27,6 @@
 
 
 #include <Core/Algorithms/Field/InterfaceWithCleaver2Algorithm.h>
-#include <Core/Algorithms/Field/InterfaceWithCleaverAlgorithm.h>
 #include <Core/Algorithms/Base/AlgorithmVariableNames.h>
 
 #include <cleaver2/vec3.h>
@@ -76,8 +75,8 @@ const AlgorithmOutputName InterfaceWithCleaver2Algorithm::BackgroundFieldUsed("B
 
 namespace detail
 {
-  using CleaverScalarField = boost::shared_ptr<cleaver2::ScalarField<float>>;
-  using CleaverInputField = boost::shared_ptr<cleaver2::AbstractScalarField>;
+  using CleaverScalarField = SharedPointer<cleaver2::ScalarField<float>>;
+  using CleaverInputField = SharedPointer<cleaver2::AbstractScalarField>;
   using CleaverInputFieldList = std::vector<CleaverInputField>;
 
   static const double kDefaultAlpha = 0.4;
@@ -130,7 +129,7 @@ namespace detail
 
       // TODO DAN: add optional padding to sizing field...
       /// Padding is now optional!
-      //boost::shared_ptr<cleaver2::AbstractVolume> paddedVolume(volume);
+      //SharedPointer<cleaver2::AbstractVolume> paddedVolume(volume);
       // const bool verbose = get(Verbose).toBool();
       // const bool pad = get(Padding).toBool();
       //
@@ -199,7 +198,7 @@ namespace detail
       mesher.snapsAndWarp(verbose);
       mesher.stencilTets(verbose);
 
-      auto mesh(boost::shared_ptr<cleaver2::TetMesh>(mesher.getTetMesh()));
+      auto mesh(SharedPointer<cleaver2::TetMesh>(mesher.getTetMesh()));
 
       if (params_.reverseJacobians)
         mesh->fixVertexWindup(verbose);
@@ -277,7 +276,7 @@ namespace detail
           }
           else
           {
-            THROW_ALGORITHM_INPUT_ERROR_WITH(algo_, "float field is NULL pointer");
+            THROW_ALGORITHM_INPUT_ERROR_WITH(algo_, "float field is null pointer");
           }
         }
         else
@@ -297,7 +296,7 @@ namespace detail
 
       auto ptr = static_cast<float*>(vfield->fdata_pointer());
 
-      auto cleaverField = boost::make_shared<cleaver2::ScalarField<float>>(ptr, dims[0], dims[1], dims[2]);
+      auto cleaverField = makeShared<cleaver2::ScalarField<float>>(ptr, dims[0], dims[1], dims[2]);
       cleaver2::BoundingBox bb(cleaver2::vec3::zero, cleaver2::vec3(dims[0], dims[1], dims[2]));
       cleaverField->setBounds(bb);
       const auto& transform = vmesh->get_transform();
@@ -378,7 +377,7 @@ namespace detail
 
     static FieldHandle makeLatVolFromCleaver2Field(CleaverScalarField cfield)
     {
-      FieldInformation lfi(LATVOLMESH_E, LINEARDATA_E, FLOAT_E);
+      FieldInformation lfi(mesh_info_type::LATVOLMESH_E, databasis_info_type::LINEARDATA_E, data_info_type::FLOAT_E);
 
       auto cbbox = cfield->bounds();
       auto cdatabbox = cfield->dataBounds();
@@ -496,8 +495,8 @@ namespace detail
     Cleaver2Parameters params_;
     FieldHandle inputSizingField_, outputSizingField_, inputBackgroundMesh_, outputBackgroundMesh_;
     CleaverScalarField sizingField_;
-    boost::shared_ptr<cleaver2::TetMesh> backgroundMesh_;
-    boost::shared_ptr<cleaver2::Volume> volume_;
+    SharedPointer<cleaver2::TetMesh> backgroundMesh_;
+    SharedPointer<cleaver2::Volume> volume_;
     int x_ = 0, y_ = 0, z_ = 0;
   };
 }
@@ -511,7 +510,6 @@ InterfaceWithCleaver2Algorithm::InterfaceWithCleaver2Algorithm()
   addParameter(Parameters::VolumeScaling, detail::kDefaultSamplingRate);
   addParameter(Parameters::VolumeMultiplier, detail::kDefaultFeatureScaling);
   addParameter(Parameters::Lipschitz, detail::kDefaultLipschitz);
-  //addParameter(Parameters::Padding, detail::kDefaultPadding);
   addParameter(Parameters::AlphaLong, detail::kDefaultAlphaLong);
   addParameter(Parameters::AlphaShort, detail::kDefaultAlphaShort);
   addParameter(Parameters::MeshMode, static_cast<int>(cleaver2::MeshType::Regular));
@@ -537,7 +535,7 @@ AlgorithmOutput InterfaceWithCleaver2Algorithm::runImpl(const FieldList& input, 
 
   detail::Cleaver2Parameters params
   {
-    cleaver2::MeshType(get(Parameters::MeshMode).toInt()),
+    static_cast<cleaver2::MeshType>(get(Parameters::MeshMode).toInt()),
     get(Parameters::AlphaLong).toDouble(),
     get(Parameters::AlphaShort).toDouble(),
     get(Parameters::VolumeScaling).toDouble(),
@@ -561,8 +559,8 @@ AlgorithmOutput InterfaceWithCleaver2Algorithm::runImpl(const FieldList& input, 
 
 AlgorithmOutput InterfaceWithCleaver2Algorithm::run(const AlgorithmInput& input) const
 {
-  auto inputfields = input.getList<Field>(Variables::InputFields);
-  auto sizingField = input.get<Field>(SizingField);
+  const auto inputfields = input.getList<Field>(Variables::InputFields);
+  const auto sizingField = input.get<Field>(SizingField);
 
   return runImpl(inputfields, nullptr, sizingField);
 }

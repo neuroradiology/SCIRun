@@ -33,7 +33,7 @@
 #include <vector>
 
 #include <boost/filesystem.hpp>
-#include <boost/shared_ptr.hpp>
+#include <Core/Utils/SmartPointers.h>
 
 #include <Core/Utils/FileUtil.h>
 #include <Core/Utils/StringUtil.h>
@@ -277,7 +277,7 @@ bool TextToTriSurfFieldPrivate::validateFacesFile(const std::string& filename)
 
 MeshHandle TextToTriSurfFieldPrivate::readField()
 {
-  FieldInformation fi("TriSurfMesh", LINEARDATA_E, "double");
+  FieldInformation fi("TriSurfMesh", static_cast<int>(databasis_info_type::LINEARDATA_E), "double");
   auto triSurfMesh = CreateMesh(fi);
   auto triSurfVMesh = triSurfMesh->vmesh();
 
@@ -457,7 +457,7 @@ MeshHandle TextToTriSurfFieldAlgorithm::run(const std::string& filename)
   return MeshHandle();
 }
 
-AlgorithmOutput TextToTriSurfFieldAlgorithm::run(const AlgorithmInput& input) const
+AlgorithmOutput TextToTriSurfFieldAlgorithm::run(const AlgorithmInput&) const
 {
   throw 2;
 }

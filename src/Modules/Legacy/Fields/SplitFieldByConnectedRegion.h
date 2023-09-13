@@ -49,25 +49,26 @@ namespace SCIRun {
 
       class SCISHARE SplitFieldByConnectedRegion : public Dataflow::Networks::Module,
         public Has1InputPort<FieldPortTag>,
-        public Has8OutputPorts<FieldPortTag, FieldPortTag, FieldPortTag, FieldPortTag, FieldPortTag, FieldPortTag, FieldPortTag, FieldPortTag>
+        public Has9OutputPorts<FieldPortTag, FieldPortTag, FieldPortTag, FieldPortTag, FieldPortTag, FieldPortTag, FieldPortTag, FieldPortTag, BundlePortTag>
       {
       public:
         SplitFieldByConnectedRegion();
 
-        virtual void execute() override;
-        virtual void setStateDefaults() override;
+        void execute() override;
+        void setStateDefaults() override;
 
         INPUT_PORT(0, InputField, Field);
         OUTPUT_PORT(0, OutputField1, Field);
-	      OUTPUT_PORT(1, OutputField2, Field);
+        OUTPUT_PORT(1, OutputField2, Field);
         OUTPUT_PORT(2, OutputField3, Field);
         OUTPUT_PORT(3, OutputField4, Field);
         OUTPUT_PORT(4, OutputField5, Field);
         OUTPUT_PORT(5, OutputField6, Field);
         OUTPUT_PORT(6, OutputField7, Field);
         OUTPUT_PORT(7, OutputField8, Field);
+        OUTPUT_PORT(8, OutputBundle, Bundle);
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUIAndAlgorithm)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUIAndAlgorithm)
       };
 
     }

@@ -42,10 +42,10 @@ namespace Math {
   {
   public:
     CreateComplexMatrix();
-    virtual void execute() override;
-    virtual void setStateDefaults() override;
+    void execute() override;
+    void setStateDefaults() override;
     OUTPUT_PORT(0, EnteredMatrix, ComplexDenseMatrix);
-    MODULE_TRAITS_AND_INFO(ModuleHasUI)
+    MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
     NEW_HELP_WEBPAGE_ONLY
   };
 }}}

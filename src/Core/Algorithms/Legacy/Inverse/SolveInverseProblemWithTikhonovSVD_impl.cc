@@ -29,31 +29,20 @@
 */
 
 
-// SCIRUN lybraries
-#include <boost/bind.hpp>
-#include <boost/lexical_cast.hpp>
 #include <Core/Datatypes/Matrix.h>
 #include <Core/Datatypes/DenseMatrix.h>
 #include <Core/Datatypes/DenseColumnMatrix.h>
-#include <Core/Datatypes/SparseRowMatrix.h>
-#include <Core/Datatypes/MatrixTypeConversions.h>
-#include <Core/Algorithms/Base/AlgorithmPreconditions.h>
 #include <Core/Logging/LoggerInterface.h>
-#include <Core/Utils/Exception.h>
 
 // Tikhonov inverse libraries
-#include <Core/Algorithms/Legacy/Inverse/TikhonovAlgoAbstractBase.h>
 #include <Core/Algorithms/Legacy/Inverse/SolveInverseProblemWithTikhonovSVD_impl.h>
 
-// EIGEN LIBRARY
 #include <Eigen/Eigen>
 #include <Eigen/SVD>
 
 
 using namespace SCIRun;
 using namespace SCIRun::Core::Datatypes;
-// using namespace SCIRun::Modules::Inverse;
-// using namespace SCIRun::Dataflow::Networks;
 using namespace SCIRun::Core::Logging;
 using namespace SCIRun::Core::Algorithms;
 using namespace SCIRun::Core::Algorithms::Inverse;
@@ -64,7 +53,14 @@ using namespace SCIRun::Core::Algorithms::Inverse;
 /////// prealocate Matrices for inverse compuation
 ///     This function precalcualtes the SVD of the forward matrix and prepares singular vectors and values for posterior computations
 ///////////////////////////////////////////////////////////////////
-void SolveInverseProblemWithTikhonovSVD_impl::preAlocateInverseMatrices(const SCIRun::Core::Datatypes::DenseMatrix& forwardMatrix_, const SCIRun::Core::Datatypes::DenseMatrix& measuredData_ , const SCIRun::Core::Datatypes::DenseMatrix& sourceWeighting_, const SCIRun::Core::Datatypes::DenseMatrix& sensorWeighting_, const SCIRun::Core::Datatypes::DenseMatrix& matrixU_, const SCIRun::Core::Datatypes::DenseMatrix& singularValues_, const SCIRun::Core::Datatypes::DenseMatrix& matrixV_)
+void SolveInverseProblemWithTikhonovSVD_impl::preAlocateInverseMatrices(
+  const DenseMatrix&,
+  const DenseMatrix& measuredData_ ,
+  const DenseMatrix&,
+  const DenseMatrix&,
+  const DenseMatrix& matrixU_,
+  const DenseMatrix& singularValues_,
+  const DenseMatrix& matrixV_)
 {
 
 		// alocate U and V matrices
@@ -86,11 +82,15 @@ void SolveInverseProblemWithTikhonovSVD_impl::preAlocateInverseMatrices(const SC
 	        rank = svd_SingularValues.nrows();
 }
 
-void SolveInverseProblemWithTikhonovSVD_impl::preAlocateInverseMatrices(const SCIRun::Core::Datatypes::DenseMatrix& forwardMatrix_, const SCIRun::Core::Datatypes::DenseMatrix& measuredData_ , const SCIRun::Core::Datatypes::DenseMatrix& sourceWeighting_, const SCIRun::Core::Datatypes::DenseMatrix& sensorWeighting_)
+void SolveInverseProblemWithTikhonovSVD_impl::preAlocateInverseMatrices(
+  const DenseMatrix& forwardMatrix_,
+  const DenseMatrix& measuredData_ ,
+  const DenseMatrix& ,
+  const DenseMatrix& )
 {
 
 	    // Compute the SVD of the forward matrix
-	        Eigen::JacobiSVD<SCIRun::Core::Datatypes::DenseMatrix::EigenBase> SVDdecomposition( forwardMatrix_, Eigen::ComputeFullU | Eigen::ComputeFullV);
+	        Eigen::JacobiSVD<DenseMatrix::EigenBase> SVDdecomposition( forwardMatrix_, Eigen::ComputeFullU | Eigen::ComputeFullV);
 
 		// alocate the left and right singular vectors and the singular values
 			svd_MatrixU = SVDdecomposition.matrixU();
@@ -107,7 +107,7 @@ void SolveInverseProblemWithTikhonovSVD_impl::preAlocateInverseMatrices(const SC
 //////////////////////////////////////////////////////////////////////
 // THIS FUNCTION returns regularized solution by tikhonov method
 //////////////////////////////////////////////////////////////////////
-SCIRun::Core::Datatypes::DenseMatrix SolveInverseProblemWithTikhonovSVD_impl::computeInverseSolution( double lambda, bool inverseCalculation ) const
+DenseMatrix SolveInverseProblemWithTikhonovSVD_impl::computeInverseSolution( double lambda, bool inverseCalculation ) const
 {
 
     // prealocate matrices
@@ -134,7 +134,7 @@ SCIRun::Core::Datatypes::DenseMatrix SolveInverseProblemWithTikhonovSVD_impl::co
 
     // output solutions
     //   if (inverseCalculation)
-    //       inverseMatrix_.reset( new SCIRun::Core::Datatypes::DenseMatrix(tempInverse) );
+    //       inverseMatrix_.reset( new DenseMatrix(tempInverse) );
 
         return solution;
 }

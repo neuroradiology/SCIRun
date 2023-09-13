@@ -52,12 +52,12 @@ GenerateROIStatisticsDialog::GenerateROIStatisticsDialog(const std::string& name
   QStringList tableHeader1;  /// set default GUI parameter for upper table
   tableHeader1<<" ROI "<<" Avr. " << " Std. " << " Min. " << " Max. " << " # ";
   StatisticsOutput_tableWidget->setHorizontalHeaderLabels(tableHeader1);
-  StatisticsOutput_tableWidget->setItem(0, 0, 0);
-  StatisticsOutput_tableWidget->setItem(0, 1, 0);
-  StatisticsOutput_tableWidget->setItem(0, 2, 0);
-  StatisticsOutput_tableWidget->setItem(0, 3, 0);
-  StatisticsOutput_tableWidget->setItem(0, 4, 0);
-  StatisticsOutput_tableWidget->setItem(0, 5, 0);
+  StatisticsOutput_tableWidget->setItem(0, 0, nullptr);
+  StatisticsOutput_tableWidget->setItem(0, 1, nullptr);
+  StatisticsOutput_tableWidget->setItem(0, 2, nullptr);
+  StatisticsOutput_tableWidget->setItem(0, 3, nullptr);
+  StatisticsOutput_tableWidget->setItem(0, 4, nullptr);
+  StatisticsOutput_tableWidget->setItem(0, 5, nullptr);
 
   QStringList tableHeader2; /// set default GUI parameter for lower table
   tableHeader2<<" X "<<" Y " << " Z " << " Atlas Material # " << " Radius ";
@@ -68,8 +68,8 @@ GenerateROIStatisticsDialog::GenerateROIStatisticsDialog(const std::string& name
   SpecifyROI_tabWidget->setItem(0, 3, new QTableWidgetItem(" "));
   SpecifyROI_tabWidget->setItem(0, 4, new QTableWidgetItem(" 0 "));
 
-  connect(StatisticsOutput_tableWidget, SIGNAL(cellChanged(int,int)), this, SLOT(push()));
-  connect(SpecifyROI_tabWidget, SIGNAL(cellChanged(int,int)), this, SLOT(push()));
+  connect(StatisticsOutput_tableWidget, &QTableWidget::cellChanged, this, &GenerateROIStatisticsDialog::push);
+  connect(SpecifyROI_tabWidget, &QTableWidget::cellChanged, this, &GenerateROIStatisticsDialog::push);
 }
 
 void GenerateROIStatisticsDialog::push()

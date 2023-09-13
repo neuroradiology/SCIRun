@@ -30,7 +30,6 @@
 #define INTERFACE_APPLICATION_MAINWINDOWCOLLABORATORS_H
 
 #ifndef Q_MOC_RUN
-#include <Core/Logging/LoggerInterface.h>
 #include <Core/Logging/Log.h>
 #include <Core/Utils/Singleton.h>
 #include <set>
@@ -38,8 +37,6 @@
 #include <Interface/Application/NetworkEditor.h>  //TODO
 #include <Interface/Application/NetworkExecutionProgressBar.h>
 #endif
-#include <QNetworkAccessManager>
-#include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QDir>
 #include <QLineEdit>
@@ -62,22 +59,22 @@ namespace Gui {
   public:
     explicit TextEditAppender(QTextEdit* text) : text_(text) {}
     void log(const QString& message) const;
-    virtual void log4(const std::string& message) const override;
+    void log4(const std::string& message) const override;
   private:
     QTextEdit* text_;
     mutable QMutex mutex_;
   };
 
-  class TreeViewModuleGetter : public CurrentModuleSelection
+  class TreeViewActiveModuleItem : public CurrentModuleSelection
   {
   public:
-    explicit TreeViewModuleGetter(QTreeWidget& tree) : tree_(tree) {}
+    void setActiveTree(QTreeWidget* tree) override { activeTree_ = tree; }
     QString text() const override;
     QString clipboardXML() const override;
     bool isModule() const override;
     bool isClipboardXML() const override;
   private:
-    QTreeWidget& tree_;
+    QTreeWidget* activeTree_ {nullptr};
   };
 
   class ComboBoxDefaultNotePositionGetter : public DefaultNotePositionGetter
@@ -98,7 +95,7 @@ namespace Gui {
   {
     Q_OBJECT
 
-    CORE_SINGLETON( WidgetDisablingService );
+    CORE_SINGLETON( WidgetDisablingService )
 
   private:
     WidgetDisablingService() {}
@@ -190,7 +187,7 @@ namespace Gui {
     QWizardPage* createConnectionChoicePage();
     QWizardPage* createDocPage();
     QWizardPage* createOtherSettingsPage();
-    QLineEdit* pathWidget_;
+    QLineEdit* pathWidget_{};
     bool showPrefs_{ false };
   };
 
@@ -251,7 +248,7 @@ namespace Gui {
 
     QString iconUrl, zipUrl, filename;
 
-    void setupAction(QAction* action, QObject* window) const;
+    void setupAction(QAction* action, SCIRunMainWindow* window) const;
   };
 
   class NetworkStatusImpl : public NetworkStatus

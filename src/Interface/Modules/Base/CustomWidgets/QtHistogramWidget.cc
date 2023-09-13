@@ -86,28 +86,14 @@ QtHistogramWidget::QtHistogramWidget( QWidget *parent,
   this->private_->histogram_graph_->setObjectName( QString::fromUtf8( "histogram_" ) );
   this->private_->ui_.histogramLayout->addWidget( this->private_->histogram_graph_ );
 
-  connect( this->private_->histogram_graph_, SIGNAL( lower_position( int ) ), this,
-    SLOT( handle_right_button_click( int ) ) );
+  connect( this->private_->histogram_graph_, &QtHistogramGraph::lower_position, this,
+    &QtHistogramWidget::handle_right_button_click);
 
-  connect( this->private_->histogram_graph_, SIGNAL( upper_position( int ) ), this,
-    SLOT( handle_left_button_click( int ) ) );
+  connect( this->private_->histogram_graph_, &QtHistogramGraph::upper_position, this,
+    &QtHistogramWidget::handle_left_button_click);
 
-  connect( this->private_->ui_.log_histogram_combo_, SIGNAL( currentIndexChanged ( int ) ),
-    this, SLOT( set_histogram_view( int ) ) );
-  //
-  //if( this->private_->upper_threshold_ != 0 )
-  //{
-  //  connect( this->private_->upper_threshold_, SIGNAL( valueAdjusted( double ) ),
-  //    this, SLOT( set_max( double ) ) );
-  //
-  //}
-  //
-  //if( this->private_->lower_threshold_ != 0 )
-  //{
-  //  connect( this->private_->lower_threshold_, SIGNAL( valueAdjusted( double ) ),
-  //    this, SLOT( set_min( double ) ) );
-  //}
-
+  connect( this->private_->ui_.log_histogram_combo_, qOverload<int>(&QComboBox::currentIndexChanged),
+    this, &QtHistogramWidget::set_histogram_view);
 
   this->private_->min_bar_ = new QWidget( this );
   this->private_->max_bar_ = new QWidget( this );
@@ -124,8 +110,8 @@ QtHistogramWidget::QtHistogramWidget( QWidget *parent,
 
   this->private_->ui_.label_3->setAlignment( Qt::AlignHCenter | Qt::AlignVCenter );
 
-  // We will set the histogram to be logarithmic by default
-  this->private_->ui_.log_histogram_combo_->setCurrentIndex( 1 );
+  // We will set the histogram to be linear by default
+  this->private_->ui_.log_histogram_combo_->setCurrentIndex( 0 );
 }
 
 QtHistogramWidget::~QtHistogramWidget()
@@ -240,7 +226,7 @@ void QtHistogramWidget::set_max( double max )
   //  "border-top: 2px solid rgb( " INTERFACE_ACCENT_COLOR " );" ) );
 }
 
-void QtHistogramWidget::handle_left_button_click( int lower_location )
+void QtHistogramWidget::handle_left_button_click( int )
 {
   return;
 /*
@@ -255,7 +241,7 @@ void QtHistogramWidget::handle_left_button_click( int lower_location )
   this->private_->lower_threshold_->setCurrentValue( current_value );*/
 }
 
-void QtHistogramWidget::handle_right_button_click( int upper_location )
+void QtHistogramWidget::handle_right_button_click( int )
 {
   return;
 
@@ -293,20 +279,6 @@ void QtHistogramWidget::mouseMoveEvent( QMouseEvent* e )
 {
   this->private_->histogram_graph_->mouseMoveEvent( e );
 }
-//
-//void QtHistogramWidget::set_thresholds( QtSliderDoubleCombo* upper_threshold, QtSliderDoubleCombo* lower_threshold )
-//{
-//  this->private_->upper_threshold_ = upper_threshold;
-//  this->private_->lower_threshold_ = lower_threshold;
-//  this->private_->threshold_bars_enabled_ = true;
-//  this->set_bar_visibility();
-//
-//  connect( this->private_->upper_threshold_, SIGNAL( valueAdjusted( double ) ),
-//    this, SLOT( set_max( double ) ) );
-//
-//  connect( this->private_->lower_threshold_, SIGNAL( valueAdjusted( double ) ),
-//    this, SLOT( set_min( double ) ) );
-//}
 
 void QtHistogramWidget::resizeEvent( QResizeEvent* event )
 {
@@ -332,7 +304,7 @@ void QtHistogramWidget::set_bar_visibility()
 
 void QtHistogramWidget::hide_threshold_bars()
 {
-  if( this->private_->min_bar_ != 0 && this->private_->min_bar_ != 0 )
+  if( this->private_->min_bar_ != nullptr && this->private_->min_bar_ != nullptr )
   {
     this->private_->min_bar_->hide();
     this->private_->max_bar_->hide();
@@ -341,7 +313,7 @@ void QtHistogramWidget::hide_threshold_bars()
 
 void QtHistogramWidget::show_threshold_bars()
 {
-  if( this->private_->min_bar_ != 0 && this->private_->min_bar_ != 0 )
+  if( this->private_->min_bar_ != nullptr && this->private_->min_bar_ != nullptr )
   {
     this->private_->min_bar_->show();
     this->private_->max_bar_->show();

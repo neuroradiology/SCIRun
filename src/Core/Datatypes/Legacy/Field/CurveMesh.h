@@ -67,7 +67,7 @@ template <class Basis> class CurveMesh;
 /// returns no virtual interface. Altering this behavior will allow
 /// for dynamically compiling the interface if needed.
 template<class MESH>
-VMesh* CreateVCurveMesh(MESH*) { return (0); }
+VMesh* CreateVCurveMesh(MESH*) { return (nullptr); }
 
 #if (SCIRUN_CURVE_SUPPORT > 0)
 /// Declare that these can be found in a library that is already
@@ -103,7 +103,7 @@ public:
   typedef SCIRun::size_type             size_type;
   typedef SCIRun::mask_type             mask_type;
 
-  typedef boost::shared_ptr<CurveMesh<Basis> > handle_type;
+  typedef SharedPointer<CurveMesh<Basis> > handle_type;
   typedef Basis                            basis_type;
 
   /// Index and Iterator types required for Mesh Concept.
@@ -160,32 +160,29 @@ public:
   class ElemData
   {
   public:
-    typedef typename CurveMesh<Basis>::index_type  index_type;
+    typedef typename CurveMesh<Basis>::index_type index_type;
 
     ElemData(const CurveMesh<Basis>& msh, const index_type idx) :
       mesh_(msh),
       index_(idx)
     {}
 
-    inline
     index_type node0_index() const {
       return mesh_.edges_[2*index_];
     }
-    inline
+
     index_type node1_index() const {
       return mesh_.edges_[2*index_+1];
     }
 
-    inline
     const Core::Geometry::Point &node0() const {
       return mesh_.points_[mesh_.edges_[2*index_]];
     }
-    inline
+
     const Core::Geometry::Point &node1() const {
       return mesh_.points_[mesh_.edges_[2*index_+1]];
     }
 
-    inline
     index_type edge0_index() const
     {
       return index_;
@@ -207,21 +204,21 @@ public:
 
   /// Clone function for detaching the mesh and automatically generating
   /// a new version if needed.
-  virtual CurveMesh *clone() const { return new CurveMesh(*this); }
+CurveMesh *clone() const override { return new CurveMesh(*this); }
 
-  MeshFacadeHandle getFacade() const
+  MeshFacadeHandle getFacade() const override
   {
-    return boost::make_shared<Core::Datatypes::VirtualMeshFacade<VMesh>>(vmesh_);
+    return makeShared<Core::Datatypes::VirtualMeshFacade<VMesh>>(vmesh_);
   }
 
   virtual ~CurveMesh();
 
   /// Obtain the virtual interface pointer
-  virtual VMesh* vmesh() { return (vmesh_.get()); }
+VMesh* vmesh() override { return (vmesh_.get()); }
 
   /// This one should go at some point, should be reroute through the
   /// virtual interface
-  virtual int basis_order() { return (basis_.polynomial_order()); }
+int basis_order() override { return (basis_.polynomial_order()); }
 
   /// Topological dimension
   virtual int dimensionality() const { return 1; }
@@ -230,7 +227,7 @@ public:
   /// structured = no connectivity data
   /// regular    = no node location data
   virtual int  topology_geometry() const
-    { return (Mesh::UNSTRUCTURED | Mesh::IRREGULAR); }
+    { return UNSTRUCTURED | IRREGULAR; }
 
   /// Get the bounding box of the field
   virtual Core::Geometry::BBox get_bounding_box() const;
@@ -252,8 +249,8 @@ public:
 
   /// Compute tables for doing topology, these need to be synchronized
   /// before doing a lot of operations.
-  virtual bool synchronize(mask_type sync);
-  virtual bool unsynchronize(mask_type sync);
+bool synchronize(mask_type sync) override;
+bool unsynchronize(mask_type sync) override;
   bool clear_synchronization();
 
   /// Get the basis class
@@ -281,13 +278,16 @@ public:
   /// dimensional indices in some fields, these functions
   /// should deal with different pointer types.
   /// Use the virtual interface to avoid all this non sense.
-  inline void to_index(typename Node::index_type &index, index_type i) const
+void to_index(typename Node::index_type &index, index_type i) const
     { index = i; }
-  inline void to_index(typename Edge::index_type &index, index_type i) const
+
+void to_index(typename Edge::index_type &index, index_type i) const
     { index = i; }
-  inline void to_index(typename Face::index_type&, index_type) const
+
+void to_index(typename Face::index_type&, index_type) const
   { ASSERTFAIL("This mesh type does not have faces use \"elem\"."); }
-  inline void to_index(typename Cell::index_type&, index_type) const
+
+void to_index(typename Cell::index_type&, index_type) const
   { ASSERTFAIL("This mesh type does not have cells use \"elem\"."); }
 
 
@@ -1058,7 +1058,7 @@ public:
   { return (epsilon_); }
 
   /// Export this class using the old Pio system
-  virtual void io(Piostream&);
+void io(Piostream&) override;
 
   ///////////////////////////////////////////////////
   // STATIC VARIABLES AND FUNCTIONS
@@ -1070,11 +1070,11 @@ public:
 
   /// Core functionality for getting the name of a templated mesh class
   static const std::string type_name(int n = -1);
-  virtual std::string dynamic_type_name() const { return curvemesh_typeid.type; }
+std::string dynamic_type_name() const override { return curvemesh_typeid.type; }
 
   /// Type description, used for finding names of the mesh class for
   /// dynamic compilation purposes. Some of this should be obsolete
-  virtual const TypeDescription *get_type_description() const;
+const TypeDescription *get_type_description() const override;
   static const TypeDescription* node_type_description();
   static const TypeDescription* edge_type_description();
   static const TypeDescription* face_type_description();
@@ -1085,19 +1085,14 @@ public:
   /// This function returns a maker for Pio.
   static Persistent *maker() { return new CurveMesh<Basis>(); }
   /// This function returns a handle for the virtual interface.
-  static MeshHandle mesh_maker() { return boost::make_shared<CurveMesh<Basis>>(); }
+  static MeshHandle mesh_maker() { return makeShared<CurveMesh<Basis>>(); }
 
 
   /// Functions local to CurveMesh, the latter are not thread safe
   /// THESE ARE NOT WELL INTEGRATED YET
   typename Node::index_type delete_node(typename Node::index_type i1)
   {
-    CHECKARRAYBOUNDS(static_cast<index_type>(i1),
-		     static_cast<index_type>(0),
-		     static_cast<index_type>(points_.size()));
-
-    std::vector<Core::Geometry::Point>::iterator niter;
-    niter = points_.begin() + i1;
+    const auto niter = points_.begin() + i1;
     points_.erase(niter);
     return static_cast<typename Node::index_type>(points_.size() - 1);
   }
@@ -1105,19 +1100,8 @@ public:
   typename Node::index_type delete_nodes(typename Node::index_type i1,
 					 typename Node::index_type i2)
   {
-    CHECKARRAYBOUNDS(static_cast<index_type>(i1),
-		     static_cast<index_type>(0),
-		     static_cast<index_type>(points_.size()));
-
-    CHECKARRAYBOUNDS(static_cast<index_type>(i2),
-		     static_cast<index_type>(0),
-		     static_cast<index_type>(points_.size()+1));
-
-    std::vector<Core::Geometry::Point>::iterator niter1;
-    niter1 = points_.begin() + i1;
-
-    std::vector<Core::Geometry::Point>::iterator niter2;
-    niter2 = points_.begin() + i2;
+    auto niter1 = points_.begin() + i1;
+    auto niter2 = points_.begin() + i2;
 
     points_.erase(niter1, niter2);
     return static_cast<typename Node::index_type>(points_.size() - 1);
@@ -1125,15 +1109,8 @@ public:
 
   typename Edge::index_type delete_edge(typename Edge::index_type i1)
   {
-    CHECKARRAYBOUNDS(static_cast<index_type>(i1),
-		     static_cast<index_type>(0),
-		     static_cast<index_type>(edges_.size()>>1));
-
-    typename std::vector<index_type>::iterator niter1;
-    niter1 = edges_.begin() + 2*i1;
-
-    typename std::vector<index_type>::iterator niter2;
-    niter2 = edges_.begin() + 2*i1+2;
+    auto niter1 = edges_.begin() + 2*i1;
+    auto niter2 = edges_.begin() + 2*i1+2;
 
     edges_.erase(niter1, niter2);
     return static_cast<typename Edge::index_type>((edges_.size()>>1) - 1);
@@ -1142,19 +1119,8 @@ public:
   typename Edge::index_type delete_edges(typename Edge::index_type i1,
 					 typename Edge::index_type i2)
   {
-    CHECKARRAYBOUNDS(static_cast<index_type>(i1),
-		     static_cast<index_type>(0),
-		     static_cast<index_type>(edges_.size()>>1));
-
-    CHECKARRAYBOUNDS(static_cast<index_type>(i2),
-		     static_cast<index_type>(0),
-		     static_cast<index_type>((edges_.size()>>1)+1));
-
-    typename std::vector<index_type>::iterator niter1;
-    niter1 = edges_.begin() + 2*i1;
-
-    typename std::vector<index_type>::iterator niter2;
-    niter2 = edges_.begin() + 2*i2;
+    auto niter1 = edges_.begin() + 2*i1;
+    auto niter2 = edges_.begin() + 2*i2;
 
     edges_.erase(niter1, niter2);
 
@@ -1175,7 +1141,7 @@ protected:
   // often a StackVector is enough (The latter improves performance).
 
   template<class ARRAY, class INDEX>
-  inline void get_nodes_from_edge(ARRAY& array, INDEX idx) const
+  void get_nodes_from_edge(ARRAY& array, INDEX idx) const
   {
     array.resize(2);
     array[0] = static_cast<typename ARRAY::value_type>(edges_[2*idx]);
@@ -1183,7 +1149,7 @@ protected:
   }
 
   template<class ARRAY, class INDEX>
-  inline void get_edges_from_node(ARRAY& array, INDEX idx) const
+  void get_edges_from_node(ARRAY& array, INDEX idx) const
   {
     ASSERTMSG(synchronized_ & Mesh::NODE_NEIGHBORS_E,
       "CurveMesh: Must call synchronize NODE_NEIGHBORS_E on CurveMesh first");
@@ -1195,20 +1161,20 @@ protected:
   }
 
   template<class ARRAY, class INDEX>
-  inline void get_nodes_from_elem(ARRAY& array, INDEX idx) const
+  void get_nodes_from_elem(ARRAY& array, INDEX idx) const
   {
     get_nodes_from_edge(array,idx);
   }
 
   template<class ARRAY, class INDEX>
-  inline void get_edges_from_elem(ARRAY& array, INDEX idx) const
+  void get_edges_from_elem(ARRAY& array, INDEX idx) const
   {
     array.resize(1); array[0] = typename ARRAY::value_type(idx);
   }
 
 
   template <class ARRAY, class INDEX>
-  inline void set_nodes_by_elem(ARRAY &array, INDEX idx)
+  void set_nodes_by_elem(ARRAY &array, INDEX idx)
   {
     for (index_type n = 0; n < 2; ++n)
       edges_[idx * 2 + n] = static_cast<index_type>(array[n]);
@@ -1330,7 +1296,7 @@ protected:
   /// Pointer to virtual interface
   /// This one is created as soon as the mesh is generated
   /// Put this one in a handle as we have a virtual destructor
-  boost::shared_ptr<VMesh>           vmesh_;
+  SharedPointer<VMesh>           vmesh_;
 };
 
 
@@ -1387,10 +1353,10 @@ CurveMesh<Basis>::~CurveMesh()
 template <class Basis>
 const TypeDescription* get_type_description(CurveMesh<Basis> *)
 {
-  static TypeDescription *td = 0;
+  static TypeDescription *td = nullptr;
   if (!td)
   {
-    const TypeDescription *sub = get_type_description((Basis*)0);
+    const TypeDescription *sub = get_type_description((Basis*)nullptr);
     TypeDescription::td_vec *subs = new TypeDescription::td_vec(1);
     (*subs)[0] = sub;
     td = new TypeDescription("CurveMesh", subs,
@@ -1406,7 +1372,7 @@ template <class Basis>
 const TypeDescription*
 CurveMesh<Basis>::get_type_description() const
 {
-  return SCIRun::get_type_description((CurveMesh<Basis> *)0);
+  return SCIRun::get_type_description((CurveMesh<Basis> *)nullptr);
 }
 
 
@@ -1414,11 +1380,11 @@ template <class Basis>
 const TypeDescription*
 CurveMesh<Basis>::node_type_description()
 {
-  static TypeDescription *td = 0;
+  static TypeDescription *td = nullptr;
   if (!td)
   {
     const TypeDescription *me =
-      SCIRun::get_type_description((CurveMesh<Basis> *)0);
+      SCIRun::get_type_description((CurveMesh<Basis> *)nullptr);
     td = new TypeDescription(me->get_name() + "::Node",
                                 std::string(__FILE__),
                                 "SCIRun",
@@ -1432,11 +1398,11 @@ template <class Basis>
 const TypeDescription*
 CurveMesh<Basis>::edge_type_description()
 {
-  static TypeDescription *td = 0;
+  static TypeDescription *td = nullptr;
   if (!td)
   {
     const TypeDescription *me =
-      SCIRun::get_type_description((CurveMesh<Basis> *)0);
+      SCIRun::get_type_description((CurveMesh<Basis> *)nullptr);
     td = new TypeDescription(me->get_name() + "::Edge",
                                 std::string(__FILE__),
                                 "SCIRun",
@@ -1450,11 +1416,11 @@ template <class Basis>
 const TypeDescription*
 CurveMesh<Basis>::face_type_description()
 {
-  static TypeDescription *td = 0;
+  static TypeDescription *td = nullptr;
   if (!td)
   {
     const TypeDescription *me =
-      SCIRun::get_type_description((CurveMesh<Basis> *)0);
+      SCIRun::get_type_description((CurveMesh<Basis> *)nullptr);
     td = new TypeDescription(me->get_name() + "::Face",
                                 std::string(__FILE__),
                                 "SCIRun",
@@ -1468,11 +1434,11 @@ template <class Basis>
 const TypeDescription*
 CurveMesh<Basis>::cell_type_description()
 {
-  static TypeDescription *td = 0;
+  static TypeDescription *td = nullptr;
   if (!td)
   {
     const TypeDescription *me =
-      SCIRun::get_type_description((CurveMesh<Basis> *)0);
+      SCIRun::get_type_description((CurveMesh<Basis> *)nullptr);
     td = new TypeDescription(me->get_name() + "::Cell",
                                 std::string(__FILE__),
                                 "SCIRun",
@@ -1784,7 +1750,7 @@ CurveMesh<Basis>::type_name(int n)
   }
   else
   {
-    return find_type_name((Basis *)0);
+    return find_type_name((Basis *)nullptr);
   }
 }
 

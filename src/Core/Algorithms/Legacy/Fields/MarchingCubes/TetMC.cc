@@ -40,7 +40,7 @@ using namespace SCIRun;
 using namespace SCIRun::Core::Geometry;
 
 void
-TetMC::reset( int /*n*/, bool build_field, bool build_geom, bool transparency )
+TetMC::reset( int /*n*/, bool build_field, bool build_geom, bool )
 {
 
   build_field_ = build_field;
@@ -77,7 +77,7 @@ TetMC::reset( int /*n*/, bool build_field, bool build_geom, bool transparency )
   geomHandle_ = triangles_;
  #endif
 
-  trisurf_ = 0;
+  trisurf_ = nullptr;
   if (build_field_)
   {
     FieldInformation fi("TriSurfMesh",basis_order_,"double");

@@ -50,9 +50,9 @@ class  BuildFESurfRHSTests : public ::testing::Test
 {
 protected:
 
-  FieldHandle CreateEmptyLatVol(size_type sizex = 3, size_type sizey = 4, size_type sizez = 5, data_info_type type=DOUBLE_E)
+  FieldHandle CreateEmptyLatVol(size_type sizex = 3, size_type sizey = 4, size_type sizez = 5, data_info_type type=data_info_type::DOUBLE_E)
   {
-    FieldInformation lfi(LATVOLMESH_E, LINEARDATA_E, type);
+    FieldInformation lfi(mesh_info_type::LATVOLMESH_E, databasis_info_type::LINEARDATA_E, type);
     Point minb(-1.0, -1.0, -1.0);
     Point maxb(1.0, 1.0, 1.0);
     MeshHandle mesh = CreateMesh(lfi, sizex, sizey, sizez, minb, maxb);
@@ -67,7 +67,7 @@ TEST_F(BuildFESurfRHSTests, CreateLatVolTest)
   auto size=3,len=size*size*size;
   FieldHandle latVol = CreateEmptyLatVol(size, size, size);
 
-  DenseMatrixHandle m(boost::make_shared<DenseMatrix>(8,3));
+  DenseMatrixHandle m(makeShared<DenseMatrix>(8,3));
   double t=0.22984884706593014525;
   (*m)(0,0) =  t; (*m)(0,1) =  t; (*m)(0,2) =  t;
   (*m)(1,0) = -t; (*m)(1,1) =  t; (*m)(1,2) = -t;

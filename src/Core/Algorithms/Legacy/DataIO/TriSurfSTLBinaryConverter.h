@@ -44,13 +44,13 @@ namespace Core {
   namespace Algorithms {
 
 class ConverterPrivate;
-typedef boost::shared_ptr< ConverterPrivate > ConverterPrivateHandle;
+typedef SharedPointer< ConverterPrivate > ConverterPrivateHandle;
 
 class SCISHARE TriSurfSTLBinaryConverter : public AlgorithmBase
 {
 public:
   explicit TriSurfSTLBinaryConverter(Core::Logging::LoggerHandle pr);
-  virtual AlgorithmOutput run(const AlgorithmInput&) const override { throw "not implemented"; }
+  AlgorithmOutput run(const AlgorithmInput&) const override { throw "not implemented"; }
 
   bool read(const std::string& filename, FieldHandle& field);
   bool write(const std::string& filename, const FieldHandle& field);

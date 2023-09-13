@@ -75,7 +75,7 @@ void PythonExecutingMetadataObject::process(const std::string& modId)
   auto progWithId = std::regex_replace(programData_, std::regex("\\%moduleId\\%"), "\"" + modId + "\"");
   //logCritical("Post-processed code: {}", progWithId);
   {
-    NamedGuard g(lock_.get(), "PythonExecutingMetadataObject");
+    Guard g(lock_.get(), "PythonExecutingMetadataObject");
     PythonInterpreter::Instance().run_script(progWithId);
   }
   //logCritical("Done python execution.");
@@ -89,7 +89,7 @@ void ModuleStateModifierTester::execute()
   {
     auto code = get_state()->getValue(Parameters::StateModifyingCode).toString();
     remark(code);
-    sendOutput(MetadataCode, boost::make_shared<PythonExecutingMetadataObject>(code));
+    sendOutput(MetadataCode, makeShared<PythonExecutingMetadataObject>(code));
   }
 #else
   error("This module does nothing, turn on BUILD_WITH_PYTHON to enable.");

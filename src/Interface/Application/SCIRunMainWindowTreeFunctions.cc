@@ -28,47 +28,19 @@
 
 #include <es-log/trace-log.h>
 #include <QtGui>
-#include <functional>
-#include <boost/bind.hpp>
-#include <boost/assign.hpp>
-#include <boost/assign/std/vector.hpp>
-#include <boost/algorithm/string.hpp>
-#include <Core/Utils/Legacy/MemoryUtil.h>
-#include <Core/Algorithms/Base/AlgorithmVariableNames.h>
 #include <Interface/Application/GuiLogger.h>
 #include <Interface/Application/SCIRunMainWindow.h>
 #include <Interface/Application/NetworkEditor.h>
 #include <Interface/Application/ProvenanceWindow.h>
 #include <Interface/Application/Connection.h>
-#include <Interface/Application/PreferencesWindow.h>
-#include <Interface/Application/ShortcutsInterface.h>
-#include <Interface/Application/TreeViewCollaborators.h>
 #include <Interface/Application/MainWindowCollaborators.h>
+#include <Interface/Application/TreeViewCollaborators.h>
 #include <Interface/Application/GuiCommands.h>
-#include <Interface/Application/NetworkEditorControllerGuiProxy.h>
-#include <Interface/Application/NetworkExecutionProgressBar.h>
-#include <Interface/Application/DialogErrorControl.h>
-#include <Interface/Modules/Base/RemembersFileDialogDirectory.h>
 #include <Interface/Modules/Base/ModuleDialogGeneric.h> //TODO
-#include <Interface/Application/ModuleWizard/ModuleWizard.h>
 #include <Dataflow/Network/NetworkFwd.h>
-#include <Dataflow/Engine/Controller/ProvenanceManager.h>
-#include <Dataflow/Network/SimpleSourceSink.h>  //TODO: encapsulate!!!
-#include <Dataflow/Serialization/Network/XMLSerializer.h>
-#include <Core/Application/Application.h>
-#include <Core/Application/Preferences/Preferences.h>
 #include <Core/Logging/Log.h>
-#include <Core/Thread/Parallel.h>
-#include <Core/Application/Version.h>
 #include <Dataflow/Serialization/Network/NetworkDescriptionSerialization.h>
-#include <Core/Utils/CurrentFileName.h>
 
-#ifdef BUILD_WITH_PYTHON
-#include <Interface/Application/PythonConsoleWidget.h>
-#include <Core/Python/PythonInterpreter.h>
-#endif
-
-#include <Dataflow/Serialization/Network/XMLSerializer.h>
 
 using namespace SCIRun;
 using namespace SCIRun::Gui;
@@ -100,6 +72,8 @@ namespace
   const QString favoritesText = bullet + "Favorites";
   const QString clipboardHistoryText = hash + "Clipboard History";
   const QString savedSubsText = hash + "Saved Fragments";
+  const QString recentText = bullet + "Recent Modules";
+  const QString frequentText = bullet + "Frequent Modules";
 }
 
 void SCIRunMainWindow::addFavoriteMenu(QTreeWidget* tree)
@@ -124,19 +98,29 @@ QTreeWidgetItem* SCIRunMainWindow::getTreeMenu(QTreeWidget* tree, const QString&
   return nullptr;
 }
 
-QTreeWidgetItem* SCIRunMainWindow::getFavoriteMenu(QTreeWidget* tree)
+QTreeWidgetItem* SCIRunMainWindow::getFavoriteMenu()
 {
-  return getTreeMenu(tree, favoritesText);
+  return getTreeMenu(userModuleSelectorTreeWidget_, favoritesText);
 }
 
-QTreeWidgetItem* SCIRunMainWindow::getClipboardHistoryMenu(QTreeWidget* tree)
+QTreeWidgetItem* SCIRunMainWindow::getClipboardHistoryMenu()
 {
-  return getTreeMenu(tree, clipboardHistoryText);
+  return getTreeMenu(userModuleSelectorTreeWidget_, clipboardHistoryText);
 }
 
-QTreeWidgetItem* SCIRunMainWindow::getSavedSubnetworksMenu(QTreeWidget* tree)
+QTreeWidgetItem* SCIRunMainWindow::getRecentModulesMenu()
 {
-  return getTreeMenu(tree, savedSubsText);
+  return getTreeMenu(userModuleSelectorTreeWidget_, recentText);
+}
+
+QTreeWidgetItem* SCIRunMainWindow::getFrequentModulesMenu()
+{
+  return getTreeMenu(userModuleSelectorTreeWidget_, frequentText);
+}
+
+QTreeWidgetItem* SCIRunMainWindow::getSavedSubnetworksMenu()
+{
+  return getTreeMenu(userModuleSelectorTreeWidget_, savedSubsText);
 }
 
 void SCIRunMainWindow::addSnippet(const QString& code, QTreeWidgetItem* snips)
@@ -183,6 +167,42 @@ void SCIRunMainWindow::addSnippetMenu(QTreeWidget* tree)
   tree->addTopLevelItem(snips);
 }
 
+void SCIRunMainWindow::addFrequentMenu(QTreeWidget* tree)
+{
+  auto freqs = new QTreeWidgetItem();
+  freqs->setText(0, frequentText);
+  freqs->setForeground(0, favesColor());
+  tree->addTopLevelItem(freqs);
+
+  std::for_each(frequentModulesSettings_.constKeyValueBegin(), frequentModulesSettings_.constKeyValueEnd(),
+    [&](auto&& p) { frequentModules_.emplace(p.first, p.second.toInt()); });
+
+  for (const auto& m : topNMostFrequentModules())
+  {
+    auto mod = new QTreeWidgetItem();
+    mod->setText(0, m);
+    freqs->addChild(mod);
+  }
+  connect(actionClearFrequentModules_, &QAction::triggered, this, &SCIRunMainWindow::clearFrequentModules);
+}
+
+void SCIRunMainWindow::addRecentMenu(QTreeWidget* tree)
+{
+  auto recent = new QTreeWidgetItem();
+  recent->setText(0, recentText);
+  recent->setForeground(0, favesColor());
+  tree->addTopLevelItem(recent);
+
+  for (const auto& m : recentModules_)
+  {
+    auto mod = new QTreeWidgetItem();
+    mod->setText(0, m);
+    mod->setData(0, clipboardKey, m.split(' ')[2]);
+    recent->insertChild(0, mod);
+  }
+  connect(actionClearRecentModules_, &QAction::triggered, this, &SCIRunMainWindow::clearRecentModules);
+}
+
 void SCIRunMainWindow::addSavedSubnetworkMenu(QTreeWidget* tree)
 {
   auto savedSubnetworks = new QTreeWidgetItem();
@@ -215,7 +235,7 @@ QTreeWidgetItem* SCIRunMainWindow::addFavoriteItem(QTreeWidgetItem* faves, QTree
 
 void SCIRunMainWindow::fillTreeWidget(QTreeWidget* tree, const ModuleDescriptionMap& moduleMap, const QStringList& favoriteModuleNames)
 {
-  auto faves = getFavoriteMenu(tree);
+  auto faves = getFavoriteMenu();
   for (const auto& package : moduleMap)
   {
     const auto& packageName = package.first;
@@ -250,7 +270,7 @@ void SCIRunMainWindow::fillTreeWidget(QTreeWidget* tree, const ModuleDescription
         moduleItem->setForeground(1, Qt::lightGray);
         moduleItem->setText(2, QString::fromStdString(module.second.moduleInfo_));
         moduleItem->setForeground(2, Qt::lightGray);
-        moduleItem->setData(0, Qt::UserRole, module.second.hasUI_);
+        moduleItem->setData(0, hasUIDataFlag, module.second.hasUI_);
         categoryItem->addChild(moduleItem);
         totalModules++;
       }
@@ -262,8 +282,8 @@ void SCIRunMainWindow::fillTreeWidget(QTreeWidget* tree, const ModuleDescription
   }
 }
 
-void SCIRunMainWindow::sortFavorites(QTreeWidget* tree)
+void SCIRunMainWindow::sortFavorites()
 {
-  auto faves = getFavoriteMenu(tree);
+  auto faves = getFavoriteMenu();
   faves->sortChildren(0, Qt::AscendingOrder);
 }

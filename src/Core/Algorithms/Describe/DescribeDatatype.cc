@@ -33,6 +33,8 @@
 #include <Core/Datatypes/DenseMatrix.h>
 #include <Core/Datatypes/Legacy/Field/Field.h>
 #include <Core/Datatypes/Geometry.h>
+#include <Core/Datatypes/ColorMap.h>
+#include <Core/Datatypes/Legacy/Bundle/Bundle.h>
 #include <Core/Algorithms/Math/ReportComplexMatrixInfo.h>
 
 using namespace SCIRun::Core::Algorithms::General;
@@ -47,14 +49,14 @@ std::string DescribeDatatype::describe(const DatatypeHandle& data) const
   if (!data)
     return "[null data]";
 
-  auto str = boost::dynamic_pointer_cast<String>(data);
+  auto str = std::dynamic_pointer_cast<String>(data);
   if (str)
   {
     auto value = str->value();
     return "[String Data]  Contents:\n" + (!value.empty() ? value : "(empty string)");
   }
 
-  auto mat = boost::dynamic_pointer_cast<Matrix>(data);
+  auto mat = std::dynamic_pointer_cast<Matrix>(data);
   if (mat)
   {
     ReportMatrixInfoAlgorithm algo;
@@ -63,7 +65,7 @@ std::string DescribeDatatype::describe(const DatatypeHandle& data) const
     return "[Matrix Data] Info:\n" + ReportMatrixInfoAlgorithm::summarize(info);
   }
 
-  auto cmat = boost::dynamic_pointer_cast<ComplexDenseMatrix>(data);
+  auto cmat = std::dynamic_pointer_cast<ComplexDenseMatrix>(data);
   if (cmat)
   {
     ReportComplexMatrixInfoAlgo algo;
@@ -72,7 +74,7 @@ std::string DescribeDatatype::describe(const DatatypeHandle& data) const
     return "[Complex Matrix Data] Info:\n" + ReportComplexMatrixInfoAlgo::summarize(info);
   }
 
-  auto cmatsp = boost::dynamic_pointer_cast<ComplexSparseRowMatrix>(data);
+  auto cmatsp = std::dynamic_pointer_cast<ComplexSparseRowMatrix>(data);
   if (cmatsp)
   {
     ReportComplexMatrixInfoAlgo algo;
@@ -81,7 +83,7 @@ std::string DescribeDatatype::describe(const DatatypeHandle& data) const
     return "[Complex Matrix Data] Info:\n" + ReportComplexMatrixInfoAlgo::summarize(info);
   }
 
-  auto field = boost::dynamic_pointer_cast<Field>(data);
+  auto field = std::dynamic_pointer_cast<Field>(data);
   if (field)
   {
     ReportFieldInfoAlgorithm algo;
@@ -90,10 +92,22 @@ std::string DescribeDatatype::describe(const DatatypeHandle& data) const
     return "[Field Data] Info:\n" + ReportFieldInfoAlgorithm::summarize(info);
   }
 
-  auto geom = boost::dynamic_pointer_cast<GeometryObject>(data);
+  auto geom = std::dynamic_pointer_cast<GeometryObject>(data);
   if (geom)
   {
-    return "[Geometry Object] ID:\n" + geom->uniqueID();
+    return "[Geometry Object]\nID:\n" + geom->uniqueID();
+  }
+
+  auto color = std::dynamic_pointer_cast<ColorMap>(data);
+  if (color)
+  {
+    return "[ColorMap Object] Description: \n" + color->describe();
+  }
+
+  auto bundle = std::dynamic_pointer_cast<Bundle>(data);
+  if (bundle)
+  {
+    return "[Bundle Object]\nSize: " + std::to_string(bundle->size());
   }
 
   return "[Unknown Datatype]";

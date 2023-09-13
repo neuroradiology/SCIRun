@@ -49,12 +49,12 @@ public:
   MOCK_METHOD0(clear, void());
 };
 
-typedef boost::shared_ptr<MockNetworkIO> MockNetworkIOPtr;
+typedef SharedPointer<MockNetworkIO> MockNetworkIOPtr;
 
 class ProvenanceManagerTests : public ::testing::Test
 {
 protected:
-  virtual void SetUp()
+  void SetUp() override
   {
     controller_.reset(new NiceMock<MockNetworkIO>);
   }
@@ -63,8 +63,8 @@ protected:
   {
   public:
     explicit DummyProvenanceItem(const std::string& name) : name_(name) {}
-    virtual std::string name() const { return name_; }
-    virtual std::string memento() const { return name_; }
+    std::string name() const override { return name_; }
+    std::string memento() const override { return name_; }
   private:
     std::string name_;
   };

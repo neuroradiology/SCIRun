@@ -37,6 +37,8 @@ namespace SCIRun {
     namespace Algorithms {
       namespace Fields {
 
+        ALGORITHM_PARAMETER_DECL(RotateData);
+
 class SCISHARE AlignMeshBoundingBoxesAlgo : public AlgorithmBase
 {
   public:
@@ -44,12 +46,10 @@ class SCISHARE AlignMeshBoundingBoxesAlgo : public AlgorithmBase
 
     bool run(FieldHandle input, FieldHandle object, FieldHandle& output, Datatypes::MatrixHandle& transform) const;
 
-    static AlgorithmParameterName RotateData;
     static AlgorithmInputName AlignmentField;
-    static AlgorithmOutputName OutputField;
     static AlgorithmOutputName TransformMatrix;
 
-    virtual AlgorithmOutput run(const AlgorithmInput& input) const;
+    AlgorithmOutput run(const AlgorithmInput& input) const override;
 };
 
 }}}}

@@ -48,25 +48,25 @@ GetMatrixSliceDialog::GetMatrixSliceDialog(const std::string& name, ModuleStateH
   addSpinBoxManager(indexIncrementSpinBox_, Parameters::SliceIncrement);
   addSpinBoxManager(executionDelaySpinBox_, Parameters::PlayModeDelay);
 
-  playModeMap_.insert(StringPair("Loop once", "looponce"));
-  playModeMap_.insert(StringPair("Loop forever (EXPERIMENTAL)", "loopforever"));
-  addComboBoxManager(playModeComboBox_, Parameters::PlayModeType, playModeMap_);
+  addComboBoxManager(playModeComboBox_, Parameters::PlayModeType,
+    {{"Loop once", "looponce"},
+    {"Loop forever (EXPERIMENTAL)", "loopforever"}});
 
   nextIndexButton_->setIcon(QApplication::style()->standardIcon(QStyle::SP_MediaSkipForward));
-  connect(nextIndexButton_, SIGNAL(clicked()), this, SLOT(incrementIndex()));
+  connect(nextIndexButton_, &QPushButton::clicked, this, &GetMatrixSliceDialog::incrementIndex);
   previousIndexButton_->setIcon(QApplication::style()->standardIcon(QStyle::SP_MediaSkipBackward));
-  connect(previousIndexButton_, SIGNAL(clicked()), this, SLOT(decrementIndex()));
+  connect(previousIndexButton_, &QPushButton::clicked, this, &GetMatrixSliceDialog::decrementIndex);
   firstIndexButton_->setIcon(QApplication::style()->standardIcon(QStyle::SP_MediaSeekBackward));
-  connect(firstIndexButton_, SIGNAL(clicked()), this, SLOT(selectFirstIndex()));
+  connect(firstIndexButton_, &QPushButton::clicked, this, &GetMatrixSliceDialog::selectFirstIndex);
   lastIndexButton_->setIcon(QApplication::style()->standardIcon(QStyle::SP_MediaSeekForward));
-  connect(lastIndexButton_, SIGNAL(clicked()), this, SLOT(selectLastIndex()));
+  connect(lastIndexButton_, &QPushButton::clicked, this, &GetMatrixSliceDialog::selectLastIndex);
 
-  connect(indexSlider_, SIGNAL(sliderReleased()), this, SIGNAL(executeFromStateChangeTriggered()));
+  connect(indexSlider_, &QSlider::sliderReleased, this, &GetMatrixSliceDialog::executeFromStateChangeTriggered);
 
   playButton_->setIcon(QApplication::style()->standardIcon(QStyle::SP_MediaPlay));
-  connect(playButton_, SIGNAL(clicked()), this, SLOT(startPlay()));
+  connect(playButton_, &QPushButton::clicked, this, &GetMatrixSliceDialog::startPlay);
   pauseButton_->setIcon(QApplication::style()->standardIcon(QStyle::SP_MediaPause));
-  connect(pauseButton_, SIGNAL(clicked()), this, SLOT(stopPlay()));
+  connect(pauseButton_, &QPushButton::clicked, this, &GetMatrixSliceDialog::stopPlay);
 
   //TODO: add convenience function at ModuleDialogGeneric level
   for (QToolButton* b : { nextIndexButton_, previousIndexButton_, firstIndexButton_, lastIndexButton_, playButton_, pauseButton_ })
@@ -117,7 +117,7 @@ void GetMatrixSliceDialog::selectLastIndex()
 
 void GetMatrixSliceDialog::startPlay()
 {
-  state_->setTransientValue(Parameters::PlayModeActive, static_cast<int>(GetMatrixSliceAlgo::PLAY));
+  state_->setTransientValue(Parameters::PlayModeActive, static_cast<int>(GetMatrixSliceAlgo::PlayMode::PLAY));
   Q_EMIT executeFromStateChangeTriggered();
   Q_EMIT executionLoopStarted();
   //qDebug() << " execution loop started emitted ";
@@ -125,7 +125,7 @@ void GetMatrixSliceDialog::startPlay()
 
 void GetMatrixSliceDialog::stopPlay()
 {
-  state_->setTransientValue(Parameters::PlayModeActive, static_cast<int>(GetMatrixSliceAlgo::PAUSE));
+  state_->setTransientValue(Parameters::PlayModeActive, static_cast<int>(GetMatrixSliceAlgo::PlayMode::PAUSE));
   Q_EMIT executionLoopHalted();
   //qDebug() << " execution loop halted emitted ";
 }

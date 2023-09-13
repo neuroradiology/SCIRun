@@ -63,7 +63,7 @@ public:
     ASSERTFAIL("PropertyBase clone called");
   }
 
-  virtual void io(Piostream &) {}
+  void io(Piostream &) override {}
   static  PersistentTypeID type_id;
   virtual std::string dynamic_type_name() const;
 
@@ -82,7 +82,7 @@ protected:
   static Persistent *maker();
 };
 
-typedef boost::shared_ptr<PropertyBase> PropertyBaseHandle;
+typedef SharedPointer<PropertyBase> PropertyBaseHandle;
 
 class SCISHARE PropertyManager;
 
@@ -95,15 +95,17 @@ public:
   {
   }
   virtual ~Property() {}
-  virtual PropertyBase *clone() const
+
+  PropertyBase *clone() const override
   { return new Property(obj_, transient()); }
 
   static const std::string type_name(int n = -1);
-  virtual void io(Piostream &stream);
+  void io(Piostream &stream) override;
   static PersistentTypeID type_id;
-  virtual std::string dynamic_type_name() const { return type_id.type; }
+  std::string dynamic_type_name() const override { return type_id.type; }
 
-  virtual bool operator==(PropertyBase &pb) const {
+  bool operator==(PropertyBase &pb) const override
+  {
     const Property<T> *prop = dynamic_cast<Property<T> *>(&pb);
 
     if (prop && obj_ == prop->obj_ )
@@ -112,7 +114,8 @@ public:
     return false;
   }
 
-  virtual bool operator!=(PropertyBase &pb) const {
+  bool operator!=(PropertyBase &pb) const override
+  {
     const Property<T> *prop = dynamic_cast<Property<T> *>(&pb);
 
     if (prop && obj_ == prop->obj_ )
@@ -156,7 +159,7 @@ const std::string Property<T>::type_name(int n)
     return nm;
   }
   else
-    return find_type_name( static_cast<T*>(0));
+    return find_type_name( static_cast<T*>(nullptr));
 }
 
 template <class T>
@@ -226,7 +229,7 @@ public:
   PropertyManagerSize nproperties() const { return static_cast<PropertyManagerSize>(properties_.size()); }
   const std::map<std::string, PropertyBaseHandle>& properties() const { return properties_; }
 
-  void    io(Piostream &stream);
+  void    io(Piostream &stream) override;
   static  PersistentTypeID type_id;
   virtual std::string dynamic_type_name() const;
 
@@ -260,12 +263,13 @@ void
 PropertyManager::set_property(const std::string &name,  const T& obj,
 			      bool is_transient)
 {
-  if (is_transient && (! is_frozen())) {
+  if (is_transient && (! is_frozen()))
+  {
     std::cerr << "WARNING::PropertyManager must be frozen to store transient data"
               << " freezing now!" << std::endl;
     freeze();
   }
-  Core::Thread::Guard g(lock.get());
+  Core::Thread::Guard g(lock);
   properties_[name].reset(new Property<T>(obj, is_transient));
 }
 
@@ -274,12 +278,13 @@ template<class T>
 bool
 PropertyManager::get_property(const std::string &name, T &ref)
 {
-  Core::Thread::Guard g(lock.get());
+  Core::Thread::Guard g(lock);
 
   bool ans = false;
-  map_type::iterator loc = properties_.find(name);
-  if (loc != properties_.end()) {
-    auto prop = boost::dynamic_pointer_cast<const Property<T>>(loc->second);
+  auto loc = properties_.find(name);
+  if (loc != properties_.end())
+  {
+    auto prop = std::dynamic_pointer_cast<const Property<T>>(loc->second);
     if (prop)
     {
       ref = prop->obj_;

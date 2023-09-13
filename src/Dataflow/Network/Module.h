@@ -123,6 +123,7 @@ namespace Networks {
     boost::signals2::connection connectExecuteBegins(const ExecuteBeginsSignalType::slot_type& subscriber) override final;
     boost::signals2::connection connectExecuteEnds(const ExecuteEndsSignalType::slot_type& subscriber) override final;
     boost::signals2::connection connectErrorListener(const ErrorSignalType::slot_type& subscriber) override final;
+    void disconnectStateListeners() override final;
     void addPortConnection(const boost::signals2::connection& con) override final;
     Core::Algorithms::AlgorithmHandle getAlgorithm() const override final;
     void setLogger(Core::Logging::LoggerHandle log) override final;
@@ -132,9 +133,11 @@ namespace Networks {
     void setExecutionDisabled(bool disable) override final;
     bool isImplementationDisabled() const override { return false; }
     void setProgrammableInputPortEnabled(bool enable) override final;
-    bool checkForVirtualConnection(const ModuleInterface& downstream) const override { return false; }
+    bool checkForVirtualConnection(const ModuleInterface&) const override { return false; }
     std::string description() const override;
     void setInfoStrings(const ModuleDescription& desc);
+    NetworkInterface* network() const override final;
+    void setNetwork(NetworkInterface* net) override final;
     static const int TraitFlags;
     //for unit testing. Need to restrict access somehow.
     static void resetIdGenerator();
@@ -144,19 +147,23 @@ namespace Networks {
 /*** User-interface ****/
     // Throws if input is not present or null.
     template <class T, size_t N>
-    boost::shared_ptr<T> getRequiredInput(const StaticPortName<T,N>& port);
+    SharedPointer<T> getRequiredInput(const StaticPortName<T,N>& port);
     template <class T, size_t N>
-    boost::optional<boost::shared_ptr<T>> getOptionalInput(const StaticPortName<T,N>& port);
+    std::optional<SharedPointer<T>> getOptionalInput(const StaticPortName<T,N>& port);
     template <class T, size_t N>
-    std::vector<boost::shared_ptr<T>> getRequiredDynamicInputs(const DynamicPortName<T,N>& port);
+    std::vector<SharedPointer<T>> getRequiredDynamicInputs(const DynamicPortName<T,N>& port);
     template <class T, size_t N>
-    std::vector<boost::shared_ptr<T>> getOptionalDynamicInputs(const DynamicPortName<T,N>& port);
+    std::vector<SharedPointer<T>> getOptionalDynamicInputs(const DynamicPortName<T,N>& port);
     // does not throw, only returns non-null
     template <class T, size_t N>
-    std::vector<boost::shared_ptr<T>> getValidDynamicInputs(const DynamicPortName<T,N>& port);
+    std::vector<SharedPointer<T>> getValidDynamicInputs(const DynamicPortName<T,N>& port);
   public: //for python
     template <class T, class D, size_t N>
-    void sendOutput(const StaticPortName<T, N>& port, boost::shared_ptr<D> data);
+    void sendOutput(const StaticPortName<T, N>& port, SharedPointer<D> data);
+    void removeInputPort(const PortId& id) override final;
+    void removeOutputPort(const PortId& id) override final;
+    size_t add_input_port(InputPortHandle) override;
+    size_t add_output_port(OutputPortHandle) override final;
   protected:
     template <class T, size_t N, typename F>
     void computeOutputAndSendIfConnected(const StaticPortName<T, N>& port, F evalFunc);
@@ -181,10 +188,8 @@ namespace Networks {
     virtual void postStateChangeInternalSignalHookup();
 
 /*** protected Dev-interface ****/
-    virtual void send_output_handle(const PortId& id, Core::Datatypes::DatatypeHandle data) override final;
-    virtual size_t add_input_port(InputPortHandle);
-    size_t add_output_port(OutputPortHandle);
-    virtual void removeInputPort(const PortId& id);
+    void send_output_handle(const PortId& id, Core::Datatypes::DatatypeHandle data) override final;
+
     void sendFeedbackUpstreamAlongIncomingConnections(const Core::Datatypes::ModuleFeedback& feedback) const;
     std::string stateMetaInfo() const;
     void copyStateToMetadata();
@@ -196,14 +201,14 @@ namespace Networks {
     std::vector<Core::Datatypes::DatatypeHandleOption> get_dynamic_input_handles(const PortId& id) override final;
     void runProgrammablePortInput();
     template <class T>
-    boost::shared_ptr<T> getRequiredInputAtIndex(const PortId& id);
+    SharedPointer<T> getRequiredInputAtIndex(const PortId& id);
     template <class T>
-    boost::optional<boost::shared_ptr<T>> getOptionalInputAtIndex(const PortId& id);
+    std::optional<SharedPointer<T>> getOptionalInputAtIndex(const PortId& id);
     template <class T>
-    boost::shared_ptr<T> checkInput(Core::Datatypes::DatatypeHandleOption inputOpt, const PortId& id);
+    SharedPointer<T> checkInput(Core::Datatypes::DatatypeHandleOption inputOpt, const PortId& id);
 
     friend class ModuleImpl;
-    boost::shared_ptr<class ModuleImpl> impl_;
+    SharedPointer<class ModuleImpl> impl_;
   };
 
   // ReSharper disable once CppUnusedIncludeDirective

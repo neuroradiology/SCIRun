@@ -42,13 +42,13 @@ namespace SCIRun {
       {
       public:
         ReportColumnMatrixMisfit();
-        virtual void execute() override;
-        virtual void setStateDefaults() override;
+        void execute() override;
+        void setStateDefaults() override;
         INPUT_PORT(0, Vec1, Matrix);
         INPUT_PORT(1, Vec2, Matrix);
         OUTPUT_PORT(0, Error_Out, Double);
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUI)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
       private:
         void showGraph(const Core::Datatypes::DenseColumnMatrix& v1, const Core::Datatypes::DenseColumnMatrix& v2,
           double ccInv, double rmsRel);

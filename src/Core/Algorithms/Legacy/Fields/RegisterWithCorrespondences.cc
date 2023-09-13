@@ -37,6 +37,12 @@
 #include <Core/Datatypes/MatrixTypeConversions.h>
 #include <Eigen/SVD>
 #include <Core/Datatypes/Legacy/Field/VMesh.h>
+#include <Core/Datatypes/Matrix.h>
+#include <Core/Datatypes/Legacy/Field/Mesh.h>
+#include <Core/Datatypes/Legacy/Field/Field.h>
+#include <Core/Datatypes/Legacy/Field/FieldInformation.h>
+#include <Core/GeometryPrimitives/Vector.h>
+#include <vector>
 
 #include <sstream>
 
@@ -48,8 +54,9 @@ using namespace SCIRun::Core::Algorithms::Fields;
 using namespace SCIRun::Core::Geometry;
 
 
-static void printMatrix(const DenseMatrix& m, const std::string& tag = "tag")
+static void printMatrix(const DenseMatrix& /*m*/, const std::string& tag = "tag")
 {
+  (void)tag;
 #if 0
   std::cout << tag << std::endl;
   std::cout << "Size: " << m.nrows() << " x " << m.ncols() << std::endl;
@@ -145,6 +152,7 @@ DenseMatrixHandle RegisterWithCorrespondencesAlgo::runMorph(FieldHandle input, F
   icors1->size(num_cors1);
   icors2->size(num_cors2);
   imesh->size(num_pts);
+  const auto num_cors1i = static_cast<int>(num_cors1);
 
   std::vector<double> coefs;//(3*num_cors1+9);
   std::vector<double> rside;//(3*num_cors1+9);
@@ -240,10 +248,10 @@ DenseMatrixHandle RegisterWithCorrespondencesAlgo::runMorph(FieldHandle input, F
     Bm(3, L1) = 1;
 
     //vertical x,y,z
-    Bm(L1 + 4, num_cors1) = P.x();
-    Bm(L1 + 4, num_cors1 + 1) = P.y();
-    Bm(L1 + 4, num_cors1 + 2) = P.z();
-    Bm(L1 + 4, num_cors1 + 3) = 1;
+    Bm(L1 + 4, num_cors1i) = P.x();
+    Bm(L1 + 4, num_cors1i + 1) = P.y();
+    Bm(L1 + 4, num_cors1i + 2) = P.z();
+    Bm(L1 + 4, num_cors1i + 3) = 1;
   }
 
   for (int L1 = num_cors1; L1 < num_cors1 + 4; ++L1)
@@ -287,14 +295,14 @@ DenseMatrixHandle RegisterWithCorrespondencesAlgo::runMorph(FieldHandle input, F
   {
     for (int j = 0; j < (num_cors1 + 4); ++j)
     {
-      BigMat(num_cors1 + 4 + i, num_cors1 + 4 + j) = Bm(i, j);
+      BigMat(num_cors1i + 4 + i, num_cors1i + 4 + j) = Bm(i, j);
     }
   }
   for (int i = 0; i < (num_cors1 + 4); ++i)
   {
     for (int j = 0; j < (num_cors1 + 4); ++j)
     {
-      BigMat(2 * num_cors1 + 8 + i, 2 * num_cors1 + 8 + j) = Bm(i, j);
+      BigMat(2 * num_cors1i + 8 + i, 2 * num_cors1i + 8 + j) = Bm(i, j);
     }
   }
 
@@ -612,7 +620,7 @@ DenseMatrixHandle RegisterWithCorrespondencesAlgo::runAffine(FieldHandle input, 
   trans2(1,3) = sumy;
   trans2(2,3) = sumz;
 
-  auto trans_out = boost::make_shared<DenseMatrix>(trans2*rotation*trans1);
+  auto trans_out = makeShared<DenseMatrix>(trans2*rotation*trans1);
 
 
   //done with solve, make the new field
@@ -912,7 +920,7 @@ DenseMatrixHandle RegisterWithCorrespondencesAlgo::runRigid_P(FieldHandle input,
   printMatrix(scale2,"scale2");
 
 
-  auto trans_out = boost::make_shared<DenseMatrix>(trans2*rotation*scale1*trans1);
+  auto trans_out = makeShared<DenseMatrix>(trans2*rotation*scale1*trans1);
 
       //done with solve, make the new field
     printMatrix(*trans_out,"transform");
@@ -955,8 +963,6 @@ DenseMatrixHandle RegisterWithCorrespondencesAlgo::runNone(FieldHandle input, Fi
     return nullptr;
   }
 
-  FieldHandle input_cp;
-
   output.reset(input->deep_clone());
 
   if (!output)
@@ -965,12 +971,7 @@ DenseMatrixHandle RegisterWithCorrespondencesAlgo::runNone(FieldHandle input, Fi
     return nullptr;
   }
 
-  VMesh* imesh = input->vmesh();
-  VMesh* omesh = output->vmesh();
-
-  omesh = imesh;
-
-  return boost::make_shared<DenseMatrix>(Eigen::MatrixXd::Identity(4,4));
+  return makeShared<DenseMatrix>(Eigen::MatrixXd::Identity(4,4));
 
 }
 
@@ -1056,7 +1057,7 @@ bool RegisterWithCorrespondencesAlgo::make_new_points(VMesh* points, VMesh* Cors
   return true;
 }
 
-bool RegisterWithCorrespondencesAlgo::make_new_pointsA(VMesh* points, VMesh* Cors, const std::vector<double>& coefs, VMesh& omesh, double sumx, double sumy, double sumz) const
+bool RegisterWithCorrespondencesAlgo::make_new_pointsA(VMesh* points, VMesh*, const std::vector<double>& coefs, VMesh& omesh, double sumx, double sumy, double sumz) const
 {
   VMesh::Node::size_type num_cors, num_pts;
   VMesh::Node::iterator it, itp;

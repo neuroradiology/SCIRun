@@ -98,25 +98,25 @@ namespace SCIRun {
       class SCISHARE ShowField : public Dataflow::Networks::GeometryGeneratingModule,
         public Has2InputPorts<FieldPortTag, ColorMapPortTag>,
         public Has1OutputPort<GeometryPortTag>,
-        public Core::Thread::Interruptible
+        public Core::Thread::Stoppable
       {
       public:
         ShowField();
-        virtual void execute() override;
+        void execute() override;
 
         INPUT_PORT(0, Field, Field);
         INPUT_PORT(1, ColorMapObject, ColorMap);
         OUTPUT_PORT(0, SceneGraph, GeometryObject);
         //OUTPUT_PORT(1, OspraySceneGraph, OsprayGeometryObject); //TODO
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUI)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
 
-        virtual void setStateDefaults() override;
+        void setStateDefaults() override;
       private:
         void updateAvailableRenderOptions(FieldHandle field);
         void processMeshComponentSelection(const Core::Datatypes::ModuleFeedback& var);
 
-        boost::shared_ptr<detail::GeometryBuilder> builder_;
+        SharedPointer<detail::GeometryBuilder> builder_;
       };
 
     } // Visualization

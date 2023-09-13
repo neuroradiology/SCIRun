@@ -30,9 +30,8 @@
 #define TESTING_UTIL_MATRIXTESTUTILITIES 1
 
 #include <gtest/gtest.h>
-#include <boost/test/floating_point_comparison.hpp>
+#include <boost/test/tools/floating_point_comparison.hpp>
 #include <boost/tuple/tuple.hpp>
-#include <boost/timer.hpp>
 #include <boost/assign.hpp>
 #include <boost/filesystem.hpp>
 #include <stdexcept>
@@ -41,8 +40,11 @@
 #include <Core/Datatypes/DenseColumnMatrix.h>
 #include <Core/Datatypes/SparseRowMatrix.h>
 #include <Core/Utils/StringUtil.h>
+#include <Core/Logging/ScopedTimeRemarker.h>
 
 #include <Testing/Utils/share.h>
+
+
 
 namespace SCIRun
 {
@@ -132,7 +134,7 @@ inline void copyDenseToSparse(const Core::Datatypes::DenseMatrix& from, Core::Da
 
 inline Core::Datatypes::SparseRowMatrixHandle toSparseHandle(const Core::Datatypes::DenseMatrix& dense)
 {
-  Core::Datatypes::SparseRowMatrixHandle sp(boost::make_shared<Core::Datatypes::SparseRowMatrix>(static_cast<int>(dense.rows()), static_cast<int>(dense.cols())));
+  Core::Datatypes::SparseRowMatrixHandle sp(makeShared<Core::Datatypes::SparseRowMatrix>(static_cast<int>(dense.rows()), static_cast<int>(dense.cols())));
   copyDenseToSparse(dense, *sp);
   sp->makeCompressed();
   return sp;
@@ -205,7 +207,7 @@ inline std::vector<typename Cont::value_type> to_vector(const Cont& cont)
 
 #define MAKE_DENSE_MATRIX(x) (convertDataToMatrix(to_vector(boost::assign::tuple_list_of x)))
 
-#define MAKE_DENSE_MATRIX_HANDLE(x) (boost::make_shared<SCIRun::Core::Datatypes::DenseMatrix>(MAKE_DENSE_MATRIX(x)))
+#define MAKE_DENSE_MATRIX_HANDLE(x) (makeShared<SCIRun::Core::Datatypes::DenseMatrix>(MAKE_DENSE_MATRIX(x)))
 
 #define MAKE_SPARSE_MATRIX_HANDLE(x) (toSparseHandle(MAKE_DENSE_MATRIX(x)))
 
@@ -214,17 +216,16 @@ struct SCISHARE ScopedTimer
   explicit ScopedTimer(const std::string& name) : name_(name)
   {
     std::cout << "Starting timer " << name_ << std::endl;
-    t_.restart();
   }
 
   ~ScopedTimer()
   {
-    double elapsed = t_.elapsed();
+    const auto elapsed = t_.elapsedSeconds();
     std::cout << "Timer " << name_ << " stopped at " << elapsed << " seconds." << std::endl;
   }
 
   std::string name_;
-  boost::timer t_;
+  Core::Logging::SimpleScopedTimer t_;
 };
 
 // TODO: move to Field utils file

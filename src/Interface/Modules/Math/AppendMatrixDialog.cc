@@ -44,24 +44,24 @@ AppendMatrixDialog::AppendMatrixDialog(const std::string& name, ModuleStateHandl
   setWindowTitle(QString::fromStdString(name));
   fixSize();
 
-  connect(appendRowsButton_, SIGNAL(clicked()), this, SLOT(isRows()));
-  connect(appendColumnsButton_, SIGNAL(clicked()), this, SLOT(isCols()));
+  connect(appendRowsButton_, &QPushButton::clicked, this, &AppendMatrixDialog::isRows);
+  connect(appendColumnsButton_, &QPushButton::clicked, this, &AppendMatrixDialog::isCols);
 }
 
-void AppendMatrixDialog::isRows()
+void AppendMatrixDialog::isRows() const
 {
-  state_->setValue(Variables::RowsOrColumns, AppendMatrixAlgorithm::ROWS);
+  state_->setValue(Variables::RowsOrColumns, static_cast<int>(AppendMatrixAlgorithm::Option::ROWS));
 }
 
-void AppendMatrixDialog::isCols()
+void AppendMatrixDialog::isCols() const
 {
-  state_->setValue(Variables::RowsOrColumns, AppendMatrixAlgorithm::COLUMNS);
+  state_->setValue(Variables::RowsOrColumns, static_cast<int>(AppendMatrixAlgorithm::Option::COLUMNS));
 }
 
 void AppendMatrixDialog::pullSpecial() //TODO refactor away
 {
   //TODO convert to new widget managers
-  if (AppendMatrixAlgorithm::ROWS == state_->getValue(Variables::RowsOrColumns).toInt())
+  if (static_cast<int>(AppendMatrixAlgorithm::Option::ROWS) == state_->getValue(Variables::RowsOrColumns).toInt())
     appendRowsButton_->setChecked(true);
   else
     appendColumnsButton_->setChecked(true);

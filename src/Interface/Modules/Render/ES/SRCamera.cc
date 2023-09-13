@@ -33,6 +33,9 @@
 #include <Interface/Modules/Render/ES/RendererInterface.h>
 #include <Interface/Modules/Render/ES/SRCamera.h>
 
+using namespace SCIRun;
+using namespace Core::Datatypes;
+
 namespace SCIRun {
   namespace Render {
 
@@ -48,8 +51,7 @@ namespace SCIRun {
     void SRCamera::buildTransform()
     {
       // todo fix this method to return mV instead of mIV
-      mV  = mArcLookAt->getWorldViewTransform();
-      mVP = mP * mV;
+      mVP = mP * mArcLookAt->getWorldViewTransform();
     }
 
     //----------------------------------------------------------------------------------------------
@@ -79,7 +81,7 @@ namespace SCIRun {
                               static_cast<float>(screenParameters_->getScreenHeightPixels());}
 
     //----------------------------------------------------------------------------------------------
-    void SRCamera::mouseDownEvent(MouseButton btn, const glm::vec2& pos)
+    void SRCamera::mouseDownEvent(const glm::vec2& pos)
     {
       mArcLookAt->doReferenceDown(pos);
       lastMousePos  = pos;
@@ -95,9 +97,9 @@ namespace SCIRun {
       switch (screenParameters_->getMouseMode())
       {
         case MouseMode::MOUSE_OLDSCIRUN:
-          if (btn == MouseButton::MOUSE_LEFT && !lockPanning_)    mArcLookAt->doPan(pos);
-          if (btn == MouseButton::MOUSE_RIGHT && !lockZoom_)      mArcLookAt->doZoom(pos);
-          if (btn == MouseButton::MOUSE_MIDDLE && !lockRotation_)
+          if (btn == MouseButton::LEFT && !lockPanning_)    mArcLookAt->doPan(pos);
+          if (btn == MouseButton::RIGHT && !lockZoom_)      mArcLookAt->doZoom(pos);
+          if (btn == MouseButton::MIDDLE && !lockRotation_)
           {
             mArcLookAt->doRotation(pos);
             mouseMoveVec = avFac * (pos - lastMousePos) + (1.0f - avFac) * mouseMoveVec;
@@ -111,7 +113,7 @@ namespace SCIRun {
           break;
 
         case MouseMode::MOUSE_NEWSCIRUN:
-          if (btn == MouseButton::MOUSE_LEFT && !lockRotation_)
+          if (btn == MouseButton::LEFT && !lockRotation_)
           {
             mArcLookAt->doRotation(pos);
             mouseMoveVec = avFac * (pos - lastMousePos) + (1.0f - avFac) * mouseMoveVec;
@@ -122,7 +124,7 @@ namespace SCIRun {
               autoRotateVec = mouseMoveVec;
             lastMousePos = pos;
           }
-          if (btn == MouseButton::MOUSE_RIGHT && !lockPanning_)   mArcLookAt->doPan(pos);
+          if (btn == MouseButton::RIGHT && !lockPanning_)   mArcLookAt->doPan(pos);
           break;
       }
       setClippingPlanes();
@@ -177,7 +179,7 @@ namespace SCIRun {
         buildTransform();  // make sure matricies are up to date
         Core::Geometry::Point c =  Core::Geometry::Point(mSceneBBox.get_max() + mSceneBBox.get_min());
         glm::vec4 center(c.x()/2.0,c.y()/2.0,c.z()/2.0, 1.0);
-        center = mV * center;
+        center = mArcLookAt->getWorldViewTransform() * center;
 
         mZFar = -center.z + mRadius;
         mZNear = std::max(mZFar/1000.0f, -center.z - mRadius);

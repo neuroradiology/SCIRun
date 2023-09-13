@@ -27,7 +27,6 @@
 
 
 #include <Modules/Factory/ModuleDescriptionLookup.h>
-#include <Modules/Fields/InterfaceWithCleaver.h>
 #include <Modules/Fields/RefineTetMeshLocally.h>
 #include <Modules/Legacy/Fields/MapFieldDataFromElemToNode.h>
 #include <Modules/Legacy/Fields/MapFieldDataFromNodeToElem.h>
@@ -54,6 +53,7 @@
 #include <Modules/Legacy/Fields/ClipVolumeByIsovalue.h>
 #include <Modules/Math/ComputePCA.h>
 #include <Modules/Visualization/ShowString.h>
+#include <Modules/Visualization/GeometryBuffer.h>
 
 using namespace SCIRun::Dataflow::Networks;
 using namespace SCIRun::Modules;
@@ -79,7 +79,6 @@ void ModuleDescriptionLookup::addMoreModules()
   addModuleDesc<CalculateVectorMagnitudes>("CalculateVectorMagnitudes", "ChangeFieldData", "SCIRun", "Real ported module", "...");
 	addModuleDesc<ConvertFieldBasis>("ConvertFieldBasis", "ChangeFieldData", "SCIRun", "Real ported module", "...");
   addModuleDesc<GetFieldData>("GetFieldData", "ChangeFieldData", "SCIRun", "Real ported module", "...");
-  addModuleDesc<InterfaceWithCleaver>("InterfaceWithCleaver", "NewField", "SCIRun", "New module", "...");
   addModuleDesc<SetFieldData>("SetFieldData", "ChangeFieldData", "SCIRun", "Real ported module", "...");
   addModuleDesc<SelectSubMatrix>("SelectSubMatrix", "Math", "SCIRun", "Real ported module", "...");
   addModuleDesc<MapFieldDataFromElemToNode>("MapFieldDataFromElemToNode", "ChangeFieldData", "SCIRun", "Real ported module", "...");
@@ -96,4 +95,5 @@ void ModuleDescriptionLookup::addMoreModules()
   addModuleDesc<ClipVolumeByIsovalue>("ClipVolumeByIsovalue","NewField","SCIRun","...","...");
   addModuleDesc<RefineTetMeshLocally>("RefineTetMeshLocally","ChangeMesh","SCIRun","...","...");
   addModuleDesc<ShowString>("in progress--needs testing", "...");
+  addModuleDesc<GeometryBuffer>("in progress--needs testing", "...");
 }

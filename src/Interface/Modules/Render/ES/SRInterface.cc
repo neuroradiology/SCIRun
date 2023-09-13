@@ -37,6 +37,7 @@
 #include <QOpenGLWidget>
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/vector_angle.hpp>
+#include <glm/gtx/vec_swizzle.hpp>
 
 #include <Interface/Modules/Render/ES/SRInterface.h>
 #include <Interface/Modules/Render/ES/SRCamera.h>
@@ -73,27 +74,29 @@
 #include "comp/ClippingPlaneUniforms.h"
 
 using namespace SCIRun;
-using namespace SCIRun::Core;
-using namespace SCIRun::Core::Datatypes;
-using namespace SCIRun::Graphics::Datatypes;
-using namespace SCIRun::Core::Geometry;
+using namespace Core;
+using namespace Datatypes;
+using namespace Graphics::Datatypes;
+using namespace Geometry;
 
 using namespace std::placeholders;
-using namespace SCIRun::Render;
+using namespace Render;
 
 namespace fs = spire;
 
 namespace
 {
-  static glm::vec4 inverseGammaCorrect(glm::vec4 in)
+  static glm::vec4 inverseGammaCorrect(const glm::vec4& in)
   {
-    return glm::vec4(glm::pow(glm::vec3(in), glm::vec3(2.2)), in.a);
+    return glm::vec4(pow(glm::vec3(in), glm::vec3(2.2f)), in.a);
   }
 
-  static glm::vec3 inverseGammaCorrect(glm::vec3 in)
+  static glm::vec3 inverseGammaCorrect(const glm::vec3& in)
   {
-    return glm::pow(in, glm::vec3(2.2));
+    return pow(in, glm::vec3(2.2f));
   }
+
+  const std::string widgetSelectFboName = "Selection:FBO:0";
 }
 
 SRInterface::SRInterface(int frameInitLimit) :
@@ -144,7 +147,7 @@ void SRInterface::runGCOnNextExecution()
       {
         // Generate synchronous filesystem, manually add its static component,
         // then mark it as non-serializable.
-        std::string filesystemRoot = Core::Application::Instance().executablePath().string();
+        std::string filesystemRoot = Application::Instance().executablePath().string();
         filesystemRoot += boost::filesystem::path::preferred_separator;
         fs::StaticFS fileSystem((std::make_shared<fs::FilesystemSync>(filesystemRoot)));
         mCore.addStaticComponent(fileSystem);
@@ -189,23 +192,13 @@ void SRInterface::runGCOnNextExecution()
       return output;
     }
 
-
-
     //----------------------------------------------------------------------------------------------
     //---------------- Input -----------------------------------------------------------------------
     //----------------------------------------------------------------------------------------------
 
-    //----------------------------------------------------------------------------------------------
-    void SRInterface::widgetMouseDown(MouseButton btn, int x, int y)
-    {
-      if (widgetUpdater_.currentWidget())
-      {
-        widgetUpdater_.updateWidget(x, y);
-      }
-    }
 
     //----------------------------------------------------------------------------------------------
-    void SRInterface::widgetMouseMove(MouseButton btn, int x, int y)
+    void SRInterface::widgetMouseMove(int x, int y)
     {
       widgetUpdater_.updateWidget(x, y);
     }
@@ -217,11 +210,11 @@ void SRInterface::runGCOnNextExecution()
     }
 
     //----------------------------------------------------------------------------------------------
-    void SRInterface::inputMouseDown(MouseButton btn, float x, float y)
+    void SRInterface::inputMouseDown(float x, float y)
     {
-      autoRotateVector = glm::vec2(0.0, 0.0);
-      tryAutoRotate = false;
-      mCamera->mouseDownEvent(btn, glm::vec2{x,y});
+      autoRotateVector_ = glm::vec2(0.0, 0.0);
+      tryAutoRotate_ = false;
+      mCamera->mouseDownEvent(glm::vec2{x,y});
     }
 
     //----------------------------------------------------------------------------------------------
@@ -234,7 +227,7 @@ void SRInterface::runGCOnNextExecution()
     //----------------------------------------------------------------------------------------------
     void SRInterface::inputMouseUp()
     {
-      tryAutoRotate = Preferences::Instance().autoRotateViewerOnMouseRelease;
+      tryAutoRotate_ = Preferences::Instance().autoRotateViewerOnMouseRelease;
     }
 
     //----------------------------------------------------------------------------------------------
@@ -257,6 +250,20 @@ void SRInterface::runGCOnNextExecution()
     //----------------------------------------------------------------------------------------------
     //---------------- Camera ----------------------------------------------------------------------
     //----------------------------------------------------------------------------------------------
+
+    void SRInterface::cleanupSelect()
+    {
+      if (widgetSelectFboId_)
+      {
+        std::weak_ptr<ren::FBOMan> fm = mCore.getStaticComponent<ren::StaticFBOMan>()->instance_;
+        std::shared_ptr<ren::FBOMan> fboMan = fm.lock();
+        if (fboMan)
+        {
+          fboMan->removeInMemoryFBO(*widgetSelectFboId_);
+          widgetSelectFboId_ = std::nullopt;
+        }
+      }
+    }
 
     //----------------------------------------------------------------------------------------------
     void SRInterface::eventResize(size_t width, size_t height)
@@ -329,22 +336,28 @@ void SRInterface::runGCOnNextExecution()
     //----------------------------------------------------------------------------------------------
     void SRInterface::applyAutoRotation()
     {
-      if (glm::length(autoRotateVector) > 0.1) mCamera->rotate(autoRotateVector * autoRotateSpeed);
-      if (tryAutoRotate) mCamera->tryAutoRotate();
+      if (length(autoRotateVector_) > 0.1)
+        mCamera->rotate(autoRotateVector_ * autoRotateSpeed_);
+      if (tryAutoRotate_)
+        mCamera->tryAutoRotate();
     }
 
-    //----------------------------------------------------------------------------------------------
+    glm::vec2 SRInterface::autoRotateVector() const
+    {
+      return autoRotateVector_;
+    }
+
     void SRInterface::setAutoRotateVector(const glm::vec2& axis)
     {
-      tryAutoRotate = false;
-      if (autoRotateVector.x == axis.x && autoRotateVector.y == axis.y)
-      {
-        autoRotateVector = glm::vec2(0.0, 0.0);
-      }
-      else
-      {
-        autoRotateVector = axis;
-      }
+      tryAutoRotate_ = false;
+      // if (autoRotateVector_.x == axis.x && autoRotateVector_.y == axis.y)
+      // {
+      //   autoRotateVector_ = glm::vec2(0.0, 0.0);
+      // }
+      // else
+      // {
+        autoRotateVector_ = axis;
+      // }
     }
 
     //Getters/Setters-------------------------------------------------------------------------------
@@ -354,13 +367,13 @@ void SRInterface::runGCOnNextExecution()
     glm::vec3 SRInterface::getCameraLookAt() const {return mCamera->getLookAt();}
     void SRInterface::setCameraRotation(const glm::quat& roation) {mCamera->setRotation(roation);}
     glm::quat SRInterface::getCameraRotation() const {return mCamera->getRotation();}
-    void SRInterface::setAutoRotateSpeed(double speed) { autoRotateSpeed = speed; }
+    void SRInterface::setAutoRotateSpeed(double speed) { autoRotateSpeed_ = speed; }
     void SRInterface::setZoomInverted(bool value) {mCamera->setZoomInverted(value);}
     void SRInterface::setLockZoom(bool lock)      {mCamera->setLockZoom(lock);}
     void SRInterface::setLockPanning(bool lock)   {mCamera->setLockPanning(lock);}
     void SRInterface::setLockRotation(bool lock)  {mCamera->setLockRotation(lock);}
-    const glm::mat4& SRInterface::getWorldToView() const       {return mCamera->getWorldToView();}
-    const glm::mat4& SRInterface::getViewToProjection() const  {return mCamera->getViewToProjection();}
+    glm::mat4 SRInterface::getWorldToView() const       {return mCamera->getWorldToView(); }
+    glm::mat4 SRInterface::getViewToProjection() const  {return mCamera->getViewToProjection(); }
 
     //----------------------------------------------------------------------------------------------
     //---------------- Widgets ---------------------------------------------------------------------
@@ -368,8 +381,8 @@ void SRInterface::runGCOnNextExecution()
 
     void WidgetUpdateService::reset()
     {
-      widget_.reset();
-      objectTransformCalculator_.reset();
+      currentWidget_.reset();
+      event_.reset();
     }
 
     class ScopedLambdaExecutor
@@ -381,14 +394,19 @@ void SRInterface::runGCOnNextExecution()
       std::function<void()> func_;
     };
 
-void SRInterface::doInitialWidgetUpdate(WidgetHandle& widget, int x, int y)
+    void SRInterface::doInitialWidgetUpdate(WidgetHandle widget, int x, int y)
     {
       widgetUpdater_.reset();
       widgetUpdater_.setCurrentWidget(widget);
-      widgetUpdater_.doInitialUpdate(x, y, mLastSelectionDepth);
+      widgetUpdater_.doInitialUpdate(x, y, selectionDepth_);
     }
 
-    WidgetHandle SRInterface::select(int x, int y, WidgetList& widgets)
+    void SRInterface::setWidgetInteractionMode(MouseButton btn)
+    {
+      widgetUpdater_.setButtonPushed(btn);
+    }
+
+    WidgetHandle SRInterface::select(int x, int y, const WidgetList& widgets)
     {
       if (!mContext || !mContext->isValid())
         return nullptr;
@@ -410,183 +428,23 @@ void SRInterface::doInitialWidgetUpdate(WidgetHandle& widget, int x, int y)
       std::shared_ptr<ren::FBOMan> fboMan = fm.lock();
       if (!fboMan)
         return nullptr;
-      std::string fboName = "Selection:FBO:0";
-      GLuint fboId = fboMan->getOrCreateFBO(mCore, GL_TEXTURE_2D,
-        screen_.width, screen_.height, 1,
-        fboName);
-      fboMan->bindFBO(fboId);
+      widgetSelectFboId_ = fboMan->getOrCreateFBO(mCore, GL_TEXTURE_2D, screen_.width, screen_.height, 1, widgetSelectFboName);
+      fboMan->bindFBO(*widgetSelectFboId_);
 
       //a map from selection id to name
       std::map<uint32_t, std::string> selMap;
       std::vector<uint64_t> entityList;
 
-      int nameIndex = 0;
       //modify and add each object to draw
       for (auto& widget : widgets)
       {
-        std::string objectName = widget->uniqueID();
-        uint32_t selid = getSelectIDForName(objectName);
-        selMap.insert(std::make_pair(selid, objectName));
-        glm::vec4 selCol = getVectorForID(selid);
+        addSelectVertexBufferObjects(widget, vboMan);
+        addSelectIndexBufferObjects(widget, iboMan);
 
-        // Add vertex buffer objects.
-        std::vector<char*> vbo_buffer;
-        std::vector<size_t> stride_vbo;
-        for (auto it = widget->vbos().cbegin(); it != widget->vbos().cend(); ++it, ++nameIndex)
-        {
-          const auto& vbo = *it;
-
-          if (vbo.onGPU)
-          {
-            // Generate vector of attributes to pass into the entity system.
-            std::vector<std::tuple<std::string, size_t, bool>> attributeData;
-            for (const auto& attribData : vbo.attributes)
-            {
-              attributeData.push_back(std::make_tuple(attribData.name, attribData.sizeInBytes, attribData.normalize));
-            }
-
-            vboMan->addInMemoryVBO(vbo.data->getBuffer(), vbo.data->getBufferSize(), attributeData, vbo.name);
-          }
-
-          vbo_buffer.push_back(reinterpret_cast<char*>(vbo.data->getBuffer()));
-          size_t stride = 0;
-          for (auto a : vbo.attributes)
-            stride += a.sizeInBytes;
-          stride_vbo.push_back(stride);
-        }
-
-        // Add index buffer objects.
-        nameIndex = 0;
-        for (auto it = widget->ibos().cbegin(); it != widget->ibos().cend(); ++it, ++nameIndex)
-        {
-          const auto& ibo = *it;
-          GLenum primType = GL_UNSIGNED_SHORT;
-          switch (ibo.indexSize)
-          {
-          case 1: // 8-bit
-            primType = GL_UNSIGNED_BYTE;
-            break;
-
-          case 2: // 16-bit
-            primType = GL_UNSIGNED_SHORT;
-            break;
-
-          case 4: // 32-bit
-            primType = GL_UNSIGNED_INT;
-            break;
-
-          default:
-            primType = GL_UNSIGNED_INT;
-            throw std::invalid_argument("Unable to determine index buffer depth.");
-            break;
-          }
-
-          GLenum primitive = GL_TRIANGLES;
-          switch (ibo.prim)
-          {
-            case SpireIBO::PRIMITIVE::POINTS:
-              primitive = GL_POINTS;
-              break;
-
-            case SpireIBO::PRIMITIVE::LINES:
-              primitive = GL_LINES;
-              break;
-
-            case SpireIBO::PRIMITIVE::TRIANGLES:
-              primitive = GL_TRIANGLES;
-              break;
-
-            case SpireIBO::PRIMITIVE::QUADS:
-              primitive = GL_QUADS;
-              break;
-          }
-
-          int numPrimitives = ibo.data->getBufferSize() / ibo.indexSize;
-          iboMan->addInMemoryIBO(ibo.data->getBuffer(), ibo.data->getBufferSize(), primitive, primType, numPrimitives, ibo.name);
-        }
-
-        std::weak_ptr<ren::ShaderMan> sm = mCore.getStaticComponent<ren::StaticShaderMan>()->instance_;
-        if (auto shaderMan = sm.lock())
-        {
-          // Add passes
-          for (auto& pass : widget->passes())
-          {
-            uint64_t entityID = getEntityIDForName(pass.passName, 0);
-
-            if (pass.renderType == RenderType::RENDER_VBO_IBO)
-            {
-              addVBOToEntity(entityID, pass.vboName);
-              addIBOToEntity(entityID, pass.iboName);
-            }
-
-            // Load vertex and fragment shader will use an already loaded program.
-            //shaderMan->loadVertexAndFragmentShader(mCore, entityID, "Shaders/Selection");
-            //					addShaderToEntity(entityID, "Shaders/Selection");
-            //					shaderMan->loadVertexAndFragmentShader(mCore, entityID, pass.programName);
-
-            const char* selectionShaderName = "Shaders/Selection";
-            GLuint shaderID = shaderMan->getIDForAsset(selectionShaderName);
-            if (shaderID == 0)
-            {
-              const char* vs =
-                "uniform mat4 uModelViewProjection;\n"
-                "uniform vec4 uColor;\n"
-                "uniform bool hack;\n"
-                "attribute vec3 aPos;\n"
-                "varying vec4 fColor;\n"
-                "void main()\n"
-                "{\n"
-                "  gl_Position = uModelViewProjection * vec4(aPos, 1.0);\n"
-                "  if(hack) gl_Position.xy = ((gl_Position.xy/gl_Position.w) * vec2(0.5) - vec2(0.5)) * gl_Position.w;\n"
-                "  fColor = uColor;\n"
-                "}\n";
-              const char* fs =
-                "#ifdef OPENGL_ES\n"
-                "  #ifdef GL_FRAGMENT_PRECISION_HIGH\n"
-                "    precision highp float;\n"
-                "  #else\n"
-                "    precision mediump float;\n"
-                "  #endif\n"
-                "#endif\n"
-                "varying vec4 fColor;\n"
-                "void main()\n"
-                "{\n"
-                "  gl_FragColor = fColor;\n"
-                "}\n";
-
-              shaderID = shaderMan->addInMemoryVSFS(vs, fs, selectionShaderName);
-            }
-            addShaderToEntity(entityID, selectionShaderName);
-
-            // Add transformation
-            gen::Transform trafo;
-            mCore.addComponent(entityID, trafo);
-
-            // Add SCIRun render state.
-            SRRenderState state;
-            state.state = pass.renderState;
-            mCore.addComponent(entityID, state);
-            RenderBasicGeom geom;
-            mCore.addComponent(entityID, geom);
-            ren::CommonUniforms commonUniforms;
-            mCore.addComponent(entityID, commonUniforms);
-
-            applyUniform(entityID, SpireSubPass::Uniform("uColor", selCol));
-            applyUniform(entityID, SpireSubPass::Uniform("hack", Preferences::Instance().widgetSelectionCorrection));
-
-            // Add components associated with entity. We just need a base class which
-            // we can pass in an entity ID, then a derived class which bundles
-            // all associated components (including types) together. We can use
-            // a variadic template for this. This will allow us to place any components
-            // we want on the objects in question in show field. This could lead to
-            // much simpler customization.
-
-            pass.renderState.mSortType = mRenderSortType;
-            pass.renderState.set(RenderState::ActionFlags::USE_BLEND, false);
-            mCore.addComponent(entityID, pass);
-            entityList.push_back(entityID);
-          }
-        }
+        auto passInfo = addSelectPasses(widget);
+        selMap.insert({ std::get<0>(passInfo), std::get<1>(passInfo) });
+        auto newEntities = std::get<2>(passInfo);
+        entityList.insert(entityList.end(), newEntities.begin(), newEntities.end());
       }
 
       updateCamera();
@@ -594,16 +452,12 @@ void SRInterface::doInitialWidgetUpdate(WidgetHandle& widget, int x, int y)
 
       mCore.executeWithoutAdvancingClock();
 
-
-      GLfloat depth;
-
       {
         ScopedLambdaExecutor removeEntities([this, &entityList]() { for (auto& it : entityList) mCore.removeEntity(it); });
         {
           ScopedLambdaExecutor unbindFBOs([&fboMan]() { fboMan->unbindFBO(); });
           GLuint value;
-          if (fboMan->readFBO(mCore, fboName, x, y, 1, 1,
-                              (GLvoid*)&value, (GLvoid*)&depth))
+          if (fboMan->readFBO(mCore, widgetSelectFboName, x, y, 1, 1, (GLvoid*)&value, (GLvoid*)&selectionDepth_))
           {
             auto it = selMap.find(value);
             if (it != selMap.end())
@@ -624,12 +478,175 @@ void SRInterface::doInitialWidgetUpdate(WidgetHandle& widget, int x, int y)
 
         if (widgetUpdater_.currentWidget())
         {
-          widgetUpdater_.doInitialUpdate(x, y, depth);
+          widgetUpdater_.doInitialUpdate(x, y, selectionDepth_);
         }
       }
-      mLastSelectionDepth = depth;
 
       return widgetUpdater_.currentWidget();
+    }
+
+    std::tuple<uint32_t, std::string, std::vector<uint64_t>> SRInterface::addSelectPasses(
+        WidgetHandle widget)
+    {
+      std::weak_ptr<ren::ShaderMan> sm = mCore.getStaticComponent<ren::StaticShaderMan>()->instance_;
+      auto shaderMan = sm.lock();
+      if (!shaderMan)
+        return {};
+
+      std::string objectName = widget->uniqueID();
+      uint32_t selid = getSelectIDForName(objectName);
+      glm::vec4 selCol = getVectorForID(selid);
+      std::vector<uint64_t> entityIds;
+
+      for (auto& pass : widget->passes())
+      {
+        uint64_t entityID = getEntityIDForName(pass.passName, 0);
+
+        if (pass.renderType == RenderType::RENDER_VBO_IBO)
+        {
+          addVBOToEntity(entityID, pass.vboName);
+          addIBOToEntity(entityID, pass.iboName);
+        }
+
+        const char* selectionShaderName = "Shaders/Selection";
+        if (shaderMan->getIDForAsset(selectionShaderName) == 0)
+        {
+          const char* vs =
+            "uniform mat4 uModelViewProjection;\n"
+            "uniform vec4 uColor;\n"
+            "uniform bool hack;\n"
+            "attribute vec3 aPos;\n"
+            "varying vec4 fColor;\n"
+            "void main()\n"
+            "{\n"
+            "  gl_Position = uModelViewProjection * vec4(aPos, 1.0);\n"
+            "  if(hack) gl_Position.xy = ((gl_Position.xy/gl_Position.w) * vec2(0.5) - vec2(0.5)) * gl_Position.w;\n"
+            "  fColor = uColor;\n"
+            "}\n";
+          const char* fs =
+            "#ifdef OPENGL_ES\n"
+            "  #ifdef GL_FRAGMENT_PRECISION_HIGH\n"
+            "    precision highp float;\n"
+            "  #else\n"
+            "    precision mediump float;\n"
+            "  #endif\n"
+            "#endif\n"
+            "varying vec4 fColor;\n"
+            "void main()\n"
+            "{\n"
+            "  gl_FragColor = fColor;\n"
+            "}\n";
+
+          shaderMan->addInMemoryVSFS(vs, fs, selectionShaderName);
+        }
+        addShaderToEntity(entityID, selectionShaderName);
+
+        // Add transformation
+        gen::Transform trafo;
+        mCore.addComponent(entityID, trafo);
+
+        // Add SCIRun render state.
+        SRRenderState state;
+        state.state = pass.renderState;
+        mCore.addComponent(entityID, state);
+        RenderBasicGeom geom;
+        mCore.addComponent(entityID, geom);
+        ren::CommonUniforms commonUniforms;
+        mCore.addComponent(entityID, commonUniforms);
+
+        applyUniform(entityID, SpireSubPass::Uniform("uColor", selCol));
+        applyUniform(entityID, SpireSubPass::Uniform("hack", Preferences::Instance().widgetSelectionCorrection));
+
+        // Add components associated with entity. We just need a base class which
+        // we can pass in an entity ID, then a derived class which bundles
+        // all associated components (including types) together. We can use
+        // a variadic template for this. This will allow us to place any components
+        // we want on the objects in question in show field. This could lead to
+        // much simpler customization.
+
+        pass.renderState.mSortType = mRenderSortType;
+        pass.renderState.set(RenderState::ActionFlags::USE_BLEND, false);
+        mCore.addComponent(entityID, pass);
+        entityIds.push_back(entityID);
+      }
+      return std::make_tuple(selid, objectName, entityIds);
+    }
+
+    void SRInterface::addSelectVertexBufferObjects(WidgetHandle widget, std::shared_ptr<ren::VBOMan> vboMan)
+    {
+      for (const auto& vbo : widget->vbos())
+      {
+        if (vbo.onGPU)
+        {
+          // Generate vector of attributes to pass into the entity system.
+          std::vector<std::tuple<std::string, size_t, bool>> attributeData;
+          for (const auto& attribData : vbo.attributes)
+          {
+            attributeData.push_back(std::make_tuple(attribData.name, attribData.sizeInBytes, attribData.normalize));
+          }
+
+          vboMan->addInMemoryVBO(vbo.data->getBuffer(), vbo.data->getBufferSize(), attributeData, vbo.name);
+        }
+      }
+    }
+
+    void SRInterface::addSelectIndexBufferObjects(WidgetHandle widget, std::shared_ptr<ren::IBOMan> iboMan)
+    {
+      for (const auto& ibo : widget->ibos())
+      {
+        auto primType = computePrimitiveType(ibo.indexSize);
+        auto primitive = computePrimitive(ibo);
+
+        int numPrimitives = ibo.data->getBufferSize() / ibo.indexSize;
+        iboMan->addInMemoryIBO(ibo.data->getBuffer(), ibo.data->getBufferSize(), primitive, primType, numPrimitives, ibo.name);
+      }
+    }
+
+    GLenum SRInterface::computePrimitiveType(size_t indexSize)
+    {
+      auto primType = GL_UNSIGNED_SHORT;
+      switch (indexSize)
+      {
+      case 1: // 8-bit
+        primType = GL_UNSIGNED_BYTE;
+        break;
+
+      case 2: // 16-bit
+        primType = GL_UNSIGNED_SHORT;
+        break;
+
+      case 4: // 32-bit
+        primType = GL_UNSIGNED_INT;
+        break;
+
+      default:
+        throw std::invalid_argument("Unable to determine index buffer depth.");
+      }
+      return primType;
+    }
+
+    GLenum SRInterface::computePrimitive(const SpireIBO& ibo)
+    {
+      auto primitive = GL_TRIANGLES;
+      switch (ibo.prim)
+      {
+      case SpireIBO::PRIMITIVE::POINTS:
+        primitive = GL_POINTS;
+        break;
+
+      case SpireIBO::PRIMITIVE::LINES:
+        primitive = GL_LINES;
+        break;
+
+      case SpireIBO::PRIMITIVE::TRIANGLES:
+        primitive = GL_TRIANGLES;
+        break;
+
+      case SpireIBO::PRIMITIVE::QUADS:
+        primitive = GL_QUADS;
+        break;
+      }
+      return primitive;
     }
 
     glm::mat4 SRInterface::getStaticCameraViewProjection()
@@ -644,417 +661,118 @@ void SRInterface::doInitialWidgetUpdate(WidgetHandle& widget, int x, int y)
       return mCamera->getWorldToProjection();
     }
 
-    template <class P>
-    static glm::vec3 toVec3(const P& p)
-    {
-      return glm::vec3{p.x(), p.y(), p.z()};
-    }
-
-    float WidgetUpdateService::getInitialW(float depth) const
-    {
-      float zFar = camera_->getZFar();
-      float zNear = camera_->getZNear();
-      float z = -1.0/(depth * (1.0/zFar - 1.0/zNear) + 1.0/zNear);
-      return -z;
-    }
-
-    template <class Params>
-    ObjectTransformCalculatorPtr ObjectTransformCalculatorFactory::create(const Params& p)
-    {
-      return nullptr;
-    }
-
-namespace SCIRun
-{
-  namespace Render
-  {
-    template <>
-    ObjectTransformCalculatorPtr ObjectTransformCalculatorFactory::create(const TranslateParameters& p)
-    {
-      return boost::make_shared<ObjectTranslationCalculator>(brop_, p);
-    }
-
-    template <>
-    ObjectTransformCalculatorPtr ObjectTransformCalculatorFactory::create(const ScaleParameters& p)
-    {
-      return boost::make_shared<ObjectScaleCalculator>(brop_, p);
-    }
-
-    template <>
-    ObjectTransformCalculatorPtr ObjectTransformCalculatorFactory::create(const RotateParameters& p)
-    {
-      return boost::make_shared<ObjectRotationCalculator>(brop_, p);
-    }
-  }
-}
-    void WidgetUpdateService::doInitialUpdate(int x, int y, float depth)
-    {
-      doPostSelectSetup(x, y, depth);
-      updateWidget(x, y);
-    }
-
-TranslateParameters WidgetUpdateService::buildTranslation(const glm::vec2& initPos, float initW)
-{
-  TranslateParameters p;
-  p.initialPosition_ = initPos;
-  p.w_ = initW;
-  p.viewProj = transformer_->getStaticCameraViewProjection();
-  return p;
-}
-
-ScaleParameters WidgetUpdateService::buildScale(const glm::vec2& initPos, float initW)
-{
-  ScaleParameters p;
-  p.initialPosition_ = initPos;
-  p.w_ = initW;
-  auto widgetTransformParameters = widget_->transformParameters();
-  p.flipAxisWorld_ = toVec3(getScaleFlipVector(widgetTransformParameters));
-  p.originWorld_ = toVec3(getRotationOrigin(widgetTransformParameters));
-  return p;
-}
-
-RotateParameters WidgetUpdateService::buildRotation(const glm::vec2& initPos, float initW)
-{
-  RotateParameters p;
-  p.initialPosition_ = initPos;
-  p.w_ = initW;
-  p.originWorld_ = toVec3(getRotationOrigin(widget_->transformParameters()));
-  return p;
-}
-
-#define makeCalcFunc(memFn) [this](const glm::vec2& initPos, float initW) \
-                              { return transformFactory_.create(memFn(initPos, initW)); }
-
-WidgetUpdateService::WidgetUpdateService(ObjectTransformer* transformer, const ScreenParams& screen) :
-  transformer_(transformer), screen_(screen), transformFactory_(this)
-{
-  transformCalcMakerMapping_ =
-  {
-    {WidgetMovement::TRANSLATE, makeCalcFunc(buildTranslation)},
-    {WidgetMovement::ROTATE, makeCalcFunc(buildRotation)},
-    {WidgetMovement::SCALE, makeCalcFunc(buildScale)}
-  };
-}
-
-void WidgetUpdateService::doPostSelectSetup(int x, int y, float depth)
-{
-  auto initialW = getInitialW(depth);
-  auto initialPosition = screen_.positionFromClick(x, y);
-  objectTransformCalculator_ = transformCalcMakerMapping_[movement_](initialPosition, initialW);
-}
-
-void WidgetUpdateService::setCurrentWidget(Graphics::Datatypes::WidgetHandle w)
-{
-  widget_ = w;
-  movement_ = w->movementType(WidgetInteraction::CLICK);
-}
-
 //----------------------------------------------------------------------------------------------
 uint32_t SRInterface::getSelectIDForName(const std::string& name)
 {
   return static_cast<uint32_t>(std::hash<std::string>()(name));
 }
 
-    //----------------------------------------------------------------------------------------------
-    glm::vec4 SRInterface::getVectorForID(const uint32_t id)
-    {
-      float a = ((id >> 24) & 0xff) / 255.0f;
-      float b = ((id >> 16) & 0xff) / 255.0f;
-      float g = ((id >> 8)  & 0xff) / 255.0f;
-      float r = ((id)       & 0xff) / 255.0f;
-      return glm::vec4(r, g, b, a);
-    }
+glm::vec4 SRInterface::getVectorForID(const uint32_t id)
+{
+  float a = ((id >> 24) & 0xff) / 255.0f;
+  float b = ((id >> 16) & 0xff) / 255.0f;
+  float g = ((id >> 8)  & 0xff) / 255.0f;
+  float r = ((id)       & 0xff) / 255.0f;
+  return glm::vec4(r, g, b, a);
+}
 
-    //----------------------------------------------------------------------------------------------
-    uint32_t SRInterface::getIDForVector(const glm::vec4& vec)
-    {
-      uint32_t r = (uint32_t)(vec.r*255.0) & 0xff;
-      uint32_t g = (uint32_t)(vec.g*255.0) & 0xff;
-      uint32_t b = (uint32_t)(vec.b*255.0) & 0xff;
-      uint32_t a = (uint32_t)(vec.a*255.0) & 0xff;
-      return (a << 24) | (b << 16) | (g << 8) | (r);
-    }
+uint32_t SRInterface::getIDForVector(const glm::vec4& vec)
+{
+  uint32_t r = (uint32_t)(vec.r*255.0) & 0xff;
+  uint32_t g = (uint32_t)(vec.g*255.0) & 0xff;
+  uint32_t b = (uint32_t)(vec.b*255.0) & 0xff;
+  uint32_t a = (uint32_t)(vec.a*255.0) & 0xff;
+  return (a << 24) | (b << 16) | (g << 8) | (r);
+}
 
-    //----------------------------------------------------------------------------------------------
-    void WidgetUpdateService::updateWidget(int x, int y)
-    {
-      WidgetEventPtr event(new WidgetEventBase(objectTransformCalculator_->computeTransform(x, y)));
-      modifyWidget(event);
-    }
 
-    void SRInterface::modifyObject(const std::string& id, const gen::Transform& trans)
-    {
-      auto contTrans = mCore.getOrCreateComponentContainer<gen::Transform>();
+void SRInterface::modifyObject(const std::string& id, const gen::Transform& trans)
+{
+  auto contTrans = mCore.getOrCreateComponentContainer<gen::Transform>();
 
-      auto component = contTrans->getComponent(mEntityIdMap[id]);
-      if (component.first != nullptr)
-        contTrans->modifyIndex(trans, component.second, 0);
-    }
+  auto component = contTrans->getComponent(mEntityIdMap[id]);
+  if (component.first != nullptr)
+    contTrans->modifyIndex(trans, component.second, 0);
+}
 
-    void WidgetUpdateService::modifyWidget(WidgetEventPtr event)
-    {
-      auto boundEvent = [&](const std::string& id)
-      {
-        transformer_->modifyObject(id, event->transform);
-      };
-      widget_->propagateEvent({movement_, boundEvent});
-      widgetTransform_ = event->transform.transform;
-    }
+glm::vec2 ScreenParams::positionFromClick(int x, int y) const
+{
+  return glm::vec2(float(x) / float(width) * 2.0 - 1.0,
+               -(float(y) / float(height) * 2.0 - 1.0));
+}
 
-    ObjectTranslationCalculator::ObjectTranslationCalculator(const BasicRendererObjectProvider* s, const TranslateParameters& t) :
-      ObjectTransformCalculatorBase(s),
-      initialPosition_(t.initialPosition_),
-      w_(t.w_),
-      invViewProj_(glm::inverse(t.viewProj))
-    {}
+//---------------- Clipping Planes -------------------------------------------------------------
 
-    gen::Transform ObjectTranslationCalculator::computeTransform(int x, int y) const
-    {
-      auto screenPos = service_->screen().positionFromClick(x, y);
-      glm::vec2 transVec = (screenPos - initialPosition_) * glm::vec2(w_, w_);
-      auto trans = gen::Transform();
-      trans.setPosition((invViewProj_ * glm::vec4(transVec, 0.0, 0.0)).xyz());
-      return trans;
-    }
-
-    ObjectScaleCalculator::ObjectScaleCalculator(const BasicRendererObjectProvider* s, const ScaleParameters& p) : ObjectTransformCalculatorBase(s),
-      flipAxisWorld_(p.flipAxisWorld_), originWorld_(p.originWorld_)
-    {
-      originView_ = glm::vec3(service_->camera().getWorldToView() * glm::vec4(originWorld_, 1.0));
-      glm::vec4 projectedOrigin = service_->camera().getViewToProjection() * glm::vec4(originView_, 1.0);
-      projectedW_ = projectedOrigin.w;
-      auto sposView = glm::vec3(glm::inverse(service_->camera().getViewToProjection()) * glm::vec4(p.initialPosition_ * projectedW_, 0.0, 1.0));
-      sposView.z = -projectedW_;
-      originToSpos_ = sposView - originView_;
-    }
-
-    gen::Transform ObjectScaleCalculator::computeTransform(int x, int y) const
-    {
-      auto spos = service_->screen().positionFromClick(x, y);
-
-      glm::vec3 currentSposView = glm::vec3(glm::inverse(service_->camera().getViewToProjection()) * glm::vec4(spos * projectedW_, 0.0, 1.0));
-      currentSposView.z = -projectedW_;
-      glm::vec3 originToCurrentSpos = currentSposView - glm::vec3(originView_.xy(), originView_.z);
-
-      float scaling_factor = glm::dot(glm::normalize(originToCurrentSpos), glm::normalize(originToSpos_))
-        * (glm::length(originToCurrentSpos) / glm::length(originToSpos_));
-
-      // Flip if negative to avoid inverted normals
-      glm::mat4 flip;
-      bool negativeScale = scaling_factor < 0.0;
-      if (negativeScale)
-      {
-        //TODO: use more precise pi? or actual constant value?
-        flip = glm::rotate(glm::mat4(1.0f), 3.1415926f, flipAxisWorld_);
-        scaling_factor = -scaling_factor;
-      }
-
-      auto trans = gen::Transform();
-      glm::mat4 translation = glm::translate(-originWorld_);
-      glm::mat4 scale = glm::scale(trans.transform, glm::vec3(scaling_factor));
-      glm::mat4 reverse_translation = glm::translate(originWorld_);
-
-      trans.transform = scale * translation;
-
-      if (negativeScale)
-        trans.transform = flip * trans.transform;
-
-      trans.transform = reverse_translation * trans.transform;
-      return trans;
-    }
-
-    ObjectRotationCalculator::ObjectRotationCalculator(const BasicRendererObjectProvider* s, const RotateParameters& p) : ObjectTransformCalculatorBase(s),
-      originWorld_(p.originWorld_), initialW_(p.w_)
-    {
-      auto sposView = glm::vec3(glm::inverse(service_->camera().getViewToProjection()) * glm::vec4(p.initialPosition_ * p.w_, 0.0, 1.0));
-      sposView.z = -p.w_;
-      auto originView = glm::vec3(service_->camera().getWorldToView() * glm::vec4(p.originWorld_, 1.0));
-      auto originToSpos = sposView - originView;
-      auto radius = glm::length(originToSpos);
-      bool negativeZ = (originToSpos.z < 0.0);
-      widgetBall_.reset(new spire::ArcBall(originView, radius, negativeZ));
-      widgetBall_->beginDrag(glm::vec2(sposView));
-    }
-
-    gen::Transform ObjectRotationCalculator::computeTransform(int x, int y) const
-    {
-      if (!widgetBall_)
-        return {};
-
-      auto spos = service_->screen().positionFromClick(x, y);
-
-      glm::vec2 sposView = glm::vec2(glm::inverse(service_->camera().getViewToProjection()) * glm::vec4(spos * initialW_, 0.0, 1.0));
-      widgetBall_->drag(sposView);
-
-      glm::quat rotationView = widgetBall_->getQuat();
-      glm::vec3 axis = glm::vec3(rotationView.x, rotationView.y, rotationView.z);
-      axis = glm::vec3(glm::inverse(service_->camera().getWorldToView()) * glm::vec4(axis, 0.0));
-      glm::quat rotationWorld = glm::quat(rotationView.w, axis);
-
-      glm::mat4 translation = glm::translate(-originWorld_);
-      glm::mat4 reverse_translation = glm::translate(originWorld_);
-      glm::mat4 rotation = glm::mat4_cast(rotationWorld);
-
-      auto trans = gen::Transform();
-      trans.transform = reverse_translation * rotation * translation;
-      return trans;
-    }
-
-    glm::vec2 ScreenParams::positionFromClick(int x, int y) const
-    {
-      return glm::vec2(float(x) / float(width) * 2.0 - 1.0,
-                   -(float(y) / float(height) * 2.0 - 1.0));
-    }
-
-    //----------------------------------------------------------------------------------------------
-    //---------------- Clipping Planes -------------------------------------------------------------
-    //----------------------------------------------------------------------------------------------
-
-    //----------------------------------------------------------------------------------------------
     StaticClippingPlanes* SRInterface::getClippingPlanes()
     {
       return static_cast<StaticClippingPlanes*>(mCore.getStaticComponent<StaticClippingPlanes>());
     }
 
-    //----------------------------------------------------------------------------------------------
-    void SRInterface::setClippingPlaneX(double value)
-    {
-      checkClippingPlanes(clippingPlaneIndex_);
-      clippingPlanes_[clippingPlaneIndex_].x = value;
-      updateClippingPlanes();
-    }
-
-    //----------------------------------------------------------------------------------------------
-    void SRInterface::setClippingPlaneY(double value)
-    {
-      checkClippingPlanes(clippingPlaneIndex_);
-      clippingPlanes_[clippingPlaneIndex_].y = value;
-      updateClippingPlanes();
-    }
-
-    //----------------------------------------------------------------------------------------------
-    void SRInterface::setClippingPlaneZ(double value)
-    {
-      checkClippingPlanes(clippingPlaneIndex_);
-      clippingPlanes_[clippingPlaneIndex_].z = value;
-      updateClippingPlanes();
-    }
-
-    //----------------------------------------------------------------------------------------------
-    void SRInterface::setClippingPlaneD(double value)
-    {
-      checkClippingPlanes(clippingPlaneIndex_);
-      clippingPlanes_[clippingPlaneIndex_].d = value;
-      updateClippingPlanes();
-    }
-
-    //----------------------------------------------------------------------------------------------
-    void SRInterface::setClippingPlaneVisible(bool value)
-    {
-      checkClippingPlanes(clippingPlaneIndex_);
-      clippingPlanes_[clippingPlaneIndex_].visible = value;
-      updateClippingPlanes();
-    }
-
-    //----------------------------------------------------------------------------------------------
-    void SRInterface::setClippingPlaneFrameOn(bool value)
-    {
-      checkClippingPlanes(clippingPlaneIndex_);
-      clippingPlanes_[clippingPlaneIndex_].showFrame = value;
-      updateClippingPlanes();
-    }
-
-    //----------------------------------------------------------------------------------------------
-    void SRInterface::reverseClippingPlaneNormal(bool value)
-    {
-      checkClippingPlanes(clippingPlaneIndex_);
-      clippingPlanes_[clippingPlaneIndex_].reverseNormal = value;
-      updateClippingPlanes();
-    }
-
-    //----------------------------------------------------------------------------------------------
-    void SRInterface::checkClippingPlanes(unsigned int n)
-    {
-      while (n >= clippingPlanes_.size())
-      {
-        ClippingPlane plane;
-        plane.visible = false;
-        plane.showFrame = false;
-        plane.reverseNormal = false;
-        plane.x = 0.0;
-        plane.y = 0.0;
-        plane.z = 0.0;
-        plane.d = 0.0;
-        clippingPlanes_.push_back(plane);
-      }
-    }
-
-    //----------------------------------------------------------------------------------------------
     double SRInterface::getMaxProjLength(const glm::vec3 &n)
     {
-      glm::vec3 a1(-1.0, 1.0, -1.0);
-      glm::vec3 a2(-1.0, 1.0, 1.0);
-      glm::vec3 a3(1.0, 1.0, -1.0);
-      glm::vec3 a4(1.0, 1.0, 1.0);
+      static const glm::vec3 a1(-1.0, 1.0, -1.0);
+      static const glm::vec3 a2(-1.0, 1.0, 1.0);
+      static const glm::vec3 a3(1.0, 1.0, -1.0);
+      static const glm::vec3 a4(1.0, 1.0, 1.0);
       return std::max(
         std::max(
-        std::abs(glm::dot(n, a1)),
-        std::abs(glm::dot(n, a2))),
+        std::abs(dot(n, a1)),
+        std::abs(dot(n, a2))),
         std::max(
-        std::abs(glm::dot(n, a3)),
-        std::abs(glm::dot(n, a4))));
+        std::abs(dot(n, a3)),
+        std::abs(dot(n, a4))));
     }
 
-    //----------------------------------------------------------------------------------------------
-    void SRInterface::updateClippingPlanes()
+    bool SRInterface::updateClippingPlanes()
     {
-      StaticClippingPlanes* clippingPlanes = mCore.getStaticComponent<StaticClippingPlanes>();
-      if (clippingPlanes)
+      auto* clippingPlanes = mCore.getStaticComponent<StaticClippingPlanes>();
+      if (!clippingPlanes || !sceneBBox_.valid())
+        return false;
+
+      clippingPlanes->clippingPlanes.clear();
+      clippingPlanes->clippingPlaneCtrls.clear();
+      //boundbox transformation
+      glm::mat4 trans_bb = glm::mat4(1.0f);
+      glm::vec3 scale_bb(sceneBBox_.x_length() / 2.0, sceneBBox_.y_length() / 2.0, sceneBBox_.z_length() / 2.0);
+      glm::vec3 center_bb(sceneBBox_.center().x(), sceneBBox_.center().y(), sceneBBox_.center().z());
+      glm::mat4 temp = scale(glm::mat4(1.0f), scale_bb);
+      trans_bb = temp * trans_bb;
+      temp = translate(glm::mat4(1.0f), center_bb);
+      trans_bb = temp * trans_bb;
+      int index = 0;
+      for (const auto& plane : clippingPlaneManager_->allPlanes())
       {
-        clippingPlanes->clippingPlanes.clear();
-        clippingPlanes->clippingPlaneCtrls.clear();
-        //boundbox transformation
-        glm::mat4 trans_bb = glm::mat4();
-        glm::vec3 scale_bb(mSceneBBox.x_length() / 2.0, mSceneBBox.y_length() / 2.0, mSceneBBox.z_length() / 2.0);
-        glm::vec3 center_bb(mSceneBBox.center().x(), mSceneBBox.center().y(), mSceneBBox.center().z());
-        glm::mat4 temp = glm::scale(glm::mat4(), scale_bb);
-        trans_bb = temp * trans_bb;
-        temp = glm::translate(glm::mat4(), center_bb);
-        trans_bb = temp * trans_bb;
-        int index = 0;
-        for (auto i : clippingPlanes_)
+        glm::vec3 n3(plane.x, plane.y, plane.z);
+        float d = plane.d;
+        glm::vec4 n(0.0);
+        if (length(n3) > 0.0)
         {
-          glm::vec3 n3(i.x, i.y, i.z);
-          double d = i.d;
-          glm::vec4 n(0.0);
-          if (glm::length(n3) > 0.0)
-          {
-            n3 = glm::normalize(n3);
-            n = glm::vec4(n3, 0.0);
-            d *= getMaxProjLength(n3);
-          }
-          glm::vec4 o = glm::vec4(n.x, n.y, n.z, 1.0) * d;
-          o.w = 1;
-          o = trans_bb * o;
-          n = glm::inverseTranspose(trans_bb) * n;
-          o.w = 0;
-          n.w = 0;
-          n = glm::normalize(n);
-          n.w = -glm::dot(o, n);
-          clippingPlanes->clippingPlanes.push_back(n);
-          glm::vec4 control(i.visible ? 1.0 : 0.0,
-            i.showFrame ? 1.0 : 0.0,
-            i.reverseNormal ? 1.0 : 0.0, 0.0);
-          clippingPlanes->clippingPlaneCtrls.push_back(control);
-          index++;
+          n3 = normalize(n3);
+          n = glm::vec4(n3, 0.0);
+          d *= getMaxProjLength(n3);
         }
+        auto o = glm::vec4(n.x, n.y, n.z, 1.0) * d;
+        o.w = 1;
+        o = trans_bb * o;
+        n = inverseTranspose(trans_bb) * n;
+        o.w = 0;
+        n.w = 0;
+        n = normalize(n);
+        n.w = -dot(o, n);
+        clippingPlanes->clippingPlanes.push_back(n);
+        glm::vec4 control(plane.visible ? 1.0 : 0.0,
+            plane.showFrame ? 1.0 : 0.0,
+            plane.reverseNormal ? 1.0 : 0.0, 0.0);
+        clippingPlanes->clippingPlaneCtrls.push_back(control);
+        index++;
       }
+      return true;
     }
 
 
 
     //----------------------------------------------------------------------------------------------
-    //---------------- Data Handeling --------------------------------------------------------------
+    //---------------- Data Handling --------------------------------------------------------------
     //----------------------------------------------------------------------------------------------
 
     //----------------------------------------------------------------------------------------------
@@ -1063,7 +781,7 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
       //logRendererInfo("Handling geom object on port {}", port);
       RENDERER_LOG_FUNCTION_SCOPE;
       RENDERER_LOG("Ensure our rendering context is current on our thread.");
-      DEBUG_LOG_LINE_INFO
+      //DEBUG_LOG_LINE_INFO
 
       std::string objectName = obj->uniqueID();
       BBox bbox; // Bounding box containing all vertex buffer objects.
@@ -1080,21 +798,21 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
         return (sro.mName == objectName);
       });
 
-      DEBUG_LOG_LINE_INFO
+      //DEBUG_LOG_LINE_INFO
 
       auto vmc = mCore.getStaticComponent<ren::StaticVBOMan>();
       auto imc = mCore.getStaticComponent<ren::StaticIBOMan>();
-      if(!vmc || !imc) return;
+      if (!vmc || !imc) return;
 
       if (std::shared_ptr<ren::VBOMan> vboMan = vmc->instance_)
       {
-        DEBUG_LOG_LINE_INFO;
+        //DEBUG_LOG_LINE_INFO;
         if (std::shared_ptr<ren::IBOMan> iboMan = imc->instance_)
         {
-          DEBUG_LOG_LINE_INFO
+          //DEBUG_LOG_LINE_INFO
           if (foundObject != mSRObjects.end())
           {
-            DEBUG_LOG_LINE_INFO
+            //DEBUG_LOG_LINE_INFO
 
             RENDERER_LOG("Iterate through each of the passes and remove their associated entity ID.");
             for (const auto& pass : foundObject->mPasses)
@@ -1118,7 +836,7 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
             mSRObjects.erase(foundObject);
           }
 
-          DEBUG_LOG_LINE_INFO
+          //DEBUG_LOG_LINE_INFO
           RENDERER_LOG("Add vertex buffer objects.");
           std::vector<char*> vbo_buffer;
           std::vector<size_t> stride_vbo;
@@ -1149,7 +867,7 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
             bbox.extend(vbo.boundingBox);
           }
 
-          DEBUG_LOG_LINE_INFO
+          //DEBUG_LOG_LINE_INFO
           RENDERER_LOG("Add index buffer objects.");
           nameIndex = 0;
           for (auto it = obj->ibos().cbegin(); it != obj->ibos().cend(); ++it, ++nameIndex)
@@ -1174,7 +892,6 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
               primType = GL_UNSIGNED_INT;
               logRendererError("Unable to determine index buffer depth.");
               throw std::invalid_argument("Unable to determine index buffer depth.");
-              break;
             }
 
             GLenum primitive = GL_TRIANGLES;
@@ -1268,7 +985,7 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
 
                   std::vector<char> sorted_buffer(ibo.data->getBufferSize());
                   char* ibuffer = reinterpret_cast<char*>(ibo.data->getBuffer());
-                  char* sbuffer = !sorted_buffer.empty() ? reinterpret_cast<char*>(&sorted_buffer[0]) : 0;
+                  char* sbuffer = !sorted_buffer.empty() ? reinterpret_cast<char*>(&sorted_buffer[0]) : nullptr;
 
                   if (sbuffer && num_triangles > 0)
                   {
@@ -1290,20 +1007,19 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
           }
 
           RENDERER_LOG("Add default identity transform to the object globally (instead of per-pass)");
-          glm::mat4 xform;
-          mSRObjects.push_back(SRObject(objectName, xform, bbox, obj->colorMap(), port));
+          mSRObjects.push_back(SRObject(objectName, bbox, obj->colorMap(), port));
           SRObject& elem = mSRObjects.back();
 
           std::weak_ptr<ren::ShaderMan> sm = mCore.getStaticComponent<ren::StaticShaderMan>()->instance_;
           if (auto shaderMan = sm.lock())
           {
             RENDERER_LOG("Recalculate scene bounding box. Should only be done when an object is added.");
-            mSceneBBox.reset();
+            sceneBBox_.reset();
             for (auto it = mSRObjects.begin(); it != mSRObjects.end(); ++it)
             {
               if (it->mBBox.valid())
               {
-                mSceneBBox.extend(it->mBBox);
+                sceneBBox_.extend(it->mBBox);
               }
             }
 
@@ -1383,7 +1099,7 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
               }
 
               {
-                Graphics::Datatypes::SpireSubPass::Uniform uniform;
+                SpireSubPass::Uniform uniform;
                 uniform.name = "uFogSettings";
                 applyFog(uniform);
                 applyUniform(entityID, uniform);
@@ -1405,10 +1121,10 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
               mCore.addComponent(entityID, pass);
             }
           }
-          mCamera->setSceneBoundingBox(mSceneBBox);
+          mCamera->setSceneBoundingBox(sceneBBox_);
         }
       }
-      DEBUG_LOG_LINE_INFO
+      //DEBUG_LOG_LINE_INFO
     }
 
     //----------------------------------------------------------------------------------------------
@@ -1420,8 +1136,7 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
         // entity ID.
         for (const auto& pass : it->mPasses)
         {
-          uint64_t entityID = getEntityIDForName(pass.passName, it->mPort);
-          mCore.removeEntity(entityID);
+          mCore.removeEntity(getEntityIDForName(pass.passName, it->mPort));
         }
       }
       mEntityIdMap.clear();
@@ -1440,8 +1155,7 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
         {
           for (const auto& pass : it->mPasses)
           {
-            uint64_t entityID = getEntityIDForName(pass.passName, it->mPort);
-            mCore.removeEntity(entityID);
+            mCore.removeEntity(getEntityIDForName(pass.passName, it->mPort));
           }
           it = mSRObjects.erase(it);
         }
@@ -1462,8 +1176,8 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
     //----------------------------------------------------------------------------------------------
     bool SRInterface::hasObject(const std::string& object)
     {
-      for (auto it = mSRObjects.begin(); it != mSRObjects.end(); ++it)
-        if (it->mName == object)
+      for (const auto& mSRObject : mSRObjects)
+        if (mSRObject.mName == object)
           return true;
 
       return false;
@@ -1483,10 +1197,10 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
     //----------------------------------------------------------------------------------------------
     void SRInterface::addIBOToEntity(uint64_t entityID, const std::string& iboName)
     {
-      std::weak_ptr<ren::IBOMan> im = mCore.getStaticComponent<ren::StaticIBOMan>()->instance_;
-      if (std::shared_ptr<ren::IBOMan> iboMan = im.lock()) {
+      const std::weak_ptr<ren::IBOMan> im = mCore.getStaticComponent<ren::StaticIBOMan>()->instance_;
+      if (const auto iboMan = im.lock()) {
         ren::IBO ibo;
-        auto iboData = iboMan->getIBOData(iboName);
+        const auto iboData = iboMan->getIBOData(iboName);
         ibo.glid = iboMan->hasIBO(iboName);
         ibo.primType = iboData.primType;
         ibo.primMode = iboData.primMode;
@@ -1506,7 +1220,7 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
 
       std::stringstream ss;
       ss << "FontTexture:" << entityID << text.name << text.width << text.height;
-      std::string assetName = ss.str();
+      const std::string assetName = ss.str();
 
       ren::Texture texture;
 
@@ -1533,11 +1247,11 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
 
       std::stringstream ss;
       ss << "Texture:" << entityID << texture.name << texture.width << texture.height;
-      std::string assetName = ss.str();
+      const std::string assetName = ss.str();
 
       ren::Texture renTexture;
-      spire::CerealHeap<ren::Texture>* contTex = mCore.getOrCreateComponentContainer<ren::Texture>();
-      std::pair<const ren::Texture*, size_t> component = contTex->getComponent(entityID);
+      const auto contTex = mCore.getOrCreateComponentContainer<ren::Texture>();
+      const auto component = contTex->getComponent(entityID);
 
       if (!component.first)
         renTexture = textureMan->createTexture(assetName, GL_RGBA, texture.width, texture.height,
@@ -1554,9 +1268,9 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
     void SRInterface::addShaderToEntity(uint64_t entityID, const std::string& shaderName)
     {
       std::weak_ptr<ren::ShaderMan> sm = mCore.getStaticComponent<ren::StaticShaderMan>()->instance_;
-      if (std::shared_ptr<ren::ShaderMan> shaderMan = sm.lock()) {
-        ren::Shader shader;
-        shader.glid = shaderMan->getIDForAsset(shaderName.c_str());
+      if (std::shared_ptr<ren::ShaderMan> shaderMan = sm.lock())
+      {
+        const ren::Shader shader{ shaderMan->getIDForAsset(shaderName.c_str()) };
         mCore.addComponent(entityID, shader);
       }
     }
@@ -1567,7 +1281,7 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
       //font texture
       //read in the font data
       bool success = true;
-      auto fontPath = SCIRun::Core::Application::Instance().executablePath() / "Assets" / "times_new_roman.font";
+      const auto fontPath = Application::Instance().executablePath() / "Assets" / "times_new_roman.font";
       std::ifstream in(fontPath.string(), std::ifstream::binary);
       if (in.fail())
       {
@@ -1586,13 +1300,13 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
         in >> w >> h;
         char temp;
         in.read(reinterpret_cast<char*>(&temp), sizeof(char));
-        uint16_t *font_data = new uint16_t[w*h];
-        in.read(reinterpret_cast<char*>(font_data), sizeof(uint16_t)*w*h);
+        std::vector<uint16_t> fontData(w*h);
+        in.read(reinterpret_cast<char*>(&fontData[0]), sizeof(uint16_t)*w*h);
         in.close();
-        char* font = new char[w * h * 4];
+        std::vector<char> font(w * h * 4);
         for (size_t i = 0; i < w*h; i++)
         {
-          uint16_t pixel = font_data[i];
+          uint16_t pixel = fontData[i];
           font[i * 4] = (pixel & 0x00ff);
           font[i * 4 + 1] = (pixel & 0x00ff);
           font[i * 4 + 2] = (pixel & 0x00ff);
@@ -1613,25 +1327,20 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
           GL_RGBA,
           GLsizei(w), GLsizei(h), 0,
           GL_RGBA,
-          GL_UNSIGNED_BYTE, (GLvoid*)font));
-        delete [] font_data;
-        delete [] font;
+          GL_UNSIGNED_BYTE, (GLvoid*)&font[0]));
+
       }
     }
 
-    //----------------------------------------------------------------------------------------------
     uint64_t SRInterface::getEntityIDForName(const std::string& name, int port)
     {
       return (static_cast<uint64_t>(std::hash<std::string>()(name)) >> 8) + (static_cast<uint64_t>(port) << 56);
     }
 
-
-
     //----------------------------------------------------------------------------------------------
     //---------------- Rendering -------------------------------------------------------------------
     //----------------------------------------------------------------------------------------------
 
-    //----------------------------------------------------------------------------------------------
     void SRInterface::doFrame(double constantDeltaTime)
     {
       // todo Only render a frame if something has changed (new or deleted
@@ -1648,7 +1357,6 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
         renderCoordinateAxes();
     }
 
-    //----------------------------------------------------------------------------------------------
     void SRInterface::renderCoordinateAxes()
     {
       // Only execute if static rendering resources are available. All of these
@@ -1743,8 +1451,8 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
             }
             yPos = yLow2 + (orientPosY + 0.5f) * (yHigh2 - yLow2);
 
-            glm::mat4 invCamTrans = glm::translate(glm::mat4(1.0f), glm::vec3(xPos, yPos, -1.5f));
-            glm::mat4 axesScale = glm::scale(glm::mat4(1.0f), glm::vec3(orientSize));
+            glm::mat4 invCamTrans = translate(glm::mat4(1.0f), glm::vec3(xPos, yPos, -1.5f));
+            glm::mat4 axesScale = scale(glm::mat4(1.0f), glm::vec3(orientSize));
             glm::mat4 axesTransform = axesScale * axesRot;
 
             GLint locCamViewVec = glGetUniformLocation(shader, "uCamViewVec");
@@ -1763,74 +1471,74 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
 
             // X Axis (dark)
             {
-              glm::mat4 xform = glm::rotate(glm::mat4(1.0f), glm::pi<float>() / 2.0f, glm::vec3(0.0, 1.0, 0.0));
+              glm::mat4 xform = rotate(glm::mat4(1.0f), glm::pi<float>() / 2.0f, glm::vec3(0.0, 1.0, 0.0));
               glm::mat4 finalTrafo = axesTransform * xform;
 
               GL(glUniform4f(locDiffuseColor, 0.25f, 0.0f, 0.0f, 1.0f));
 
               glm::mat4 worldToProj = projection * invCamTrans * finalTrafo;
-              const GLfloat* ptr = glm::value_ptr(worldToProj);
+              const GLfloat* ptr = value_ptr(worldToProj);
               GL(glUniformMatrix4fv(locProjIVObject, 1, false, ptr));
 
               glm::mat4 objectSpace = finalTrafo;
-              ptr = glm::value_ptr(objectSpace);
+              ptr = value_ptr(objectSpace);
               GL(glUniformMatrix4fv(locObject, 1, false, ptr));
 
-              GL(glDrawElements(iboData->primMode, iboData->numPrims, iboData->primType, 0));
+              GL(glDrawElements(iboData->primMode, iboData->numPrims, iboData->primType, nullptr));
             }
 
             // X Axis
             {
-              glm::mat4 xform = glm::rotate(glm::mat4(1.0f), -glm::pi<float>() / 2.0f, glm::vec3(0.0, 1.0, 0.0));
+              glm::mat4 xform = rotate(glm::mat4(1.0f), -glm::pi<float>() / 2.0f, glm::vec3(0.0, 1.0, 0.0));
               glm::mat4 finalTrafo = axesTransform * xform;
 
               GL(glUniform4f(locDiffuseColor, 1.0f, 0.0f, 0.0f, 1.0f));
 
               glm::mat4 worldToProj = projection * invCamTrans * finalTrafo;
-              const GLfloat* ptr = glm::value_ptr(worldToProj);
+              const GLfloat* ptr = value_ptr(worldToProj);
               GL(glUniformMatrix4fv(locProjIVObject, 1, false, ptr));
 
               glm::mat4 objectSpace = finalTrafo;
-              ptr = glm::value_ptr(objectSpace);
+              ptr = value_ptr(objectSpace);
               GL(glUniformMatrix4fv(locObject, 1, false, ptr));
 
-              GL(glDrawElements(iboData->primMode, iboData->numPrims, iboData->primType, 0));
+              GL(glDrawElements(iboData->primMode, iboData->numPrims, iboData->primType, nullptr));
             }
 
             // Y Axis (dark)
             {
-              glm::mat4 xform = glm::rotate(glm::mat4(1.0f), -glm::pi<float>() / 2.0f, glm::vec3(1.0, 0.0, 0.0));
+              glm::mat4 xform = rotate(glm::mat4(1.0f), -glm::pi<float>() / 2.0f, glm::vec3(1.0, 0.0, 0.0));
               glm::mat4 finalTrafo = axesTransform * xform;
 
               GL(glUniform4f(locDiffuseColor, 0.0f, 0.25f, 0.0f, 1.0f));
 
               glm::mat4 worldToProj = projection * invCamTrans * finalTrafo;
-              const GLfloat* ptr = glm::value_ptr(worldToProj);
+              const GLfloat* ptr = value_ptr(worldToProj);
               GL(glUniformMatrix4fv(locProjIVObject, 1, false, ptr));
 
               glm::mat4 objectSpace = finalTrafo;
-              ptr = glm::value_ptr(objectSpace);
+              ptr = value_ptr(objectSpace);
               GL(glUniformMatrix4fv(locObject, 1, false, ptr));
 
-              GL(glDrawElements(iboData->primMode, iboData->numPrims, iboData->primType, 0));
+              GL(glDrawElements(iboData->primMode, iboData->numPrims, iboData->primType, nullptr));
             }
 
             // Y Axis
             {
-              glm::mat4 xform = glm::rotate(glm::mat4(1.0f), glm::pi<float>() / 2.0f, glm::vec3(1.0, 0.0, 0.0));
+              glm::mat4 xform = rotate(glm::mat4(1.0f), glm::pi<float>() / 2.0f, glm::vec3(1.0, 0.0, 0.0));
               glm::mat4 finalTrafo = axesTransform * xform;
 
               GL(glUniform4f(locDiffuseColor, 0.0f, 1.0f, 0.0f, 1.0f));
 
               glm::mat4 worldToProj = projection * invCamTrans * finalTrafo;
-              const GLfloat* ptr = glm::value_ptr(worldToProj);
+              const GLfloat* ptr = value_ptr(worldToProj);
               GL(glUniformMatrix4fv(locProjIVObject, 1, false, ptr));
 
               glm::mat4 objectSpace = finalTrafo;
-              ptr = glm::value_ptr(objectSpace);
+              ptr = value_ptr(objectSpace);
               GL(glUniformMatrix4fv(locObject, 1, false, ptr));
 
-              GL(glDrawElements(iboData->primMode, iboData->numPrims, iboData->primType, 0));
+              GL(glDrawElements(iboData->primMode, iboData->numPrims, iboData->primType, nullptr));
             }
 
             // Z Axis (dark)
@@ -1841,33 +1549,33 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
               GL(glUniform4f(locDiffuseColor, 0.0f, 0.0f, 0.25f, 1.0f));
 
               glm::mat4 worldToProj = projection * invCamTrans * finalTrafo;
-              const GLfloat* ptr = glm::value_ptr(worldToProj);
+              const GLfloat* ptr = value_ptr(worldToProj);
               GL(glUniformMatrix4fv(locProjIVObject, 1, false, ptr));
 
               glm::mat4 objectSpace = finalTrafo;
-              ptr = glm::value_ptr(objectSpace);
+              ptr = value_ptr(objectSpace);
               GL(glUniformMatrix4fv(locObject, 1, false, ptr));
 
-              GL(glDrawElements(iboData->primMode, iboData->numPrims, iboData->primType, 0));
+              GL(glDrawElements(iboData->primMode, iboData->numPrims, iboData->primType, nullptr));
             }
 
             // Z Axis
             {
               // No rotation at all
-              glm::mat4 xform = glm::rotate(glm::mat4(1.0f), glm::pi<float>(), glm::vec3(1.0, 0.0, 0.0));
+              glm::mat4 xform = rotate(glm::mat4(1.0f), glm::pi<float>(), glm::vec3(1.0, 0.0, 0.0));
               glm::mat4 finalTrafo = axesTransform * xform;
 
               GL(glUniform4f(locDiffuseColor, 0.0f, 0.0f, 1.0f, 1.0f));
 
               glm::mat4 worldToProj = projection * invCamTrans * finalTrafo;
-              const GLfloat* ptr = glm::value_ptr(worldToProj);
+              const GLfloat* ptr = value_ptr(worldToProj);
               GL(glUniformMatrix4fv(locProjIVObject, 1, false, ptr));
 
               glm::mat4 objectSpace = finalTrafo;
-              ptr = glm::value_ptr(objectSpace);
+              ptr = value_ptr(objectSpace);
               GL(glUniformMatrix4fv(locObject, 1, false, ptr));
 
-              GL(glDrawElements(iboData->primMode, iboData->numPrims, iboData->primType, 0));
+              GL(glDrawElements(iboData->primMode, iboData->numPrims, iboData->primType, nullptr));
             }
 
             mArrowAttribs.unbind();
@@ -1892,7 +1600,7 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
     //----------------------------------------------------------------------------------------------
     void SRInterface::updateWorldLight()
     {
-      StaticWorldLight* light = mCore.getStaticComponent<StaticWorldLight>();
+      auto light = mCore.getStaticComponent<StaticWorldLight>();
 
       if (light)
         for (int i = 0; i < LIGHT_NUM; ++i)
@@ -1915,7 +1623,7 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
     }
 
     //----------------------------------------------------------------------------------------------
-    void SRInterface::applyMatFactors(Graphics::Datatypes::SpireSubPass::Uniform& uniform)
+    void SRInterface::applyMatFactors(SpireSubPass::Uniform& uniform)
     {
       if (uniform.name == "uAmbientColor")
         uniform.data = inverseGammaCorrect(glm::vec4(mMatAmbient));
@@ -1926,11 +1634,11 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
     }
 
     //----------------------------------------------------------------------------------------------
-    void SRInterface::applyFog(Graphics::Datatypes::SpireSubPass::Uniform& uniform)
+    void SRInterface::applyFog(SpireSubPass::Uniform& uniform)
     {
       if (uniform.name == "uFogSettings")
       {
-        float radius = mSceneBBox.diagonal().length() * 2.0;
+        float radius = sceneBBox_.diagonal().length() * 2.0;
         float start = radius * mFogStart;
         float end = radius * mFogEnd;
         uniform.data = glm::vec4(mFogIntensity, start, end, 0.0);
@@ -1940,7 +1648,7 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
         uniform.data = inverseGammaCorrect(mFogColor);
       }
 
-      uniform.type = Graphics::Datatypes::SpireSubPass::Uniform::UniformType::UNIFORM_VEC4;
+      uniform.type = SpireSubPass::Uniform::UniformType::UNIFORM_VEC4;
     }
 
     //----------------------------------------------------------------------------------------------
@@ -1975,13 +1683,13 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
       viewVector.z = cos(inclination) * cos(azimuth);
       viewVector.x = cos(inclination) * sin(azimuth);
       viewVector.y = sin(inclination);
-      mLightDirectionView[index] = glm::normalize(viewVector);
+      mLightDirectionView[index] = normalize(viewVector);
     }
 
     //----------------------------------------------------------------------------------------------
     void SRInterface::setLightOn(int index, bool value)
     {
-      if (mLightsOn.size() > 0 && index < LIGHT_NUM)
+      if (!mLightsOn.empty() && index < LIGHT_NUM)
         mLightsOn[index] = value;
     }
 
@@ -2022,7 +1730,7 @@ uint32_t SRInterface::getSelectIDForName(const std::string& name)
       }
     }
 
-std::ostream& SCIRun::Render::operator<<(std::ostream& o, const glm::mat4& m)
+std::ostream& Render::operator<<(std::ostream& o, const glm::mat4& m)
 {
   o << "{" << m[0].x << ",\t" << m[0].y << ",\t" << m[0].z << ",\t" << m[0].w << "}\n"
     << "{" << m[1].x << ",\t" << m[1].y << ",\t" << m[1].z << ",\t" << m[1].w << "}\n"

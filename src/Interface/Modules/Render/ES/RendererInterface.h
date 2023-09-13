@@ -28,6 +28,7 @@
 #ifndef INTERFACE_MODULES_RENDER_SPIRESCIRUN_RENDERERINTERFACE_H
 #define INTERFACE_MODULES_RENDER_SPIRESCIRUN_RENDERERINTERFACE_H
 
+#include <Core/Datatypes/Feedback.h>
 #include <Interface/Modules/Render/ES/RendererInterfaceCollaborators.h>
 #include <Interface/Modules/Render/ES/RendererInterfaceFwd.h>
 #include <glm/gtc/quaternion.hpp>
@@ -71,16 +72,16 @@ namespace SCIRun
       virtual void setLockPanning(bool lock) = 0;
       virtual void setLockRotation(bool lock) = 0;
       virtual bool hasShaderPromise() const = 0;
-      virtual void widgetMouseDown(MouseButton btn, int x, int y) = 0;
-      virtual void widgetMouseMove(MouseButton btn, int x, int y) = 0;
+      virtual void widgetMouseMove(int x, int y) = 0;
       virtual void widgetMouseUp() = 0;
-      virtual void inputMouseDown(MouseButton btn, float x, float y) = 0;
+      virtual void inputMouseDown(float x, float y) = 0;
       virtual void inputMouseMove(MouseButton btn, float x, float y) = 0;
       virtual void inputMouseUp() = 0;
       virtual void inputMouseWheel(int32_t delta) = 0;
       virtual void setMouseMode(MouseMode mode) = 0;
       virtual void eventResize(size_t width, size_t height) = 0;
       virtual void doFrame(double constantDeltaTime) = 0;
+      virtual void cleanupSelect() = 0;
     };
 
     class SCISHARE RendererModuleInterface
@@ -108,34 +109,30 @@ namespace SCIRun
       virtual void setView(const glm::vec3& view, const glm::vec3& up) = 0;
       virtual void doAutoView() = 0;
       virtual void setZoomSpeed(int zoomSpeed) = 0;
+      virtual glm::vec2 autoRotateVector() const = 0;
       virtual void setAutoRotateVector(const glm::vec2& axis) = 0;
       virtual void setAutoRotateSpeed(double speed) = 0;
       virtual void handleGeomObject(Graphics::Datatypes::GeometryHandle object, int port) = 0;
-      virtual void doInitialWidgetUpdate(Graphics::Datatypes::WidgetHandle& widget, int x, int y) = 0;
-      virtual Graphics::Datatypes::WidgetHandle select(int x, int y, Graphics::Datatypes::WidgetList& widgets) = 0;
-      virtual void setClippingPlaneIndex(int index) = 0;
-      virtual void setClippingPlaneFrameOn(bool value) = 0;
-      virtual void reverseClippingPlaneNormal(bool value) = 0;
-      virtual void setClippingPlaneX(double value) = 0;
-      virtual void setClippingPlaneY(double value) = 0;
-      virtual void setClippingPlaneZ(double value) = 0;
-      virtual void setClippingPlaneD(double value) = 0;
+      virtual void doInitialWidgetUpdate(Graphics::Datatypes::WidgetHandle widget, int x, int y) = 0;
+      virtual void setWidgetInteractionMode(MouseButton btn) = 0;
+      virtual Graphics::Datatypes::WidgetHandle select(int x, int y, const Graphics::Datatypes::WidgetList& widgets) = 0;
       virtual void showOrientation(bool value) = 0;
       virtual void setLightAzimuth(int index, float azimuth) = 0;
       virtual void setLightInclination(int index, float inclination) = 0;
       virtual void setMaterialFactor(MatFactor factor, double value) = 0;
       virtual void setFog(FogFactor factor, double value) = 0;
-      virtual const glm::mat4& getViewToProjection() const = 0;
+      virtual glm::mat4 getViewToProjection() const = 0;
       virtual void setOrientSize(int size) = 0;
       virtual void setOrientPosX(int pos) = 0;
       virtual void setOrientPosY(int pos) = 0;
       virtual void setFogColor(const glm::vec4 &color) = 0;
-      virtual void setTransparencyRendertype(RenderState::TransparencySortType rType) = 0;
+      virtual void setTransparencyRenderType(RenderState::TransparencySortType rType) = 0;
       virtual StaticClippingPlanes* getClippingPlanes() = 0;
-      virtual void setClippingPlaneVisible(bool value) = 0;
       virtual Core::Geometry::BBox getSceneBox() = 0;
-      virtual const glm::mat4& getWorldToView() const = 0;
+      virtual glm::mat4 getWorldToView() const = 0;
       virtual glm::mat4 getWorldToProjection() const = 0;
+      virtual void setClippingPlaneManager(ClippingPlaneManagerPtr cpm) = 0;
+      virtual bool updateClippingPlanes() = 0;
     };
 
     class SCISHARE RendererInterface : public ScreenParameters, public RendererModuleInterface, public RendererWidgetInterface

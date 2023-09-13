@@ -56,7 +56,7 @@ InterfaceWithPythonDialog::InterfaceWithPythonDialog(const std::string& name, Mo
   addSpinBoxManager(retryAttemptsSpinBox_, Parameters::NumberOfRetries);
   addSpinBoxManager(pollingIntervalSpinBox_, Parameters::PollingIntervalMilliseconds);
 
-  connect(clearObjectPushButton_, SIGNAL(clicked()), this, SLOT(resetObjects()));
+  connect(clearObjectPushButton_, &QPushButton::clicked, this, &InterfaceWithPythonDialog::resetObjects);
 
   WidgetStyleMixin::tabStyle(tabWidget);
   WidgetStyleMixin::tableHeaderStyle(inputVariableNamesTableWidget_);
@@ -64,8 +64,8 @@ InterfaceWithPythonDialog::InterfaceWithPythonDialog(const std::string& name, Mo
 
   setupOutputTableCells();
 
-  connect(pythonDocPushButton_, SIGNAL(clicked()), this, SLOT(loadAPIDocumentation()));
-  connect(addMatlabCodeBlockToolButton_, SIGNAL(clicked()), pythonCodePlainTextEdit_, SLOT(insertSpecialCodeBlock()));
+  connect(pythonDocPushButton_, &QPushButton::clicked, this, &InterfaceWithPythonDialog::loadAPIDocumentation);
+  connect(addMatlabCodeBlockToolButton_, &QPushButton::clicked, pythonCodePlainTextEdit_, &CodeEditor::insertSpecialCodeBlock);
 
   createForceAlwaysExecuteToggleAction();
 }
@@ -101,7 +101,7 @@ void InterfaceWithPythonDialog::setupOutputTableCells()
   }
 }
 
-void InterfaceWithPythonDialog::updateFromPortChange(int numPorts, const std::string& portId, DynamicPortChange type)
+void InterfaceWithPythonDialog::updateFromPortChange(int, const std::string& portId, DynamicPortChange type)
 {
   if (type == DynamicPortChange::INITIAL_PORT_CONSTRUCTION)
     return;

@@ -47,11 +47,11 @@ namespace Dataflow {
   class SCISHARE DynamicMultithreadedNetworkExecutor : public NetworkExecutor<ParallelModuleExecutionOrder>
   {
   public:
-    explicit DynamicMultithreadedNetworkExecutor(const Networks::NetworkInterface& network);
-    virtual void execute(const ExecutionContext& context, ParallelModuleExecutionOrder order, Core::Thread::Mutex& executionLock) override;
+    explicit DynamicMultithreadedNetworkExecutor(const Networks::NetworkStateInterface& network);
+    std::future<int> execute(const ExecutionContext& context, ParallelModuleExecutionOrder order, Core::Thread::Mutex& executionLock) override;
   private:
-    const Networks::NetworkInterface& network_;
-    boost::shared_ptr<DynamicExecutor::ExecutionThreadGroup> threadGroup_;
+    const Networks::NetworkStateInterface& network_;
+    SharedPointer<DynamicExecutor::ExecutionThreadGroup> threadGroup_;
   };
 
 }}}

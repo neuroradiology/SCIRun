@@ -44,10 +44,7 @@ class SCISHARE CalculateMeshCenterDialog : public ModuleDialogGeneric,
 public:
   CalculateMeshCenterDialog(const std::string& name,
     SCIRun::Dataflow::Networks::ModuleStateHandle state,
-    QWidget* parent = 0);
-
-private:
-  GuiStringTranslationMap map_;
+    QWidget* parent = nullptr);
 };
 
 }

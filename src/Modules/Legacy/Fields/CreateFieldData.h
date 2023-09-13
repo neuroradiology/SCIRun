@@ -48,8 +48,8 @@ namespace SCIRun {
       public:
         CreateFieldData();
 
-        virtual void execute() override;
-        virtual void setStateDefaults() override;
+        void execute() override;
+        void setStateDefaults() override;
         HAS_DYNAMIC_PORTS
 
         INPUT_PORT(0, InputField, Field);
@@ -57,7 +57,7 @@ namespace SCIRun {
         INPUT_PORT_DYNAMIC(2, DataArray, Matrix);
         OUTPUT_PORT(0, OutputField, Field);
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUI)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
 
         static const Core::Algorithms::AlgorithmParameterName BasisString;
       };

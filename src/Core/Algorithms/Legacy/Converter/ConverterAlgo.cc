@@ -784,13 +784,13 @@ bool ConverterAlgo::MatrixToString(Datatypes::MatrixHandle input, Datatypes::Str
     }
   }
 
-  output = boost::make_shared<String>(oss.str());
+  output = makeShared<String>(oss.str());
 
   return true;
 }
 
 
-AlgorithmOutput ConverterAlgo::run(const AlgorithmInput& input) const
+AlgorithmOutput ConverterAlgo::run(const AlgorithmInput&) const
 {
   throw "not implemented";
 }

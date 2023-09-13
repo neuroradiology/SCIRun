@@ -92,20 +92,20 @@ namespace Render {
   {
   public:
     OsprayViewer();
-    virtual void asyncExecute(const Dataflow::Networks::PortId& pid, Core::Datatypes::DatatypeHandle data) override;
-    virtual void setStateDefaults() override;
+    void asyncExecute(const Dataflow::Networks::PortId& pid, Core::Datatypes::DatatypeHandle data) override;
+    void setStateDefaults() override;
 
     INPUT_PORT_DYNAMIC(0, GeneralGeom, OsprayGeometryObject);
-    virtual void execute() override;
+    void execute() override;
 
-    MODULE_TRAITS_AND_INFO(ModuleHasUI)
+    MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
 
   #ifndef WITH_OSPRAY
     DISABLED_WITHOUT_ABOVE_COMPILE_FLAG
   #endif
 
   protected:
-    virtual void portRemovedSlotImpl(const Dataflow::Networks::PortId& pid) override;
+    void portRemovedSlotImpl(const Dataflow::Networks::PortId& pid) override;
   private:
     void sendCompositeGeometry();
   };

@@ -52,7 +52,7 @@ namespace Networks {
     virtual bool inputsChanged() const = 0;
   };
 
-  typedef boost::shared_ptr<InputsChangedChecker> InputsChangedCheckerHandle;
+  typedef SharedPointer<InputsChangedChecker> InputsChangedCheckerHandle;
 
   class SCISHARE StateChangedChecker
   {
@@ -62,7 +62,7 @@ namespace Networks {
     virtual bool newStatePresent() const = 0;
   };
 
-  typedef boost::shared_ptr<StateChangedChecker> StateChangedCheckerHandle;
+  typedef SharedPointer<StateChangedChecker> StateChangedCheckerHandle;
 
   class SCISHARE OutputPortsCachedChecker
   {
@@ -72,7 +72,7 @@ namespace Networks {
     virtual bool outputPortsCached() const = 0;
   };
 
-  typedef boost::shared_ptr<OutputPortsCachedChecker> OutputPortsCachedCheckerHandle;
+  typedef SharedPointer<OutputPortsCachedChecker> OutputPortsCachedCheckerHandle;
 
   class SCISHARE DynamicReexecutionStrategy : public ModuleReexecutionStrategy
   {
@@ -81,7 +81,7 @@ namespace Networks {
       InputsChangedCheckerHandle inputsChanged,
       StateChangedCheckerHandle stateChanged,
       OutputPortsCachedCheckerHandle outputsCached);
-    virtual bool needToExecute() const override;
+    bool needToExecute() const override;
   private:
     InputsChangedCheckerHandle inputsChanged_;
     StateChangedCheckerHandle stateChanged_;
@@ -92,7 +92,7 @@ namespace Networks {
   {
   public:
     explicit InputsChangedCheckerImpl(const Module& module);
-    virtual bool inputsChanged() const override;
+    bool inputsChanged() const override;
   private:
     const Module& module_;
   };
@@ -101,7 +101,7 @@ namespace Networks {
   {
   public:
     explicit StateChangedCheckerImpl(const Module& module);
-    virtual bool newStatePresent() const override;
+    bool newStatePresent() const override;
   private:
     const Module& module_;
   };
@@ -110,7 +110,7 @@ namespace Networks {
   {
   public:
     explicit OutputPortsCachedCheckerImpl(const Module& module);
-    virtual bool outputPortsCached() const override;
+    bool outputPortsCached() const override;
   private:
     const Module& module_;
   };
@@ -118,10 +118,10 @@ namespace Networks {
   class SCISHARE DynamicReexecutionStrategyFactory : public ReexecuteStrategyFactory
   {
   public:
-    explicit DynamicReexecutionStrategyFactory(const boost::optional<std::string>& reexMode);
+    explicit DynamicReexecutionStrategyFactory(const std::optional<std::string>& reexMode);
     ModuleReexecutionStrategyHandle create(const Module& module) const override;
   private:
-    boost::optional<std::string> reexecuteMode_;
+    std::optional<std::string> reexecuteMode_;
   };
 
 }}}

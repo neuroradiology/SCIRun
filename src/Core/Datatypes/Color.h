@@ -65,40 +65,21 @@ namespace Datatypes {
       return !(*this == c);
     }
 
-    /// \todo Add normalization function to normalize 0 - 255 to 0 - 1.0.
-    ///       useful when reading colors from strings.
-
     double r() const {return r_;}
     double g() const {return g_;}
     double b() const {return b_;}
     double a() const {return a_;}
 
+    int redNormalized() const;
+    int greenNormalized() const;
+    int blueNormalized() const;
+
     std::string toString() const;
   };
 
-  typedef boost::shared_ptr<ColorRGB> ColorRGBHandle;
+  typedef SharedPointer<ColorRGB> ColorRGBHandle;
 
   SCISHARE std::ostream& operator<<(std::ostream& out, const ColorRGB& color);
-
-  struct SCISHARE ViewSceneFeedback : ModuleFeedback
-  {
-    Geometry::Transform transform;
-    std::string selectionName;
-    std::tuple<int,int> windowSize;
-
-    bool matchesWithModuleId(const std::string& modId) const;
-  };
-
-  struct SCISHARE MeshComponentSelectionFeedback : ModuleFeedback
-  {
-    MeshComponentSelectionFeedback() {}
-    MeshComponentSelectionFeedback(const std::string& mod, const std::string& comp, bool sel) :
-      moduleId(mod), component(comp), selected(sel) {}
-    std::string moduleId;
-    std::string component;
-    bool selected {false};
-  };
-
 }}}
 
 

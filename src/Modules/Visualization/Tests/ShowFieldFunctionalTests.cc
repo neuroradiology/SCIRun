@@ -86,7 +86,7 @@ protected:
     LogSettings::Instance().setVerbose(false);
   }
 
-  virtual void SetUp()
+  void SetUp() override
   {
     LogSettings::Instance().setVerbose(false);
 
@@ -99,17 +99,17 @@ protected:
 
     showField->setStateDefaults();
     auto state = showField->get_state();
-    state->setValue(Parameters::ShowNodes, std::get<SHOW_NODES>(params));
-    state->setValue(Parameters::ShowEdges, std::get<SHOW_EDGES>(params));
-    state->setValue(Parameters::ShowFaces, std::get<SHOW_FACES>(params));
-    state->setValue(Parameters::NodeTransparency, std::get<NODE_TRANSPARENCY>(params));
-    state->setValue(Parameters::EdgeTransparency, std::get<EDGE_TRANSPARENCY>(params));
-    state->setValue(Parameters::FaceTransparency, std::get<FACE_TRANSPARENCY>(params));
-    state->setValue(Parameters::NodeTransparencyValue, std::get<TRANSPARENCY_VALUE>(params));
-    state->setValue(Parameters::EdgeTransparencyValue, std::get<TRANSPARENCY_VALUE>(params));
-    state->setValue(Parameters::FaceTransparencyValue, std::get<TRANSPARENCY_VALUE>(params));
-    state->setValue(Parameters::NodeAsSpheres, std::get<NODES_AS_SPHERES>(params));
-    state->setValue(Parameters::EdgesAsCylinders, std::get<EDGES_AS_CYLINDERS>(params));
+    state->setValue(Parameters::ShowNodes, std::get<ShowFieldParams::SHOW_NODES>(params));
+    state->setValue(Parameters::ShowEdges, std::get<ShowFieldParams::SHOW_EDGES>(params));
+    state->setValue(Parameters::ShowFaces, std::get<ShowFieldParams::SHOW_FACES>(params));
+    state->setValue(Parameters::NodeTransparency, std::get<ShowFieldParams::NODE_TRANSPARENCY>(params));
+    state->setValue(Parameters::EdgeTransparency, std::get<ShowFieldParams::EDGE_TRANSPARENCY>(params));
+    state->setValue(Parameters::FaceTransparency, std::get<ShowFieldParams::FACE_TRANSPARENCY>(params));
+    state->setValue(Parameters::NodeTransparencyValue, std::get<ShowFieldParams::TRANSPARENCY_VALUE>(params));
+    state->setValue(Parameters::EdgeTransparencyValue, std::get<ShowFieldParams::TRANSPARENCY_VALUE>(params));
+    state->setValue(Parameters::FaceTransparencyValue, std::get<ShowFieldParams::TRANSPARENCY_VALUE>(params));
+    state->setValue(Parameters::NodeAsSpheres, std::get<ShowFieldParams::NODES_AS_SPHERES>(params));
+    state->setValue(Parameters::EdgesAsCylinders, std::get<ShowFieldParams::EDGES_AS_CYLINDERS>(params));
     //...ran out of gtest options at 10 due to tuple.
 
     //data--to loop over
@@ -188,7 +188,7 @@ protected:
     LogSettings::Instance().setVerbose(false);
   }
 
-  virtual void SetUp()
+  void SetUp() override
   {
     LogSettings::Instance().setVerbose(false);
 
@@ -257,7 +257,7 @@ TEST_P(ShowFieldFaceTest, FaceGenerationTest)
 
     ASSERT_TRUE(geom != nullptr);
 
-    auto spireGeom = boost::dynamic_pointer_cast<SCIRun::Graphics::Datatypes::GeometryObjectSpire>(geom);
+    auto spireGeom = std::dynamic_pointer_cast<SCIRun::Graphics::Datatypes::GeometryObjectSpire>(geom);
 
     int numAttributes = 2;
     if(std::get<COLORING>(params) == 1) ++numAttributes;
@@ -313,7 +313,7 @@ protected:
     LogSettings::Instance().setVerbose(false);
   }
 
-  virtual void SetUp()
+  void SetUp() override
   {
     LogSettings::Instance().setVerbose(false);
 
@@ -350,11 +350,11 @@ protected:
     auto params = GetParam();
     auto state = showField->get_state();
 
-    state->setValue(Parameters::EdgeTransparency, std::get<TRANSPARENCY>(params));
+    state->setValue(Parameters::EdgeTransparency, std::get<ShowFieldParams::TRANSPARENCY>(params));
     state->setValue(Parameters::EdgeTransparencyValue, std::get<TRANSPARENCY_VALUE>(params));
-    state->setValue(Parameters::EdgesColoring, std::get<COLORING>(params));
-    state->setValue(Parameters::EdgesAsCylinders, std::get<USE_CYLINDERS>(params));
-    state->setValue(Parameters::CylinderRadius, std::get<CYLINDER_RADIUS>(params));
+    state->setValue(Parameters::EdgesColoring, std::get<ShowFieldParams::COLORING>(params));
+    state->setValue(Parameters::EdgesAsCylinders, std::get<ShowFieldParams::USE_CYLINDERS>(params));
+    state->setValue(Parameters::CylinderRadius, std::get<ShowFieldParams::CYLINDER_RADIUS>(params));
     state->setValue(Parameters::CylinderResolution, std::get<CYLYNDER_RESOLUTION>(params));
   }
 
@@ -383,7 +383,7 @@ TEST_P(ShowFieldEdgeTest, EdgeGenerationTest)
 
     ASSERT_TRUE(geom != nullptr);
 
-    auto spireGeom = boost::dynamic_pointer_cast<SCIRun::Graphics::Datatypes::GeometryObjectSpire>(geom);
+    auto spireGeom = std::dynamic_pointer_cast<SCIRun::Graphics::Datatypes::GeometryObjectSpire>(geom);
 
     int numAttributes = 1;
     if(std::get<COLORING>(params) == 1) ++numAttributes;
@@ -440,7 +440,7 @@ protected:
     LogSettings::Instance().setVerbose(false);
   }
 
-  virtual void SetUp()
+  void SetUp() override
   {
     LogSettings::Instance().setVerbose(false);
 
@@ -510,7 +510,7 @@ TEST_P(ShowFieldNodeTest, NodeGenerationTest)
 
     ASSERT_TRUE(geom != nullptr);
 
-    auto spireGeom = boost::dynamic_pointer_cast<SCIRun::Graphics::Datatypes::GeometryObjectSpire>(geom);
+    auto spireGeom = std::dynamic_pointer_cast<SCIRun::Graphics::Datatypes::GeometryObjectSpire>(geom);
 
     int numAttributes = 1;
     if(std::get<COLORING>(params) == 1) ++numAttributes;

@@ -26,9 +26,7 @@
 */
 
 #include <Modules/Legacy/Matlab/DataIO/ExportMatricesToMatlab.h>
-#include <sstream>
-#include <string>
-#include <vector>
+#include <Core/Algorithms/Base/VariableHelper.h>
 
 #include <Core/Datatypes/String.h>
 #include <Core/Datatypes/Matrix.h>
@@ -120,7 +118,7 @@ void ExportMatricesToMatlab::execute()
 
     for (int i = 0; i < matrices.size(); ++i)
     {
-      matrixnames.push_back(state->getValue(Name((*matrixPortNameIterator++)->id().toString())).toString());
+      matrixnames.push_back(state->getValue(Name((*matrixPortNameIterator++)->internalId().toString())).toString());
     }
 
     auto matrixformats = toStringVector(state->getValue(Parameters::MatrixFormats).toVector());

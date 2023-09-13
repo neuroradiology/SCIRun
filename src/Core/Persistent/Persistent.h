@@ -46,7 +46,7 @@
 #include <map>
 #include <string>
 #include <complex>
-#include <boost/shared_ptr.hpp>
+#include <Core/Utils/SmartPointers.h>
 
 // for index and size types
 #include <Core/Datatypes/Legacy/Base/Types.h>
@@ -61,7 +61,7 @@ namespace SCIRun {
 
   typedef Persistent* (*PersistentMaker0)();
 
-  typedef boost::shared_ptr<Persistent> PersistentHandle;
+  typedef SharedPointer<Persistent> PersistentHandle;
 
 class SCISHARE PersistentTypeID {
 public:
@@ -69,8 +69,8 @@ public:
   PersistentTypeID(const std::string& type,
                      const std::string& parent,
                      PersistentMaker0 maker,
-                     Persistent* (*bc_maker1)() = 0,
-                     Persistent* (*bc_maker2)() = 0);
+                     Persistent* (*bc_maker1)() = nullptr,
+                     Persistent* (*bc_maker2)() = nullptr);
   std::string type;
   std::string parent;
   PersistentMaker0 maker;
@@ -78,13 +78,13 @@ public:
   Persistent* (*bc_maker2)();
 };
 
-typedef boost::shared_ptr<PersistentTypeID> PersistentTypeIDPtr;
-typedef boost::shared_ptr<Piostream> PiostreamPtr;
+  using PersistentTypeIDPtr = SharedPointer<PersistentTypeID>;
+  using PiostreamPtr = SharedPointer<Piostream>;
 
 SCISHARE PiostreamPtr auto_istream(const std::string& filename,
-                                   Core::Logging::LoggerHandle pr = Core::Logging::LoggerHandle());
+                                   Core::Logging::LoggerHandle pr = nullptr);
 SCISHARE PiostreamPtr auto_ostream(const std::string& filename, const std::string& type,
-                                 Core::Logging::LoggerHandle pr = Core::Logging::LoggerHandle());
+                                 Core::Logging::LoggerHandle pr = nullptr);
 
 
 //----------------------------------------------------------------------
@@ -94,12 +94,12 @@ class SCISHARE Piostream {
     typedef std::map<PersistentHandle, int>          MapPersistentInt;
     typedef std::map<int, PersistentHandle>          MapIntPersistent;
 
-    enum Direction {
+    enum class Direction {
       Read,
       Write
     };
 
-    enum Endian {
+    enum class Endian {
       Big,
       Little
     };
@@ -113,10 +113,10 @@ class SCISHARE Piostream {
     Direction dir;
     int version_;
     bool err;
-    int file_endian;
+    Endian file_endian;
 
-    boost::shared_ptr<MapPersistentInt> outpointers;
-    boost::shared_ptr<MapIntPersistent> inpointers;
+    SharedPointer<MapPersistentInt> outpointers;
+    SharedPointer<MapIntPersistent> inpointers;
 
     int current_pointer_id;
 
@@ -130,7 +130,7 @@ class SCISHARE Piostream {
   public:
     static bool readHeader(Core::Logging::LoggerHandle pr,
                            const std::string& filename, char* hdr,
-                           const char* type, int& version, int& endian);
+                           const char* type, int& version, Endian& endian);
   private:
     virtual void reset_post_header() = 0;
   public:
@@ -167,8 +167,8 @@ class SCISHARE Piostream {
 
     void io(PersistentHandle&, const PersistentTypeID&);
 
-    bool reading() const { return dir == Read; }
-    bool writing() const { return dir == Write; }
+    bool reading() const { return dir == Direction::Read; }
+    bool writing() const { return dir == Direction::Write; }
     bool error() const { return err; }
 
     int version() const { return version_; }
@@ -208,25 +208,25 @@ class SCISHARE Persistent {
     static void add_class(const std::string& type,
                           const std::string& parent,
                           Persistent* (*maker)(),
-                          Persistent* (*bc_maker1)() = 0,
-                          Persistent* (*bc_maker2)() = 0);
+                          Persistent* (*bc_maker1)() = nullptr,
+                          Persistent* (*bc_maker2)() = nullptr);
 
     static void add_mesh_class(const std::string& type,
                           Persistent* (*maker)(),
-                          Persistent* (*bc_maker1)() = 0,
-                          Persistent* (*bc_maker2)() = 0);
+                          Persistent* (*bc_maker1)() = nullptr,
+                          Persistent* (*bc_maker2)() = nullptr);
 
     static void add_field_class(const std::string& type,
                           Persistent* (*maker)(),
-                          Persistent* (*bc_maker1)() = 0,
-                          Persistent* (*bc_maker2)() = 0);
+                          Persistent* (*bc_maker1)() = nullptr,
+                          Persistent* (*bc_maker2)() = nullptr);
   private:
     // Mutex protecting the list, these are in the class so they will be
     // initialized before any of the static functions can be called
 
     typedef std::map<std::string, PersistentTypeIDPtr>	MapStringPersistentID;
     static MapStringPersistentID* persistent_table_;
-    static Core::Thread::Mutex* persistent_mutex_;
+    static Core::Thread::NamedMutex* persistent_mutex_;
 
     static void initialize();
 };
@@ -255,7 +255,7 @@ SCISHARE void Pio_index(Piostream& stream, index_type* data, size_type sz);
 
 /*
 template<class T>
-void PioImpl(Piostream& stream, boost::shared_ptr<T>& data, const PersistentTypeID& typeId)
+void PioImpl(Piostream& stream, SharedPointer<T>& data, const PersistentTypeID& typeId)
 {
   stream.begin_cheap_delim();
   Persistent* trep = data.get();
@@ -269,33 +269,33 @@ void PioImpl(Piostream& stream, boost::shared_ptr<T>& data, const PersistentType
 */
 
 template<class T>
-inline void Pio(Piostream& stream, boost::shared_ptr<T>& data, typename boost::enable_if<typename boost::is_base_of<Persistent, T>::type>* = 0)
+void Pio(Piostream& stream, SharedPointer<T>& data, typename boost::enable_if<typename boost::is_base_of<Persistent, T>::type>* = nullptr)
 {
   stream.begin_cheap_delim();
   PersistentHandle h = data;
   stream.io(h, T::type_id);
   if (stream.reading())
   {
-    data = boost::static_pointer_cast<T>(h);
+    data = std::static_pointer_cast<T>(h);
   }
   stream.end_cheap_delim();
 }
 
 template<class T>
-inline void Pio2(Piostream& stream, boost::shared_ptr<T>& data, typename boost::enable_if<typename boost::is_base_of<Persistent, T>::type>* = 0)
+void Pio2(Piostream& stream, SharedPointer<T>& data, typename boost::enable_if<typename boost::is_base_of<Persistent, T>::type>* = nullptr)
 {
   stream.begin_cheap_delim();
   PersistentHandle h = data;
   stream.io(h, T::type_id_func());
   if (stream.reading())
   {
-    data = boost::static_pointer_cast<T>(h);
+    data = std::static_pointer_cast<T>(h);
   }
   stream.end_cheap_delim();
 }
 
 template<class T>
-inline void Pio(Piostream& stream, T* data, size_type sz)
+void Pio(Piostream& stream, T* data, size_type sz)
 {
   if (!stream.block_io(data, sizeof(T), sz))
   {
@@ -305,7 +305,7 @@ inline void Pio(Piostream& stream, T* data, size_type sz)
 }
 
 template <typename Size>
-inline void Pio_size(Piostream& stream, Size& size)
+void Pio_size(Piostream& stream, Size& size)
 {
   long long temp = static_cast<long long>(size);
   stream.io(temp);
@@ -313,7 +313,7 @@ inline void Pio_size(Piostream& stream, Size& size)
 }
 
 template <typename Index>
-inline void Pio_index(Piostream& stream, Index& index)
+void Pio_index(Piostream& stream, Index& index)
 {
   long long temp = static_cast<long long>(index);
   stream.io(temp);

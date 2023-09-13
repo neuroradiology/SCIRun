@@ -39,10 +39,12 @@
 #include "Interface/Modules/Render/Ospray/OSPRayRenderer.h"
 #include "Interface/Modules/Render/ViewOspraySceneConfig.h"
 
+#include <Core/Datatypes/Feedback.h>
 #include "Core/Datatypes/Color.h"
 #include "Core/Logging/Log.h"
 #endif
 
+using namespace SCIRun;
 using namespace SCIRun::Gui;
 using namespace SCIRun::Dataflow::Networks;
 using namespace SCIRun::Core::Algorithms;
@@ -53,6 +55,7 @@ using namespace SCIRun::Core::Datatypes;
 using namespace SCIRun::Core::Geometry;
 using namespace SCIRun::Render;
 
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 
 OsprayViewerDialog::OsprayViewerDialog(const std::string& name, ModuleStateHandle state,
   QWidget* parent)
@@ -65,7 +68,7 @@ OsprayViewerDialog::OsprayViewerDialog(const std::string& name, ModuleStateHandl
   viewer_ = new QOSPRayWidget(parent, renderer_);
 
   state->connectSpecificStateChanged(Parameters::GeomData, [this]() { Q_EMIT newGeometryValueForwarder(); });
-  connect(this, SIGNAL(newGeometryValueForwarder()), this, SLOT(newGeometryValue()));
+  connect(this, &OsprayViewerDialog::newGeometryValueForwarder, this, &OsprayViewerDialog::newGeometryValue);
 
   setupUi(this);
   setWindowTitle(QString::fromStdString(name));
@@ -101,32 +104,30 @@ OsprayViewerDialog::OsprayViewerDialog(const std::string& name, ModuleStateHandl
   addSpinBoxManager(configDialog_->viewerHeightSpinBox_, Parameters::ViewerHeight);
   addSpinBoxManager(configDialog_->viewerWidthSpinBox_, Parameters::ViewerWidth);
 
-  connect(configDialog_->viewerHeightSpinBox_, SIGNAL(valueChanged(int)), this, SLOT(setHeight(int)));
-  connect(configDialog_->viewerWidthSpinBox_, SIGNAL(valueChanged(int)), this, SLOT(setWidth(igeomDataTransientnt)));
+  connect(configDialog_->viewerHeightSpinBox_, qOverload<int>(&QSpinBox::valueChanged), this, &OsprayViewerDialog::setHeight);
+  connect(configDialog_->viewerWidthSpinBox_, qOverload<int>(&QSpinBox::valueChanged), this, &OsprayViewerDialog::setWidth);
 
-  connect(configDialog_->cameraViewAtXDoubleSpinBox_, SIGNAL(valueChanged(double)), this, SLOT(setViewportCamera()));
-  connect(configDialog_->cameraViewAtYDoubleSpinBox_, SIGNAL(valueChanged(double)), this, SLOT(setViewportCamera()));
-  connect(configDialog_->cameraViewAtZDoubleSpinBox_, SIGNAL(valueChanged(double)), this, SLOT(setViewportCamera()));
-  connect(configDialog_->cameraViewFromXDoubleSpinBox_, SIGNAL(valueChanged(double)), this, SLOT(setViewportCamera()));
-  connect(configDialog_->cameraViewFromYDoubleSpinBox_, SIGNAL(valueChanged(double)), this, SLOT(setViewportCamera()));
-  connect(configDialog_->cameraViewFromZDoubleSpinBox_, SIGNAL(valueChanged(double)), this, SLOT(setViewportCamera()));
-  connect(configDialog_->cameraViewUpXDoubleSpinBox_, SIGNAL(valueChanged(double)), this, SLOT(setViewportCamera()));
-  connect(configDialog_->cameraViewUpYDoubleSpinBox_, SIGNAL(valueChanged(double)), this, SLOT(setViewportCamera()));
-  connect(configDialog_->cameraViewUpZDoubleSpinBox_, SIGNAL(valueChanged(double)), this, SLOT(setViewportCamera()));
+  connect(configDialog_->cameraViewAtXDoubleSpinBox_, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &OsprayViewerDialog::setViewportCamera);
+  connect(configDialog_->cameraViewAtYDoubleSpinBox_, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &OsprayViewerDialog::setViewportCamera);
+  connect(configDialog_->cameraViewAtZDoubleSpinBox_, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &OsprayViewerDialog::setViewportCamera);
+  connect(configDialog_->cameraViewFromXDoubleSpinBox_, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &OsprayViewerDialog::setViewportCamera);
+  connect(configDialog_->cameraViewFromYDoubleSpinBox_, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &OsprayViewerDialog::setViewportCamera);
+  connect(configDialog_->cameraViewFromZDoubleSpinBox_, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &OsprayViewerDialog::setViewportCamera);
+  connect(configDialog_->cameraViewUpXDoubleSpinBox_, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &OsprayViewerDialog::setViewportCamera);
+  connect(configDialog_->cameraViewUpYDoubleSpinBox_, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &OsprayViewerDialog::setViewportCamera);
+  connect(configDialog_->cameraViewUpZDoubleSpinBox_, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &OsprayViewerDialog::setViewportCamera);
 
-  connect(configDialog_->ambientLightColorRDoubleSpinBox_, SIGNAL(valueChanged(double)), this, SLOT(setLightColor()));
-  connect(configDialog_->ambientLightColorGDoubleSpinBox_, SIGNAL(valueChanged(double)), this, SLOT(setLightColor()));
-  connect(configDialog_->ambientLightColorBDoubleSpinBox_, SIGNAL(valueChanged(double)), this, SLOT(setLightColor()));
-  connect(configDialog_->directionalLightColorRDoubleSpinBox_, SIGNAL(valueChanged(double)), this, SLOT(setLightColor()));
-  connect(configDialog_->directionalLightColorGDoubleSpinBox_, SIGNAL(valueChanged(double)), this, SLOT(setLightColor()));
-  connect(configDialog_->directionalLightColorBDoubleSpinBox_, SIGNAL(valueChanged(double)), this, SLOT(setLightColor()));
+  connect(configDialog_->ambientLightColorRDoubleSpinBox_, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &OsprayViewerDialog::setLightColor);
+  connect(configDialog_->ambientLightColorGDoubleSpinBox_, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &OsprayViewerDialog::setLightColor);
+  connect(configDialog_->ambientLightColorBDoubleSpinBox_, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &OsprayViewerDialog::setLightColor);
+  connect(configDialog_->directionalLightColorRDoubleSpinBox_, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &OsprayViewerDialog::setLightColor);
+  connect(configDialog_->directionalLightColorGDoubleSpinBox_, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &OsprayViewerDialog::setLightColor);
+  connect(configDialog_->directionalLightColorBDoubleSpinBox_, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &OsprayViewerDialog::setLightColor);
 
-  float tvp[] = {-1.0f,-1.0f, 0.0f, 1.0f,-1.0f, 0.0f, 0.0f, 1.0f, 0.0f};
-  float tvc[9] = { 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f};
-  uint32_t ind[3] = { 0, 1, 2};
+  //float tvp[] = {-1.0f,-1.0f, 0.0f, 1.0f,-1.0f, 0.0f, 0.0f, 1.0f, 0.0f};
+  //float tvc[9] = { 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+  //uint32_t ind[3] = { 0, 1, 2};
 
-  //renderer_->addModelToGroup(1, tvp, tvc, NULL, ind, 3, 1);
-  //renderer_->addInstaceOfGroup();
   #endif
 }
 
@@ -148,7 +149,7 @@ void OsprayViewerDialog::newGeometryValue()
   auto geom = transient_value_cast<OsprayGeometryObjectHandle>(geomDataTransient);
   if (!geom) return;
 
-  auto compGeom = boost::dynamic_pointer_cast<CompositeOsprayGeometryObject>(geom);
+  auto compGeom = std::dynamic_pointer_cast<CompositeOsprayGeometryObject>(geom);
 
   //TODO pass geometry to the renderer_ in a renderer_ agnostic fashion
   renderer_->updateGeometries(compGeom.get()->objects());
@@ -178,14 +179,13 @@ void OsprayViewerDialog::addToolBar()
 
   osprayLayout->addWidget(toolBar_);
 
-  //addViewBar();
-  //addViewBarButton();
   addControlLockButton();
 }
 
-void OsprayViewerDialog::adjustToolbar()
+void OsprayViewerDialog::adjustToolbar(double factor)
 {
-  adjustToolbarForHighResolution(toolBar_);
+  if (toolBar_)
+    adjustToolbarForHighResolution(toolBar_, factor);
 }
 
 void OsprayViewerDialog::addConfigurationButton()
@@ -194,7 +194,7 @@ void OsprayViewerDialog::addConfigurationButton()
   configurationButton->setToolTip("Open/Close Configuration Menu");
   configurationButton->setIcon(QPixmap(":/general/Resources/ViewScene/configure.png"));
   configurationButton->setShortcut(Qt::Key_F5);
-  connect(configurationButton, SIGNAL(clicked()), this, SLOT(configButtonClicked()));
+  connect(configurationButton, &QPushButton::clicked, this, &OsprayViewerDialog::configButtonClicked);
   addToolbarButton(configurationButton);
 }
 
@@ -211,10 +211,6 @@ void OsprayViewerDialog::addConfigurationDialog()
   auto name = windowTitle() + " Configuration";
   configDialog_ = new ViewOspraySceneConfigDialog(name, this);
 #endif
-  // configDialog_->setSampleColor(bgColor_);
-  // configDialog_->setScaleBarValues(scaleBar_.visible, scaleBar_.fontSize, scaleBar_.length, scaleBar_.height,
-  //   scaleBar_.multiplier, scaleBar_.numTicks, scaleBar_.visible, QString::fromStdString(scaleBar_.unit));
-  // setupMaterials();
 }
 
 void OsprayViewerDialog::addToolbarButton(QPushButton* button)
@@ -228,13 +224,10 @@ void OsprayViewerDialog::addAutoViewButton()
 {
   autoViewButton_ = new QPushButton(this);
 
-  //TODO
-  autoViewButton_->setDisabled(true);
-
   autoViewButton_->setToolTip("Auto View");
   autoViewButton_->setIcon(QPixmap(":/general/Resources/ViewScene/autoview.png"));
   autoViewButton_->setShortcut(Qt::Key_0);
-  connect(autoViewButton_, SIGNAL(clicked()), this, SLOT(autoViewClicked()));
+  connect(autoViewButton_, &QPushButton::clicked, this, &OsprayViewerDialog::autoViewClicked);
   addToolbarButton(autoViewButton_);
 }
 
@@ -245,7 +238,7 @@ void OsprayViewerDialog::addAutoRotateButton()
   autoRotateButton_->setCheckable(true);
   autoRotateButton_->setIcon(QPixmap(":/general/Resources/ViewScene/autorotate.png"));
   //autoRotateButton->setShortcut(Qt::Key_0);
-  connect(autoRotateButton_, SIGNAL(clicked()), this, SLOT(autoRotateClicked()));
+  connect(autoRotateButton_, &QPushButton::clicked, this, &OsprayViewerDialog::autoRotateClicked);
   addToolbarButton(autoRotateButton_);
 }
 
@@ -256,7 +249,7 @@ void OsprayViewerDialog::addTimestepButtons()
   nextTimestep->setToolTip("Next timestep");
   //autoRotateButton->setIcon(QPixmap(":/general/Resources/ViewScene/autoview.png"));
   //autoRotateButton->setShortcut(Qt::Key_0);
-  connect(nextTimestep, SIGNAL(clicked()), this, SLOT(nextTimestepClicked()));
+  connect(nextTimestep, &QPushButton::clicked, this, &OsprayViewerDialog::nextTimestepClicked);
   addToolbarButton(nextTimestep);
 
   playTimestepsButton_ = new QPushButton(this);
@@ -265,7 +258,7 @@ void OsprayViewerDialog::addTimestepButtons()
   playTimestepsButton_->setCheckable(true);
   //autoRotateButton->setIcon(QPixmap(":/general/Resources/ViewScene/autoview.png"));
   //autoRotateButton->setShortcut(Qt::Key_0);
-  connect(playTimestepsButton_, SIGNAL(clicked()), this, SLOT(playTimestepsClicked()));
+  connect(playTimestepsButton_, &QPushButton::clicked, this, &OsprayViewerDialog::playTimestepsClicked);
   addToolbarButton(playTimestepsButton_);
 }
 
@@ -275,7 +268,7 @@ void OsprayViewerDialog::addScreenshotButton()
   screenshotButton->setToolTip("Take screenshot");
   screenshotButton->setIcon(QPixmap(":/general/Resources/ViewScene/screenshot.png"));
   screenshotButton->setShortcut(Qt::Key_F12);
-  connect(screenshotButton, SIGNAL(clicked()), this, SLOT(screenshotClicked()));
+  connect(screenshotButton, &QPushButton::clicked, this, &OsprayViewerDialog::screenshotClicked);
   addToolbarButton(screenshotButton);
 }
 
@@ -284,7 +277,7 @@ void OsprayViewerDialog::addViewBarButton()
   auto viewBarBtn = new QPushButton();
   viewBarBtn->setToolTip("Show View Options");
   viewBarBtn->setIcon(QPixmap(":/general/Resources/ViewScene/views.png"));
-  connect(viewBarBtn, SIGNAL(clicked()), this, SLOT(viewBarButtonClicked()));
+  //connect(viewBarBtn, &QPushButton::clicked, this, &OsprayViewerDialog::viewBarButtonClicked);
   addToolbarButton(viewBarBtn);
 }
 
@@ -312,7 +305,9 @@ void OsprayViewerDialog::autoRotateClicked()
 
 void OsprayViewerDialog::autoViewClicked()
 {
-  qDebug() << "TODO" << __FUNCTION__;
+#ifdef WITH_OSPRAY
+  renderer_->autoView();
+#endif
 }
 
 void OsprayViewerDialog::screenshotClicked()
@@ -345,7 +340,10 @@ void OsprayViewerDialog::setViewportCamera()
 
 float OsprayViewerDialog::getFloat(const Name& name) const
 {
+#ifdef WITH_OSPRAY
   return static_cast<float>(state_->getValue(name).toDouble());
+#endif
+  return 0;
 }
 
 void OsprayViewerDialog::setCameraWidgets()
@@ -396,13 +394,16 @@ void OsprayViewerDialog::mousePositionToScreenSpace(int xIn, int yIn, float& xOu
 #endif
 }
 
-SCIRun::Render::MouseButton OsprayViewerDialog::getRenderButton(QMouseEvent* event)
+MouseButton OsprayViewerDialog::getRenderButton(QMouseEvent* event)
 {
-  auto btn = SCIRun::Render::MouseButton::MOUSE_NONE;
-  if      (event->buttons() & Qt::LeftButton)  btn = SCIRun::Render::MouseButton::MOUSE_LEFT;
-  else if (event->buttons() & Qt::RightButton) btn = SCIRun::Render::MouseButton::MOUSE_RIGHT;
-  else if (event->buttons() & Qt::MidButton)   btn = SCIRun::Render::MouseButton::MOUSE_MIDDLE;
+#ifdef WITH_OSPRAY
+  auto btn = MouseButton::NONE;
+  if      (event->buttons() & Qt::LeftButton)  btn = MouseButton::LEFT;
+  else if (event->buttons() & Qt::RightButton) btn = MouseButton::RIGHT;
+  else if (event->buttons() & Qt::MiddleButton)   btn = MouseButton::MIDDLE;
   return btn;
+#endif
+  return MouseButton::NONE;
 }
 
 void OsprayViewerDialog::mousePressEvent(QMouseEvent* event)
@@ -435,6 +436,6 @@ void OsprayViewerDialog::mouseReleaseEvent(QMouseEvent* event)
 void OsprayViewerDialog::wheelEvent(QWheelEvent* event)
 {
   #ifdef WITH_OSPRAY
-  renderer_->mouseWheel(event->delta());
+  renderer_->mouseWheel(event->angleDelta().y());
   #endif
 }

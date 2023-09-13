@@ -44,6 +44,8 @@ namespace SCIRun {
         ALGORITHM_PARAMETER_DECL(NumSeeds);
         ALGORITHM_PARAMETER_DECL(ProbeScale);
         ALGORITHM_PARAMETER_DECL(PointPositions);
+        ALGORITHM_PARAMETER_DECL(BBoxScale);
+        ALGORITHM_PARAMETER_DECL(UseBBoxScale);
       }
     }
   }
@@ -58,16 +60,16 @@ namespace SCIRun {
       public:
         GeneratePointSamplesFromField();
 
-        virtual void execute() override;
-        virtual void setStateDefaults() override;
+        void execute() override;
+        void setStateDefaults() override;
 
         INPUT_PORT(0, InputField, Field);
         OUTPUT_PORT(0, GeneratedWidget, GeometryObject);
         OUTPUT_PORT(1, GeneratedPoints, Field);
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUI)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
       private:
-        boost::shared_ptr<class GeneratePointSamplesFromFieldImpl> impl_;
+        SharedPointer<class GeneratePointSamplesFromFieldImpl> impl_;
         FieldHandle GenerateOutputField();
         void processWidgetFeedback(const Core::Datatypes::ModuleFeedback& var);
         void adjustPositionFromTransform(const Core::Geometry::Transform& transformMatrix, int index);

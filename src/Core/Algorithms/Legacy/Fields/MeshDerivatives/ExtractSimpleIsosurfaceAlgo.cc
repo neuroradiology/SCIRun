@@ -38,7 +38,7 @@
 #include <Core/Algorithms/Base/AlgorithmPreconditions.h>
 #include <Core/Datatypes/PropertyManagerExtensions.h>
 
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 
 using namespace SCIRun;
 using namespace SCIRun::Core::Algorithms;
@@ -78,8 +78,7 @@ bool ExtractSimpleIsosurfaceAlgo::run(FieldHandle input, const std::vector<doubl
   }
 
   MarchingCubesAlgo marching_;
-  marching_.set(MarchingCubesAlgo::build_field, true);
-
+  marching_.set(Parameters::build_field, true);
   marching_.run(input, isovalues, output);
 
   return (true);

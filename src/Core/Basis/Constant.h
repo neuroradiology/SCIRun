@@ -102,8 +102,8 @@ public:
   /// return: coords gives parametric coordinates of the approximation.
   /// Use interpolate with coordinates to get the world coordinates.
   template<class VECTOR>
-  void approx_edge(const unsigned edge,
-                   const unsigned div_per_unit,
+  void approx_edge(const unsigned,
+                   const unsigned,
                    VECTOR& coords) const
   {
     coords.resize(0);
@@ -113,8 +113,8 @@ public:
   /// return: coords gives parametric coordinates at the approximation point.
   /// Use interpolate with coordinates to get the world coordinates.
   template<class VECTOR>
-  void approx_face(const unsigned face,
-                   const unsigned div_per_unit,
+  void approx_face(const unsigned,
+                   const unsigned,
                    VECTOR &coords) const
   {
     coords.resize(0);
@@ -160,7 +160,7 @@ public:
 
   /// Get the weights for doing an interpolation
   template <class VECTOR>
-  void get_weights(const VECTOR &coords, double *w) const
+  void get_weights(const VECTOR&, double *w) const
   {
     w[0]=1;
   }
@@ -196,7 +196,7 @@ ConstantBasis<T>::type_name(int n)
   }
   else
   {
-    return find_type_name((T *)0);
+    return find_type_name((T *)nullptr);
   }
 }
 
@@ -208,9 +208,9 @@ ConstantBasis<T>::type_name(int n)
 template <class T>
 const TypeDescription* get_type_description(Core::Basis::ConstantBasis<T> *)
 {
-  static TypeDescription* td = 0;
+  static TypeDescription* td = nullptr;
   if(!td){
-    const TypeDescription *sub = get_type_description((T*)0);
+    const TypeDescription *sub = get_type_description((T*)nullptr);
     TypeDescription::td_vec *subs = new TypeDescription::td_vec(1);
     (*subs)[0] = sub;
     td = new TypeDescription("ConstantBasis", subs,

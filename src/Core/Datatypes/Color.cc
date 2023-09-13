@@ -97,8 +97,25 @@ std::ostream& SCIRun::Core::Datatypes::operator<<(std::ostream& out, const Color
   return out;
 }
 
-bool ViewSceneFeedback::matchesWithModuleId(const std::string& modId) const
+namespace
 {
-  auto toMatch = GeometryObject::delimiter + modId + GeometryObject::delimiter;
-  return selectionName.find(toMatch) != std::string::npos;
+  int convertColorValue(double val)
+  {
+    return static_cast<int>(val > 1 ? val : val * 255.0);
+  }
+}
+
+int ColorRGB::redNormalized() const
+{
+  return convertColorValue(r());
+}
+
+int ColorRGB::greenNormalized() const
+{
+  return convertColorValue(g());
+}
+
+int ColorRGB::blueNormalized() const
+{
+  return convertColorValue(b());
 }

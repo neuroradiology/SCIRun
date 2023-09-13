@@ -45,8 +45,8 @@ namespace SCIRun {
       public:
         CalculateFieldData();
 
-        virtual void execute() override;
-        virtual void setStateDefaults() override;
+        void execute() override;
+        void setStateDefaults() override;
         HAS_DYNAMIC_PORTS
 
         INPUT_PORT_DYNAMIC(0, InputFields, Field);
@@ -54,7 +54,7 @@ namespace SCIRun {
         INPUT_PORT_DYNAMIC(2, InputArrays, Matrix);
         OUTPUT_PORT(0, OutputField, Field);
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUI)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
       private:
         bool addFieldVariableIfPresent(const FieldList& fields, NewArrayMathEngine& engine, int index) const;
       };

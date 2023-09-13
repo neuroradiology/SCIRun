@@ -28,7 +28,6 @@
 
 #include <Core/Algorithms/Visualization/OsprayDataAlgorithm.h>
 #include <Core/Datatypes/Geometry.h>
-#include <Core/Datatypes/String.h>
 #include <Core/Datatypes/Legacy/Field/VField.h>
 #include <Core/Datatypes/ColorMap.h>
 #include <Core/Datatypes/Legacy/Field/Field.h>
@@ -40,13 +39,10 @@
 #include <Core/Algorithms/Base/AlgorithmPreconditions.h>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/utility.hpp>
 #include <boost/graph/topological_sort.hpp>
 #include <boost/graph/undirected_dfs.hpp>
-#include <boost/cstdlib.hpp>
 #include <boost/graph/copy.hpp>
 #include <boost/graph/connected_components.hpp>
-#include <boost/lambda/lambda.hpp>
 
 #include <Core/Logging/Log.h>
 #include <spdlog/fmt/ostr.h>
@@ -286,8 +282,7 @@ std::vector<uint32_t> OsprayDataAlgorithm::sort_points(EdgeVector edges, std::ve
     ostr<<" ]";
     LOG_DEBUG(ostr.str());
 
-    int sum_regions = 0;
-    for (int it=0; it<=cnt; it++) { sum_regions+=size_regions[it];}
+    //for (int it=0; it<=cnt; it++) { sum_regions+=size_regions[it];}
 
 
     std::list<Vertex_u> order_subset = sort_cc(edges_subset);
@@ -352,15 +347,13 @@ OsprayGeometryObjectHandle OsprayDataAlgorithm::addStructVol(FieldHandle field, 
   Vector dimensions_ = Vector(1.0,1.0,1.0);
   for (size_t p=0;p<dim.size();p++) dimensions_[p] = static_cast<double>(dim[p]);
 
-  fieldData.dim[0] = dimensions_[0];
-  fieldData.dim[1] = dimensions_[1];
-  fieldData.dim[2] = dimensions_[2];
-  fieldData.origin[0] = center.x() - size.x()/2.0;
-  fieldData.origin[2] = center.y() - size.y()/2.0;
-  fieldData.origin[2] = center.z() - size.z()/2.0;
-  fieldData.spacing[0] = size.x()/dimensions_[0];
-  fieldData.spacing[1] = size.y()/dimensions_[1];
-  fieldData.spacing[2] = size.z()/dimensions_[2];
+  for (int i = 0; i < DIM_; ++i)
+  {
+    fieldData.dim[i] = dimensions_[i];
+    fieldData.origin[i] = center[i] - HALF_SCALE_*size[i];
+    // dimensions are reduced by one to convert from number of lines to number of faces
+    fieldData.spacing[i] = size[i]/(dimensions_[i]-1);
+  }
 
   double value;
   //std::cout << "mname:" << field->mesh()->type_name << std::endl;
@@ -381,8 +374,10 @@ OsprayGeometryObjectHandle OsprayDataAlgorithm::addStructVol(FieldHandle field, 
   //auto alpha = static_cast<float>(get(Parameters::DefaultColorA).toDouble());
   if (colorMap)
   {
-    ColorMap_OSP_helper cmp(colorMap->getColorMapName());
-    obj->tfn.colors = cmp.colorList;
+    ColorMap_OSP_helper cmp(colorMap);
+    obj->tfn.colors = cmp.colorList_;
+    obj->tfn.opacities = cmp.opacityList_;
+    obj->tfn.range = {cmp.min_, cmp.max_};
 
     // set default opacity for now
     // alpha pushed twice for both upper and lower values
@@ -473,8 +468,9 @@ OsprayGeometryObjectHandle OsprayDataAlgorithm::addUnstructVol(FieldHandle field
 
   if (colorMap)
   {
-    ColorMap_OSP_helper cmp(colorMap->getColorMapName());
-    obj->tfn.colors = cmp.colorList;
+    ColorMap_OSP_helper cmp(colorMap);
+    obj->tfn.colors = cmp.colorList_;
+    obj->tfn.opacities = cmp.opacityList_;
 
     // set default opacity for now
     // alpha pushed twice for both upper and lower values

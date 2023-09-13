@@ -62,14 +62,14 @@ namespace SCIRun
         void setStateDefaults() override;
         void postStateChangeInternalSignalHookup() override;
         HAS_DYNAMIC_PORTS
-        INPUT_PORT_DYNAMIC(0, InputMatrix, Matrix);
-        INPUT_PORT_DYNAMIC(1, InputField, Field);
-        INPUT_PORT_DYNAMIC(2, InputString, String);
-        OUTPUT_PORT(0, LoopEndCodeObject, MetadataObject);
+        INPUT_PORT_DYNAMIC(0, InputMatrix, Matrix)
+        INPUT_PORT_DYNAMIC(1, InputField, Field)
+        INPUT_PORT_DYNAMIC(2, InputString, String)
+        OUTPUT_PORT(0, LoopEndCodeObject, MetadataObject)
 
         bool checkForVirtualConnection(const ModuleInterface& downstream) const override;
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUI)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
         NEW_HELP_WEBPAGE_ONLY
         #ifndef BUILD_WITH_PYTHON
           DISABLED_WITHOUT_ABOVE_COMPILE_FLAG

@@ -44,16 +44,16 @@ namespace DataIO {
   public:
     //typedef GenericReader<NrrdDataHandle, NrrdPortTag> my_base;
     ReadNrrd();
-    virtual void execute() override;
-    virtual void setStateDefaults() override;
-    //virtual bool useCustomImporter(const std::string& filename) const override;
-    //virtual bool call_importer(const std::string& filename, NrrdDataHandle& handle) override;
+    void execute() override;
+    void setStateDefaults() override;
+    //bool useCustomImporter(const std::string& filename) const override;
+    //bool call_importer(const std::string& filename, NrrdDataHandle& handle) override;
 
     OUTPUT_PORT(0, Output_Data, NrrdDataType);
 
     static std::string fileTypeList();
 
-    MODULE_TRAITS_AND_INFO(ModuleHasUI)
+    MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
   private:
     NrrdDataHandle read_nrrd();
     NrrdDataHandle read_file(const std::string& fn);

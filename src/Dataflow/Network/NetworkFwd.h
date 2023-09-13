@@ -33,8 +33,8 @@
 #define DATAFLOW_NETWORK_NETWORK_FWD_H
 
 #include <Core/Utils/SmartPointers.h>
-#include <boost/function.hpp>
-#include <boost/any.hpp>
+#include <string>
+#include <functional>
 #include <map>
 
 
@@ -42,6 +42,7 @@ namespace SCIRun {
 namespace Dataflow {
 namespace Networks {
 
+class NetworkStateInterface;
 class NetworkInterface;
 class ModuleInterface;
 class ModuleDisplayInterface;
@@ -77,11 +78,13 @@ struct ToolkitFile;
 class NetworkGlobalSettings;
 class NetworkEditorSerializationManager;
 class ConnectionMakerService;
-class NetworkEditorControllerInterface;
+class Network;
 class ReexecuteStrategyFactory;
 class MetadataMap;
 class ModuleBuilder;
+class NetworkSerializationInterface;
 
+typedef SharedPointer<NetworkStateInterface> NetworkStateHandle;
 typedef SharedPointer<NetworkInterface> NetworkHandle;
 typedef SharedPointer<ModuleInterface> ModuleHandle;
 typedef SharedPointer<ModuleStateInterface> ModuleStateHandle;
@@ -102,10 +105,11 @@ typedef SharedPointer<ModuleTags> ModuleTagsHandle;
 typedef SharedPointer<DisabledComponents> DisabledComponentsHandle;
 typedef SharedPointer<NetworkFile> NetworkFileHandle;
 typedef SharedPointer<Subnetworks> SubnetworksHandle;
+using NetworkSerializationInterfaceHandle = SharedPointer<NetworkSerializationInterface>;
 
-typedef std::map<std::string, std::map<std::string, std::map<std::string, ModuleDescription>>> ModuleDescriptionMap;
-typedef boost::function<bool(ModuleHandle)> ModuleFilter;
-using ConnectionFilter = boost::function<bool(const ConnectionDescription&)>;
+using ModuleDescriptionMap = std::map<std::string, std::map<std::string, std::map<std::string, ModuleDescription>>>;
+using ModuleFilter = std::function<bool(ModuleHandle)>;
+using ConnectionFilter = std::function<bool(const ConnectionDescription&)>;
 
 }}}
 

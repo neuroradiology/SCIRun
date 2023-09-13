@@ -29,6 +29,7 @@ DEALINGS IN THE SOFTWARE.
 #ifndef Graphics_Widgets_WidgetTestingUtility_H
 #define Graphics_Widgets_WidgetTestingUtility_H
 
+#include <Core/Datatypes/Feedback.h>
 #include <Graphics/Widgets/Widget.h>
 #include <Graphics/Widgets/GlyphFactory.h>
 #include <Graphics/Widgets/share.h>
@@ -48,14 +49,35 @@ namespace SCIRun
         }
       };
 
+      class SCISHARE StubWidgetEvent : public WidgetEvent
+      {
+      public:
+        StubWidgetEvent(Core::Datatypes::WidgetMovement movement, const std::string& label)
+        {
+          movement_ = movement; label_ = label;
+        }
+        Core::Datatypes::WidgetMovement baseMovement() const override
+        {
+          return movement_;
+        }
+        void move(WidgetBase* widget, Core::Datatypes::WidgetMovement moveType) const override;
+        int numMoves() const { return numMoves_; }
+      private:
+        Core::Datatypes::WidgetMovement movement_;
+        std::string label_;
+        mutable int numMoves_{ 0 };
+      };
+
       class SCISHARE StubGlyphFactory : public AbstractGlyphFactory
       {
       public:
-        std::string sphere(SphereParameters params, WidgetBase& widget) const override { return "__sphere__" + std::to_string(instanceCount_++); }
-        std::string disk(DiskParameters params, WidgetBase& widget) const override { return "__disk__" + std::to_string(instanceCount_++); }
-        std::string cone(ConeParameters params, WidgetBase& widget) const override { return "__cone__" + std::to_string(instanceCount_++); }
-        std::string cylinder(CylinderParameters params, WidgetBase& widget) const override { return "__cylinder__" + std::to_string(instanceCount_++); }
-        std::string basicBox(BasicBoundingBoxParameters params, WidgetBase& widget) const override { return "__basicBox__" + std::to_string(instanceCount_++); }
+        std::string sphere(SphereParameters, WidgetBase& ) const override { return "__sphere__" + std::to_string(instanceCount_++); }
+        std::string disk(DiskParameters, WidgetBase&) const override { return "__disk__" + std::to_string(instanceCount_++); }
+        std::string cone(ConeParameters, WidgetBase&) const override { return "__cone__" + std::to_string(instanceCount_++); }
+        std::string cylinder(CylinderParameters, WidgetBase&) const override { return "__cylinder__" + std::to_string(instanceCount_++); }
+        std::string basicBox(BasicBoundingBoxParameters, WidgetBase&) const override { return "__basicBox__" + std::to_string(instanceCount_++); }
+        std::string box(BoundingBoxParameters, WidgetBase&) const override { return "__box__" + std::to_string(instanceCount_++); }
+        std::string superquadric(SuperquadricParameters, WidgetBase&) const override { return "__superquadric__" + std::to_string(instanceCount_++); }
       private:
         mutable int instanceCount_{0};
       };

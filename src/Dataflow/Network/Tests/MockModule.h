@@ -99,10 +99,17 @@ namespace SCIRun {
           MOCK_CONST_METHOD0(isImplementationDisabled, bool());
           MOCK_METHOD1(setProgrammableInputPortEnabled, void(bool));
           MOCK_CONST_METHOD1(checkForVirtualConnection, bool(const ModuleInterface&));
+          MOCK_METHOD0(disconnectStateListeners, void());
           MOCK_CONST_METHOD0(description, std::string());
+          MOCK_CONST_METHOD0(network, NetworkInterface*());
+          MOCK_METHOD1(setNetwork, void(NetworkInterface*));
+          MOCK_METHOD1(removeInputPort, void(const PortId&));
+          MOCK_METHOD1(removeOutputPort, void(const PortId&));
+          MOCK_METHOD1(add_input_port, size_t(InputPortHandle));
+          MOCK_METHOD1(add_output_port, size_t(OutputPortHandle));
         };
 
-        typedef boost::shared_ptr<MockModule> MockModulePtr;
+        typedef SharedPointer<MockModule> MockModulePtr;
 
         class MockModuleFactory : public ModuleFactory
         {

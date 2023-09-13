@@ -44,11 +44,6 @@ SolveInverseProblemWithTikhonovSVDDialog::SolveInverseProblemWithTikhonovSVDDial
   setWindowTitle(QString::fromStdString(name));
   fixSize();
 
-  GuiStringTranslationMap lambdaMethod_;
-  lambdaMethod_.insert(StringPair("Direct entry", "single"));
-  lambdaMethod_.insert(StringPair("Slider", "slider"));
-  lambdaMethod_.insert(StringPair("L-curve", "lcurve"));
-
   addSpinBoxManager(lambdaNumberSpinBox_, Parameters::LambdaNum);
   addDoubleSpinBoxManager(lambdaDoubleSpinBox_, Parameters::LambdaFromDirectEntry);
   addDoubleSpinBoxManager(lambdaMinDoubleSpinBox_, Parameters::LambdaMin);
@@ -59,13 +54,16 @@ SolveInverseProblemWithTikhonovSVDDialog::SolveInverseProblemWithTikhonovSVDDial
 
   addDoubleSpinBoxManager(lambdaSliderDoubleSpinBox_, Parameters::LambdaSliderValue);
 
-  addComboBoxManager(lambdaMethodComboBox_, Parameters::RegularizationMethod, lambdaMethod_);
+  addComboBoxManager(lambdaMethodComboBox_, Parameters::RegularizationMethod,
+    {{"Direct entry", "single"},
+    {"Slider", "slider"},
+    {"L-curve", "lcurve"}});
 
-  connect(lambdaSlider_, SIGNAL(valueChanged(int)), this, SLOT(setSpinBoxValue(int)));
-  connect(lambdaSliderDoubleSpinBox_, SIGNAL(valueChanged(double)), this, SLOT(setSliderValue(double)));
-  connect(lambdaMinDoubleSpinBox_, SIGNAL(valueChanged(double)), this, SLOT(setSliderMin(double)));
-  connect(lambdaMaxDoubleSpinBox_, SIGNAL(valueChanged(double)), this, SLOT(setSliderMax(double)));
-  connect(lambdaResolutionDoubleSpinBox_, SIGNAL(valueChanged(double)), this, SLOT(setSliderStep(double)));
+  connect(lambdaSlider_, &QSlider::valueChanged, this, &SolveInverseProblemWithTikhonovSVDDialog::setSpinBoxValue);
+  connect(lambdaSliderDoubleSpinBox_, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &SolveInverseProblemWithTikhonovSVDDialog::setSliderValue);
+  connect(lambdaMinDoubleSpinBox_, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &SolveInverseProblemWithTikhonovSVDDialog::setSliderMin);
+  connect(lambdaMaxDoubleSpinBox_, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &SolveInverseProblemWithTikhonovSVDDialog::setSliderMax);
+  connect(lambdaResolutionDoubleSpinBox_, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &SolveInverseProblemWithTikhonovSVDDialog::setSliderStep);
 
   WidgetStyleMixin::tabStyle(tabWidget);
 }

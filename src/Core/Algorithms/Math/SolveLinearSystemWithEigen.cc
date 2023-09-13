@@ -154,14 +154,14 @@ Out SolveLinearSystemAlgorithm::solve(const In& input, const Parameters& params)
 
   if (x.size() != 0)
   {
-    auto solution(boost::make_shared<typename SolverType::SolutionType>(x));
+    auto solution(makeShared<typename SolverType::SolutionType>(x));
     return Out(solution, impl.tolerance_, impl.maxIterations_);
   }
   else
     BOOST_THROW_EXCEPTION(AlgorithmProcessingException() << ErrorMessage("solveWithEigen produced an empty solution."));
 }
 
-AlgorithmOutput SolveLinearSystemAlgorithm::run(const AlgorithmInput& input) const
+AlgorithmOutput SolveLinearSystemAlgorithm::run(const AlgorithmInput&) const
 {
   throw 2;
 }

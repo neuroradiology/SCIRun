@@ -46,8 +46,11 @@ namespace SCIRun
 
         static WidgetHandle createArrowWidget(const WidgetBaseParameters& gen, ArrowParameters params);
 
-        static WidgetHandle createBox(const WidgetBaseParameters& gen,
-                                      BasicBoundingBoxParameters params);
+        static WidgetHandle createBasicBoundingBox(const WidgetBaseParameters& gen,
+                                                   BasicBoundingBoxParameters params);
+
+        static WidgetHandle createBoundingBox(const WidgetBaseParameters& gen,
+                                              BoundingBoxParameters params);
 
         static WidgetHandle createSphere(const WidgetBaseParameters& gen, SphereParameters params);
 
@@ -57,10 +60,12 @@ namespace SCIRun
 
         static WidgetHandle createDisk(const WidgetBaseParameters& gen, DiskParameters params);
 
+        static WidgetHandle createSuperquadric(const WidgetBaseParameters& gen, SuperquadricParameters params);
+
         template <typename WidgetIter>
         static WidgetHandle createComposite(const WidgetBaseParameters& gen, WidgetIter begin, WidgetIter end)
         {
-          return boost::make_shared<CompositeWidget>(gen, begin, end);
+          return makeShared<CompositeWidget>(gen, begin, end);
         }
 
       private:

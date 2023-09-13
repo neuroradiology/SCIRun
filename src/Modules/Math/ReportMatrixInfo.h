@@ -44,14 +44,14 @@ namespace Math {
   {
   public:
     ReportMatrixInfo();
-    virtual void execute() override;
-    virtual void setStateDefaults() override {}
+    void execute() override;
+    void setStateDefaults() override {}
     INPUT_PORT(0, InputMatrix, Matrix);
     OUTPUT_PORT(0, NumRows, Int32);
     OUTPUT_PORT(1, NumCols, Int32);
     OUTPUT_PORT(2, NumElements, Int32);
 
-    MODULE_TRAITS_AND_INFO(ModuleHasUIAndAlgorithm)
+    MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUIAndAlgorithm)
   };
 }}}
 

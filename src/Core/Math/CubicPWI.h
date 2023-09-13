@@ -55,31 +55,32 @@
 
 namespace SCIRun {
 
-enum EndCondition { natural_ends, clamped_ends, bessel_ends, quadratic_ends };
+enum class EndCondition { natural_ends, clamped_ends, bessel_ends, quadratic_ends };
 
 template <class T> std::ostream&
 operator<<(std::ostream& out, Array1<T> a)
 {
-  for (int i = 0; i < a.size(); i++){
+  for (size_t i = 0; i < a.size(); i++){
     std::cout << a[i] << std::endl;
   }
   return out;
 }
 
-typedef struct Quat {
+struct Quat
+{
   double a;
   double b;
   double c;
   double d;
-} QUAT;
+};
 
 class SCISHARE CubicPWI: public PiecewiseInterp<double> {
 public:
   CubicPWI();
   CubicPWI(const Array1<double>&, const Array1<double>&);
 
-  bool set_data(const Array1<double>&, const Array1<double>&);
-  inline bool get_value(double, double&);
+  bool set_data(const Array1<double>&, const Array1<double>&) override;
+  inline bool get_value(double, double&) override;
 
 private:
   Array1<QUAT> p;
@@ -102,10 +103,10 @@ public:
   Cubic3DPWI() {};
   Cubic3DPWI(const Array1<double>&, const Array1<T>&);
 
-  bool set_data(const Array1<double>&, const Array1<T>&);
+  bool set_data(const Array1<double>&, const Array1<T>&) override;
   bool set_data(const Array1<double>&, const Array1<T>&,
     const Array1<Core::Geometry::Vector>&);
-  inline bool get_value(double, T&);
+  inline bool get_value(double, T&) override;
 
 private:
   Array1<QUAT> X;
@@ -154,9 +155,9 @@ Cubic3DPWI<T>::set_data(const Array1<double>& pts, const Array1<T>& vals)
     vz[i] = vals[i].z();
   }
 
-  if (set_tangents(pts, vx, drvX, natural_ends) &&
-      set_tangents(pts, vy, drvY, natural_ends)
-      && set_tangents(pts, vz, drvZ, natural_ends)) {
+  if (set_tangents(pts, vx, drvX, EndCondition::natural_ends) &&
+      set_tangents(pts, vy, drvY, EndCondition::natural_ends)
+      && set_tangents(pts, vz, drvZ, EndCondition::natural_ends)) {
 #if DEBUG
     std::cout << "Derivatives are done!!!" << std::endl;
 #endif

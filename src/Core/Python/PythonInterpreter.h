@@ -25,14 +25,15 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-
-#ifdef BUILD_WITH_PYTHON
 #ifndef CORE_PYTHON_PYTHONINTERPRETER_H
 #define CORE_PYTHON_PYTHONINTERPRETER_H
 
+
+#ifdef BUILD_WITH_PYTHON
+
 #include <boost/python.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/shared_ptr.hpp>
+#include <Core/Utils/SmartPointers.h>
 #include <boost/signals2/signal.hpp>
 
 #include <Core/Utils/Singleton.h>
@@ -50,11 +51,11 @@ namespace Core
 ///@details It calls the python interpreter on a separate thread.
 
 class PythonInterpreterPrivate;
-typedef boost::shared_ptr< PythonInterpreterPrivate > PythonInterpreterPrivateHandle;
+typedef SharedPointer< PythonInterpreterPrivate > PythonInterpreterPrivateHandle;
 
-class SCISHARE PythonInterpreter /*: private Core::EventHandler*/
+class SCISHARE PythonInterpreter
 {
-	CORE_SINGLETON( PythonInterpreter );
+	CORE_SINGLETON( PythonInterpreter )
 
 public:
   typedef std::pair< std::string, PyObject* ( * )( void ) > module_entry_type;
@@ -126,4 +127,17 @@ public:
 }}
 
 #endif
+
+namespace SCIRun::Core
+{
+  inline void runPythonString(const std::string& cmd)
+  {
+    #ifdef BUILD_WITH_PYTHON
+    PythonInterpreter::Instance().run_string(cmd);
+    #else
+    (void)cmd;
+    #endif
+  }
+}
+
 #endif

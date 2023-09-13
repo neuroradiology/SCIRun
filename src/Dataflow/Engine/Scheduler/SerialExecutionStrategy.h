@@ -42,9 +42,9 @@ namespace Engine {
   {
   public:
     SerialExecutionStrategy();
-    virtual void execute(const ExecutionContext& context, Core::Thread::Mutex& executionLock) override;
+    std::future<int> execute(const ExecutionContext& context, Core::Thread::Mutex& executionLock) override;
   private:
-    boost::shared_ptr<SerialExecutionStrategyPrivate> impl_;
+    SharedPointer<SerialExecutionStrategyPrivate> impl_;
   };
 
 }

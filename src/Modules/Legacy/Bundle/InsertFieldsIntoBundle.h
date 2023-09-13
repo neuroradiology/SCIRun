@@ -45,20 +45,20 @@ namespace SCIRun {
       {
       public:
         InsertFieldsIntoBundle();
-        virtual void setStateDefaults() override;
-        virtual void execute() override;
+        void setStateDefaults() override;
+        void execute() override;
         HAS_DYNAMIC_PORTS
 
-        INPUT_PORT(0, InputBundle, Bundle);
-        INPUT_PORT_DYNAMIC(1, InputFields, Field);
-        OUTPUT_PORT(0, OutputBundle, Bundle);
+        INPUT_PORT(0, InputBundle, Bundle)
+        INPUT_PORT_DYNAMIC(1, InputFields, Field)
+        OUTPUT_PORT(0, OutputBundle, Bundle)
 
         static const Core::Algorithms::AlgorithmParameterName BundleName;
         static const Core::Algorithms::AlgorithmParameterName NumFields;
         static const Core::Algorithms::AlgorithmParameterName FieldNames;
         static const Core::Algorithms::AlgorithmParameterName FieldReplace;
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUI)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
       };
 
     }

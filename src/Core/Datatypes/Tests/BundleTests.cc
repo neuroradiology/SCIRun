@@ -32,6 +32,7 @@
 #include <Core/Datatypes/Legacy/Field/Field.h>
 #include <Core/Datatypes/String.h>
 #include <Core/Datatypes/DenseMatrix.h>
+#include <Core/Datatypes/ColorMap.h>
 
 using namespace SCIRun;
 using namespace SCIRun::Core::Datatypes;
@@ -70,6 +71,15 @@ TEST(BundleTests, CanStoreMatrices)
   b.set("foo", m);
   EXPECT_TRUE(b.isMatrix("foo"));
   ASSERT_THAT(b.get("foo"), NotNull());
+}
+
+TEST(BundleTests, CanStoreColorMaps)
+{
+  Bundle b;
+  auto cm = StandardColorMapFactory::create();
+  b.set("rainbow", cm);
+  EXPECT_TRUE(b.isColorMap("rainbow"));
+  ASSERT_THAT(b.get("rainbow"), NotNull());
 }
 
 TEST(BundleTests, CanStoreMultipleTypes)
@@ -151,7 +161,7 @@ TEST(BundleTests, CanGetElementsByName)
 {
   Bundle bundle;
   const std::string name = "foo";
-  FieldHandle f(new NullField(name));
+  FieldHandle f(new NullField());
   bundle.set(name, f);
   ASSERT_TRUE(bundle.isField(name));
   auto field = bundle.getField(name);

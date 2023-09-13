@@ -42,6 +42,7 @@
 #include <Core/Datatypes/Legacy/Field/FieldInformation.h>
 #include <Dataflow/Network/Module.h>
 
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #define TETLIBRARY   // Required definition for use of tetgen library
 #include <tetgen.h>
 
@@ -337,7 +338,7 @@ FieldHandle detail::InterfaceWithTetGenImplImpl::runImpl(const std::deque<FieldH
     }
 
     module_->getUpdaterFunc()(.9);
-    FieldInformation fi(TETVOLMESH_E,CONSTANTDATA_E,DOUBLE_E);
+    FieldInformation fi(mesh_info_type::TETVOLMESH_E, databasis_info_type::CONSTANTDATA_E, data_info_type::DOUBLE_E);
     FieldHandle tetvol_out = CreateField(fi);
     // Convert to a SCIRun TetVol.
 

@@ -31,7 +31,7 @@
 
 #include <Interface/Modules/Inverse/ui_SolveInverseProblemWithTikhonovSVDDialog.h>
 #include <Interface/Modules/Inverse/SolveInverseProblemWithTikhonovDialog.h>
-#include <boost/shared_ptr.hpp>
+#include <Core/Utils/SmartPointers.h>
 #include <Interface/Modules/Base/ModuleDialogGeneric.h>
 #include <Interface/Modules/Inverse/share.h>
 
@@ -47,7 +47,7 @@ public:
   SolveInverseProblemWithTikhonovSVDDialog(const std::string& name,
     SCIRun::Dataflow::Networks::ModuleStateHandle state,
     QWidget* parent = nullptr);
-  virtual void moduleExecuted() override { pullAndDisplayInfo(); }
+  void moduleExecuted() override { pullAndDisplayInfo(); }
 
 private Q_SLOTS:
   void setSpinBoxValue(int value);
@@ -57,7 +57,6 @@ private Q_SLOTS:
   void setSliderStep(double value);
   void pullAndDisplayInfo();
 private:
-  GuiStringTranslationMap lambdaMethod_;
   LCurvePlotWidgetHelper lCurvePlotWidgetHelper_;
 };
 

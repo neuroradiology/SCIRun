@@ -26,18 +26,27 @@
 */
 
 #include "OSPRayRenderer.h"
+#include <Core/GeometryPrimitives/BBox.h>
 
 #ifdef __APPLE__
+  #define GL_SILENCE_DEPRECATION
   #include <OpenGL/glu.h>
 #else
+#ifdef _WIN32
+  #include <gl-platform/GLPlatform.hpp>
+#else
   #include <GL/glu.h>
+#endif
 #endif
 
 #include <cstdio>
 
-using namespace SCIRun::Render;
-using namespace SCIRun::Core::Datatypes;
+using namespace SCIRun;
+using namespace Render;
+using namespace Core::Datatypes;
+using namespace Core::Geometry;
 
+#ifdef WITH_OSPRAY
 //int OSPRayRenderer::osprayRendererInstances = 0;
 OSPRayDataManager OSPRayRenderer::dataManager;
 
@@ -51,17 +60,17 @@ OSPRayRenderer::OSPRayRenderer()
   float backgroundColor[] = {0.0, 0.0, 0.0};
   ospSetParam(renderer_, "backgroundColor", OSP_VEC3F, backgroundColor);
   ospCommit(renderer_);
+  lights_.clear();
 
-  float dir[] = {0.0, -1.0, -1.0};
-  float col[] = {0.0, 1.0, 1.0};
-  OSPLight light = ospNewLight("distant");
-  ospSetParam(light, "color", OSP_VEC3F, col);
-  ospSetParam(light, "direction", OSP_VEC3F, dir);
-  ospCommit(light);
-
-  //ospSetObjectAsData(world_, "light", OSP_LIGHT, light);
-  ospCommit(world_);
-  ospRelease(light);
+  // TODO make these into UI parameters
+  auto white = glm::vec3(1,1,1);
+  auto light_dir = glm::vec3(0,-1,-1);
+  double ambient_intensity = 0.1;
+  addDirectionalLight(white, light_dir);
+  addAmbientLight(white, ambient_intensity);
+  // addSphereLight(white, glm::vec3(0,0,60), 0.2, 500.0);
+  // addQuadLight(white, glm::vec3(0,45,0), glm::vec3(25,0,0), glm::vec3(0,0,25), 2);
+  setLightsAsObject();
 }
 
 OSPRayRenderer::~OSPRayRenderer()
@@ -72,14 +81,14 @@ OSPRayRenderer::~OSPRayRenderer()
   if(world_) ospRelease(world_);
 }
 
-
-
 //Rendering-----------------------------------------------------------------------------------------
 void OSPRayRenderer::renderFrame()
 {
+  if(framesAccumulated == 0)
+    parentCamera_ = camera_->getOSPCamera();
   if(framesAccumulated < 64)
   {
-    OSPFuture fut = ospRenderFrame(frameBuffer_, renderer_, camera_->getOSPCamera(), world_);
+    OSPFuture fut = ospRenderFrame(frameBuffer_, renderer_, parentCamera_, world_);
     ospWait(fut);
     ++framesAccumulated;
   }
@@ -128,13 +137,22 @@ void OSPRayRenderer::mouseWheel(int delta)
   framesAccumulated = 0;
 }
 
+void OSPRayRenderer::autoView()
+{
+  camera_->autoView();
+  ospResetAccumulation(frameBuffer_);
+  framesAccumulated = 0;
+}
+
 
 
 //Data----------------------------------------------------------------------------------------------
 void OSPRayRenderer::updateGeometries(const std::vector<OsprayGeometryObjectHandle>& geometries)
 {
+  BBox bbox;
   for(auto& geometry : geometries)
   {
+    bbox.extend(geometry->box);
     //printf("ID: %d\n", geometry->id);
     switch(geometry->type)
     {
@@ -166,9 +184,10 @@ void OSPRayRenderer::updateGeometries(const std::vector<OsprayGeometryObjectHand
       }
     }
   }
-  printf("\n");
+  camera_->setSceneBoundingBox(bbox);
 
   ospResetAccumulation(frameBuffer_);
+  framesAccumulated = 0;
   ospCommit(frameBuffer_);
 }
 
@@ -193,15 +212,14 @@ void OSPRayRenderer::addMaterial(OSPGeometricModel model, OsprayGeometryObject::
   OSPMaterial material;
   if(isScivis)
   {
-    printf("scivis mat\n");
     float ks[] = {0.8, 0.8, 0.8};
     float ns = (1.0f - mat.roughness);
     ns = ns * ns * 20.0f + 2.0f;
     material = ospNewMaterial("scivis", "obj");
-    ospSetParam(model, "kd", OSP_VEC3F, mat.albedo);
-    ospSetParam(model, "ks", OSP_VEC3F, ks);
-    ospSetParam(model, "ns", OSP_FLOAT, &ns);
-    ospSetParam(model, "d", OSP_FLOAT, &mat.opacity);
+    ospSetParam(material, "kd", OSP_VEC3F, mat.albedo);
+    ospSetParam(material, "ks", OSP_VEC3F, ks);
+    ospSetParam(material, "ns", OSP_FLOAT, &ns);
+    ospSetParam(material, "d", OSP_FLOAT, &mat.opacity);
     ospCommit(material);
   }
   else
@@ -210,35 +228,33 @@ void OSPRayRenderer::addMaterial(OSPGeometricModel model, OsprayGeometryObject::
     return;
   }
 
-  ospSetParam(model, "material", OSP_MATERIAL, &material);
+  ospSetObject(model, "material", material);
   ospCommit(model);
   ospRelease(material);
 }
 
-void OSPRayRenderer::addTransferFunction(OSPVolumetricModel model, OsprayGeometryObject::TransferFunc& tnf)
+void OSPRayRenderer::addTransferFunction(OSPVolumetricModel model, OsprayGeometryObject::TransferFunc& tfn)
 {
-  float valueRange[] = {0.0 , 1.0f};
-
-  size_t numColors = tnf.colors.size()/3;
-  OSPData colorDataTemp = ospNewSharedData(tnf.colors.data(), OSP_VEC3F, numColors);
+  size_t numColors = tfn.colors.size()/3;
+  OSPData colorDataTemp = ospNewSharedData(tfn.colors.data(), OSP_VEC3F, numColors);
   OSPData colorData = ospNewData(OSP_VEC3F, numColors);
   ospCopyData(colorDataTemp, colorData);
   ospRelease(colorDataTemp);
 
-  OSPData opacityDataTemp = ospNewSharedData(tnf.opacities.data(), OSP_FLOAT, tnf.opacities.size());
-  OSPData opacityData = ospNewData(OSP_FLOAT, tnf.opacities.size());
+  OSPData opacityDataTemp = ospNewSharedData(tfn.opacities.data(), OSP_FLOAT, tfn.opacities.size());
+  OSPData opacityData = ospNewData(OSP_FLOAT, tfn.opacities.size());
   ospCopyData(opacityDataTemp, opacityData);
   ospRelease(opacityDataTemp);
 
   OSPTransferFunction transferFunction = ospNewTransferFunction("piecewiseLinear");
-  ospSetParam(transferFunction, "valueRange", OSP_VEC2F, valueRange);
+  ospSetParam(transferFunction, "valueRange", OSP_VEC2F, tfn.range.data());
   ospSetParam(transferFunction, "color", OSP_DATA, &colorData);
   ospSetParam(transferFunction, "opacity", OSP_DATA, &opacityData);
   ospCommit(transferFunction);
   ospRelease(colorData);
   ospRelease(opacityData);
 
-  ospSetParam(model, "transferFunction", OSP_TRANSFER_FUNCTION, &transferFunction);
+  ospSetObject(model, "transferFunction", transferFunction);
   ospCommit(model);
   ospRelease(transferFunction);
 }
@@ -247,19 +263,7 @@ void OSPRayRenderer::addMeshToGroup(OsprayGeometryObject* geometryObject, uint32
 {
   if(!group_) addGroup();
 
-  OsprayGeometryObject::FieldData& data = geometryObject->data;
-
-  float* vertices   = data.vertex.size()   > 0 ? data.vertex.data()   : NULL;
-  float* colors     = data.color.size()    > 0 ? data.color.data()    : NULL;
-  float* normals    = data.normal.size()   > 0 ? data.normal.data()   : NULL;
-  float* texCoords  = data.texCoord.size() > 0 ? data.texCoord.data() : NULL;
-  uint32_t* indices = data.index.size()    > 0 ? data.index.data()    : NULL;
-
-  uint32_t numVertices = data.vertex.size() / 3;
-  size_t numPolygons = data.index.size() / vertsPerPoly;
-
-  OSPGeometry geometry = dataManager.updateAndGetMesh(geometryObject->id, geometryObject->version,
-    vertices, normals, colors, texCoords, indices, numVertices, numPolygons, vertsPerPoly);
+  OSPGeometry geometry = dataManager.updateAndGetMesh(geometryObject, vertsPerPoly);
 
   OSPGeometricModel model = ospNewGeometricModel(geometry);
   addMaterial(model, geometryObject->material); //also commits changes
@@ -269,14 +273,11 @@ void OSPRayRenderer::addMeshToGroup(OsprayGeometryObject* geometryObject, uint32
   ospRelease(model);
 }
 
-void OSPRayRenderer::addStructuredVolumeToGroup(Core::Datatypes::OsprayGeometryObject* geometryObject)
+void OSPRayRenderer::addStructuredVolumeToGroup(OsprayGeometryObject* geometryObject)
 {
   if(!group_) addGroup();
 
-  OsprayGeometryObject::FieldData& data = geometryObject->data;
-
-  OSPVolume volume = dataManager.updateAndgetStructuredVolume(geometryObject->id, geometryObject->version,
-    data.origin, data.spacing, data.dim, data.color.data());
+  OSPVolume volume = dataManager.updateAndgetStructuredVolume(geometryObject);
 
   OSPVolumetricModel model = ospNewVolumetricModel(volume);
   addTransferFunction(model, geometryObject->tfn); //also commits changes
@@ -285,3 +286,55 @@ void OSPRayRenderer::addStructuredVolumeToGroup(Core::Datatypes::OsprayGeometryO
   ospCommit(group_);
   ospRelease(model);
 }
+
+void OSPRayRenderer::addDirectionalLight(glm::vec3 col, glm::vec3 dir)
+{
+  OSPLight light = ospNewLight("distant");
+  ospSetParam(light, "color", OSP_VEC3F, &col);
+  ospSetParam(light, "direction", OSP_VEC3F, &dir);
+  ospCommit(light);
+  lights_.push_back(light);
+}
+
+void OSPRayRenderer::addAmbientLight(glm::vec3 col, float intensity)
+{
+  OSPLight light = ospNewLight("ambient");
+  ospSetParam(light, "color", OSP_VEC3F, &col);
+  ospSetParam(light, "intensity", OSP_FLOAT, &intensity);
+  ospCommit(light);
+  lights_.push_back(light);
+}
+
+void OSPRayRenderer::addSphereLight(glm::vec3 col, glm::vec3 position, float radius, float intensity)
+{
+  OSPLight light = ospNewLight("sphere");
+  ospSetParam(light, "color", OSP_VEC3F, &col);
+  ospSetParam(light, "position", OSP_VEC3F, &position);
+  ospSetParam(light, "radius", OSP_FLOAT, &radius);
+  ospSetParam(light, "intensity", OSP_FLOAT, &intensity);
+  ospCommit(light);
+  lights_.push_back(light);
+}
+
+void OSPRayRenderer::addQuadLight(glm::vec3 col, glm::vec3 position, glm::vec3 edge1, glm::vec3 edge2, float intensity)
+{
+  OSPLight light = ospNewLight("quad");
+  ospSetParam(light, "color", OSP_VEC3F, &col);
+  ospSetParam(light, "position", OSP_VEC3F, &position);
+  ospSetParam(light, "edge1", OSP_VEC3F, &edge1);
+  ospSetParam(light, "edge2", OSP_VEC3F, &edge2);
+  ospSetParam(light, "intensity", OSP_FLOAT, &intensity);
+  ospCommit(light);
+  lights_.push_back(light);
+}
+
+void OSPRayRenderer::setLightsAsObject()
+{
+  auto data = ospNewSharedData(lights_.data(), OSP_LIGHT, lights_.size());
+  ospSetObject(world_, "light", data);
+  for (auto light : lights_)
+    ospRelease(light);
+  ospCommit(world_);
+}
+
+#endif

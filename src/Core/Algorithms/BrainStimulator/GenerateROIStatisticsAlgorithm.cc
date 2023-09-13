@@ -41,6 +41,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
+#include <Core/Algorithms/Base/VariableHelper.h>
 #include <boost/format.hpp>
 #include <boost/assign.hpp>
 #include <Core/Logging/Log.h>
@@ -198,7 +199,7 @@ boost::tuple<DenseMatrixHandle, VariableHandle> GenerateROIStatisticsAlgorithm::
   const double invalidDouble = std::numeric_limits<double>::quiet_NaN();
 
   /// efficient way to compute std dev. in just one loop over all mesh elements: sqrt ( 1/(n-1) (Sx^2 - avr Sx + n avr^2 )
-  for (VMesh::Elem::index_type j=0; j < number_of_atlas_materials; ++j)
+  for (auto j=0; j < number_of_atlas_materials; ++j)
   {
     double Sx=value_avr[j];
 
@@ -268,7 +269,7 @@ boost::tuple<DenseMatrixHandle, VariableHandle> GenerateROIStatisticsAlgorithm::
       formatCount((*output)(i, 4))); //element count
   }, AtlasMeshLabels_vector.size());
 
-  auto statistics_table(boost::make_shared<Variable>(Name("Table"), elc_vals_in_table));
+  auto statistics_table(makeShared<Variable>(Name("Table"), elc_vals_in_table));
 
   return boost::make_tuple(output, statistics_table);
 }

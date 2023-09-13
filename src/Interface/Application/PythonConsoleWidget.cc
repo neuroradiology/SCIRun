@@ -37,6 +37,7 @@
 #include <QMimeData>
 #include <QScrollBar>
 #include <QVBoxLayout>
+#include <QRegularExpression>
 
 #include <Interface/Application/NetworkEditor.h>
 #include <Core/Python/PythonInterpreter.h>
@@ -53,10 +54,10 @@ class PythonConsoleEdit : public QTextEdit
 public:
   PythonConsoleEdit(NetworkEditor* rootNetworkEditor, PythonConsoleWidget* parent);
 
-  virtual void keyPressEvent(QKeyEvent* e);
+  void keyPressEvent(QKeyEvent* e) override;
   //virtual void focusOutEvent( QFocusEvent* e );
 
-  const int document_end();
+  int document_end();
   QString& command_buffer();
   void update_command_buffer();
   void replace_command_buffer(const QString& text);
@@ -260,7 +261,7 @@ void PythonConsoleEdit::keyPressEvent(QKeyEvent* e)
   }
 }
 
-const int PythonConsoleEdit::document_end()
+int PythonConsoleEdit::document_end()
 {
   QTextCursor c(this->document());
   c.movePosition(QTextCursor::End);
@@ -292,6 +293,14 @@ void PythonConsoleEdit::replace_command_buffer(const QString& text)
   c.insertText(text);
 }
 
+//TODO!!!
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#ifdef SCIRUN_QT6_ENABLED
+#define REGEXP_NAMESPACE Qt
+#else
+#define REGEXP_NAMESPACE QString
+#endif
+
 void PythonConsoleEdit::issue_command()
 {
   QString command = this->command_buffer();
@@ -309,7 +318,7 @@ void PythonConsoleEdit::issue_command()
   this->interactive_position_ = this->document_end();
 
   NetworkEditor::InEditingContext iec(rootNetworkEditor_);
-  auto lines = command.split(QRegExp("[\r\n]"),QString::SkipEmptyParts);
+  auto lines = command.split(QRegularExpression("[\r\n]"), REGEXP_NAMESPACE::SkipEmptyParts);
   for (const auto& line : lines)
   {
     if (!line.isEmpty())
@@ -407,9 +416,21 @@ private_(new PythonConsoleWidgetPrivate)
 
   setWindowTitle("Python console");
 
-  PythonInterpreter::Instance().prompt_signal_.connect(boost::bind(&PythonConsoleEdit::prompt, private_->console_edit_, _1));
-  PythonInterpreter::Instance().output_signal_.connect(boost::bind(&PythonConsoleEdit::print_output, private_->console_edit_, _1));
-  PythonInterpreter::Instance().error_signal_.connect(boost::bind(&PythonConsoleEdit::print_error, private_->console_edit_, _1));
+  PythonInterpreter::Instance().prompt_signal_.connect(
+      [this](const std::string& m)
+      {
+        private_->console_edit_->prompt(m);
+      });
+  PythonInterpreter::Instance().output_signal_.connect(
+      [this](const std::string& m)
+      {
+        private_->console_edit_->print_output(m);
+      });
+  PythonInterpreter::Instance().error_signal_.connect(
+      [this](const std::string& m)
+      {
+        private_->console_edit_->print_error(m);
+      });
 
   showBanner();
   PythonInterpreter::Instance().importSCIRunLibrary();

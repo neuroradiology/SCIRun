@@ -46,8 +46,8 @@ namespace Inverse {
 	{
 	public:
 		SolveInverseProblemWithTSVD();
-		virtual void execute();
-		virtual void setStateDefaults();
+                void execute() override;
+                void setStateDefaults() override;
 
 		INPUT_PORT(0, ForwardMatrix, DenseMatrix);
 		INPUT_PORT(1, WeightingInSourceSpace, DenseMatrix);
@@ -60,7 +60,7 @@ namespace Inverse {
 		OUTPUT_PORT(1, RegularizationParameter, DenseMatrix);
 		OUTPUT_PORT(2, RegInverse, DenseMatrix);
 
-		MODULE_TRAITS_AND_INFO(ModuleHasUIAndAlgorithm)
+		MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUIAndAlgorithm)
 	};
 }}}
 

@@ -112,7 +112,7 @@ void ApplyFEMCurrentSource::setStateDefaults()
 bool detail::ApplyFEMCurrentSourceImpl::execute_dipole(FieldHandle field,
   FieldHandle source,
   DenseColumnMatrixHandle& rhs,
-  SparseRowMatrixHandle& weights)
+  SparseRowMatrixHandle& /*weights*/)
 {
   if (!field)
   {
@@ -425,17 +425,17 @@ void ApplyFEMCurrentSource::execute()
     detail::ApplyFEMCurrentSourceImpl impl(this);
     if (dipole)
     {
-      if (!impl.execute_dipole(field, sourceOption.get_value_or(nullptr), RHS, weights))
+      if (!impl.execute_dipole(field, sourceOption.value_or(nullptr), RHS, weights))
         return;
     }
     else
     {
       auto mapping = getOptionalInput(Mapping);
       if(!impl.execute_sources_and_sinks(field,
-        sourceOption.get_value_or(nullptr),
+        sourceOption.value_or(nullptr),
         state->getValue(SourceNode).toInt(),
         state->getValue(SinkNode).toInt(),
-        RHS, mapping.get_value_or(nullptr)))
+        RHS, mapping.value_or(nullptr)))
         return;
     }
 

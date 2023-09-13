@@ -43,15 +43,15 @@ namespace SCIRun {
       public:
         GetFieldData();
 
-        virtual void execute() override;
-        virtual void setStateDefaults() override {}
+        void execute() override;
+        void setStateDefaults() override {}
 
         INPUT_PORT(0, InputField, Field);
         OUTPUT_PORT(0, OutputMatrix, Matrix);
         OUTPUT_PORT(1, OutputNrrd, NrrdDataType);
         OUTPUT_PORT(2, OutputComplexMatrix, ComplexDenseMatrix);
 
-        MODULE_TRAITS_AND_INFO(ModuleHasAlgorithm)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasAlgorithm)
       };
     }
   }

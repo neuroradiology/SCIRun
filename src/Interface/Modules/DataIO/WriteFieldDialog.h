@@ -30,7 +30,7 @@
 #define INTERFACE_MODULES_WRITE_FIELD_H
 
 #include "Interface/Modules/DataIO/ui_WriteFieldDialog.h"
-#include <boost/shared_ptr.hpp>
+#include <Core/Utils/SmartPointers.h>
 #include <Interface/Modules/Base/ModuleDialogGeneric.h>
 #include <Interface/Modules/Base/RemembersFileDialogDirectory.h>
 #include <Interface/Modules/DataIO/share.h>
@@ -48,7 +48,7 @@ public:
     SCIRun::Dataflow::Networks::ModuleStateHandle state,
     QWidget* parent = nullptr);
 protected:
-  virtual void pullSpecial() override;
+  void pullSpecial() override;
 
 private Q_SLOTS:
   void pushFileNameToState();

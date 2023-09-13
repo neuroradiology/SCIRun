@@ -75,14 +75,15 @@ int mainImpl(int argc, const char* argv[], char **environment)
 #ifdef WIN32
 
 #include <windows.h>
+#include <shellapi.h>
 
 const char* utf8_encode(const std::wstring &wstr)
 {
   if (wstr.empty()) return "";
-  int size_needed = WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), NULL, 0, NULL, NULL);
+  int size_needed = WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), nullptr, 0, nullptr, nullptr);
   char* strTo = new char[size_needed + 1];
   strTo[size_needed] = 0;
-  WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), strTo, size_needed, NULL, NULL);
+  WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), strTo, size_needed, nullptr, nullptr);
   return strTo;
 }
 
@@ -105,12 +106,10 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   freopen("CONOUT$", "w", stderr);
 #endif
 
-  const char *argv[100] = { 0 };
+  const char *argv[100] = { nullptr };
   int argc;
   {
-    LPWSTR *szArglist;
-
-    szArglist = CommandLineToArgvW(GetCommandLineW(), &argc);
+    LPWSTR* szArglist = CommandLineToArgvW(GetCommandLineW(), &argc);
     if (!szArglist)
     {
       std::cout << "CommandLineToArgvW failed" << std::endl;
@@ -128,7 +127,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     LocalFree(szArglist);
   }
   {
-    const char* a = GetEnvironmentStrings();
+    auto a = GetEnvironmentStrings();
     int prev = 0;
     for (int i = 0;; i++) {
       if (a[i] == '\0') {

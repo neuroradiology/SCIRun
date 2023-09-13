@@ -37,11 +37,8 @@
 #include <Core/Algorithms/Factory/HardCodedAlgorithmFactory.h>
 #include <Dataflow/State/SimpleMapModuleState.h>
 
-#include <Core/Datatypes/Legacy/Field/Field.h>
 #include <Core/Datatypes/Legacy/Field/VField.h>
 #include <Core/Datatypes/Legacy/Field/FieldInformation.h>
-#include <Core/Datatypes/Legacy/Field/Mesh.h>
-#include <Core/GeometryPrimitives/Point.h>
 #include <Core/Logging/Log.h>
 #include <Dataflow/Network/SimpleSourceSink.h>
 #include <Dataflow/Network/ModuleBuilder.h>
@@ -66,17 +63,17 @@ class StubbedDatatypeSink : public DatatypeSinkInterface
 public:
   virtual bool hasData() const { return true; }
   virtual void setHasData(bool) {}
-  virtual void waitForData() override {}
+  void waitForData() override {}
 
-  virtual DatatypeHandleOption receive() override { return data_; }
-  virtual DatatypeSinkInterface* clone() const override { return new StubbedDatatypeSink; }
-  virtual bool hasChanged() const override { return true; }
+  DatatypeHandleOption receive() override { return data_; }
+  DatatypeSinkInterface* clone() const override { return new StubbedDatatypeSink; }
+  bool hasChanged() const override { return true; }
 
   void setData(DatatypeHandleOption data) { data_ = data; }
-  virtual void invalidateProvider() override {}
-  virtual void forceFireDataHasChanged() override {}
+  void invalidateProvider() override {}
+  void forceFireDataHasChanged() override {}
 
-  virtual boost::signals2::connection connectDataHasChanged(const DataHasChangedSignalType::slot_type&) override { return {}; }
+  boost::signals2::connection connectDataHasChanged(const DataHasChangedSignalType::slot_type&) override { return {}; }
 private:
   DatatypeHandleOption data_;
 };
@@ -91,11 +88,11 @@ class MockAlgorithmFactory : public AlgorithmFactory
 {
 public:
   explicit MockAlgorithmFactory(bool verbose) : verbose_(verbose) {}
-  virtual AlgorithmHandle create(const std::string& name, const AlgorithmCollaborator*) const override
+  AlgorithmHandle create(const std::string& name, const AlgorithmCollaborator*) const override
   {
     if (verbose_)
       std::cout << "Creating mock algorithm named: " << name << std::endl;
-    return boost::make_shared<NiceMock<MockAlgorithm>>();
+    return makeShared<NiceMock<MockAlgorithm>>();
   }
 private:
   bool verbose_;
@@ -135,7 +132,7 @@ void ModuleTestBase::stubPortNWithThisData(ModuleHandle module, size_t portNum, 
     if (iport->isDynamic())
     {
       ModuleBuilder builder;
-      auto newPortId = builder.cloneInputPort(module, iport->id());
+      auto newPortId = builder.cloneInputPort(module, iport->externalId());
     }
     DatatypeHandleOption o = data;
     dynamic_cast<StubbedDatatypeSink*>(iport->sink().get())->setData(o);
@@ -147,7 +144,7 @@ DatatypeHandle ModuleTestBase::getDataOnThisOutputPort(ModuleHandle module, size
   if (portNum < module->numOutputPorts())
   {
     auto oport = module->outputPorts()[portNum];
-    return boost::dynamic_pointer_cast<TestSimpleSource>(oport->source())->getDataForTesting();
+    return std::dynamic_pointer_cast<TestSimpleSource>(oport->source())->getDataForTesting();
   }
   return nullptr;
 }

@@ -45,8 +45,8 @@ namespace SCIRun {
       public:
         ClipFieldByFunction();
 
-        virtual void execute() override;
-        virtual void setStateDefaults() override;
+        void execute() override;
+        void setStateDefaults() override;
         HAS_DYNAMIC_PORTS
 
         INPUT_PORT_DYNAMIC(0, InputFields, Field);
@@ -57,7 +57,7 @@ namespace SCIRun {
 
         static const Core::Algorithms::AlgorithmParameterName FunctionString;
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUIAndAlgorithm)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUIAndAlgorithm)
       private:
         bool addFieldVariableIfPresent(const FieldList& fields, NewArrayMathEngine& engine, int basis_order, int index) const;
       };

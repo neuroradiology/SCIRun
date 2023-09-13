@@ -28,10 +28,6 @@
 
 #include <es-log/trace-log.h>
 #include <QtGui>
-#include <functional>
-#include <boost/bind.hpp>
-#include <boost/assign.hpp>
-#include <boost/assign/std/vector.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <Core/Utils/Legacy/MemoryUtil.h>
@@ -40,36 +36,27 @@
 #include <Interface/Application/SCIRunMainWindow.h>
 #include <Interface/Application/NetworkEditor.h>
 #include <Interface/Application/ProvenanceWindow.h>
-#include <Interface/Application/Connection.h>
 #include <Interface/Application/PreferencesWindow.h>
-#include <Interface/Application/ShortcutsInterface.h>
-#include <Interface/Application/TreeViewCollaborators.h>
 #include <Interface/Application/MainWindowCollaborators.h>
 #include <Interface/Application/GuiCommands.h>
 #include <Interface/Application/NetworkEditorControllerGuiProxy.h>
 #include <Interface/Application/NetworkExecutionProgressBar.h>
-#include <Interface/Application/DialogErrorControl.h>
 #include <Interface/Modules/Base/RemembersFileDialogDirectory.h>
 #include <Interface/Modules/Base/ModuleDialogGeneric.h> //TODO
-#include <Interface/Application/ModuleWizard/ModuleWizard.h>
 #include <Dataflow/Network/NetworkFwd.h>
 #include <Dataflow/Engine/Controller/NetworkEditorController.h> //DOH! see TODO in setController
 #include <Dataflow/Engine/Controller/ProvenanceManager.h>
-#include <Dataflow/Network/SimpleSourceSink.h>  //TODO: encapsulate!!!
 #include <Dataflow/Serialization/Network/XMLSerializer.h>
 #include <Core/Application/Application.h>
 #include <Core/Application/Preferences/Preferences.h>
+#include <Core/Python/PythonInterpreter.h>
 #include <Core/Logging/Log.h>
-#include <Core/Thread/Parallel.h>
-#include <Core/Application/Version.h>
 #include <Dataflow/Serialization/Network/NetworkDescriptionSerialization.h>
 #include <Core/Utils/CurrentFileName.h>
 
 #ifdef BUILD_WITH_PYTHON
-#include <Interface/Application/PythonConsoleWidget.h>
 #include <Core/Python/PythonInterpreter.h>
 #endif
-#include <Dataflow/Serialization/Network/XMLSerializer.h>
 
 using namespace SCIRun;
 using namespace SCIRun::Gui;
@@ -92,7 +79,7 @@ void SCIRunMainWindow::initialize()
 
 void SCIRunMainWindow::setController(NetworkEditorControllerHandle controller)
 {
-  auto controllerProxy(boost::make_shared<NetworkEditorControllerGuiProxy>(controller, networkEditor_));
+  auto controllerProxy(makeShared<NetworkEditorControllerGuiProxy>(controller, networkEditor_));
   networkEditor_->setNetworkEditorController(controllerProxy);
   //TODO: need better way to wire this up
   controller->setSerializationManager(networkEditor_);
@@ -108,7 +95,8 @@ void SCIRunMainWindow::preexecute()
 
 void SCIRunMainWindow::setupQuitAfterExecute()
 {
-  connect(networkEditor_->getNetworkEditorController().get(), SIGNAL(executionFinished(int)), this, SLOT(exitApplication(int)));
+  connect(networkEditor_->getNetworkEditorController().get(), &NetworkEditorControllerGuiProxy::executionFinished,
+    this, &SCIRunMainWindow::exitApplication);
   quitAfterExecute_ = true;
 }
 
@@ -241,8 +229,21 @@ void SCIRunMainWindow::setDataDirectory(const QString& dir)
     prefsWindow_->scirunDataLineEdit_->setToolTip(dir);
 
     RemembersFileDialogDirectory::setStartingDir(dir);
-    Preferences::Instance().setDataDirectory(dir.toStdString());
+    runPythonString(Preferences::Instance().setDataDirectory(dir.toStdString()));
+
     Q_EMIT dataDirectorySet(dir);
+  }
+}
+
+void SCIRunMainWindow::setScreenshotDirectory(const QString& dir)
+{
+  if (!dir.isEmpty())
+  {
+    prefsWindow_->screenshotLineEdit_->setText(dir);
+    prefsWindow_->screenshotLineEdit_->setToolTip(dir);
+
+    RemembersFileDialogDirectory::setStartingDir(dir);
+    Preferences::Instance().setScreenshotDirectory(dir.toStdString());
   }
 }
 
@@ -307,18 +308,18 @@ void SCIRunMainWindow::addToolkit(const QString& filename, const QString& direct
       std::ostringstream net;
       XMLSerializer::save_xml(t2.second, net, "networkFile");
       networkAction->setProperty("network", QString::fromStdString(net.str()));
-      connect(networkAction, SIGNAL(triggered()), this, SLOT(openToolkitNetwork()));
+      connect(networkAction, &QAction::triggered, this, &SCIRunMainWindow::openToolkitNetwork);
     }
   }
 
   auto folder = menu->addAction("Open Toolkit Directory");
   folder->setProperty("path", directory);
-  connect(folder, SIGNAL(triggered()), this, SLOT(openToolkitFolder()));
+  connect(folder, &QAction::triggered, this, &SCIRunMainWindow::openToolkitFolder);
 
   auto remove = menu->addAction("Remove Toolkit...");
   remove->setProperty("filename", filename);
   remove->setProperty("fullpath", fullpath);
-  connect(remove, SIGNAL(triggered()), this, SLOT(removeToolkit()));
+  connect(remove, &QAction::triggered, this, &SCIRunMainWindow::removeToolkit);
 
   if (!startup_)
   {

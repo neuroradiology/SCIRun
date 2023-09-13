@@ -65,15 +65,15 @@ namespace SCIRun {
       {
       public:
         SolveMinNormLeastSqSystem();
-        virtual void execute() override;
-        virtual void setStateDefaults() override {}
+        void execute() override;
+        void setStateDefaults() override {}
         INPUT_PORT(0, BasisVector1, DenseColumnMatrix);
         INPUT_PORT(1, BasisVector2, DenseColumnMatrix);
         INPUT_PORT(2, BasisVector3, DenseColumnMatrix);
         INPUT_PORT(3, TargetVector, DenseColumnMatrix);
         OUTPUT_PORT(0, WeightVector, DenseColumnMatrix);
         OUTPUT_PORT(1, ResultVector, DenseColumnMatrix);
-        MODULE_TRAITS_AND_INFO(NoAlgoOrUI)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::NoAlgoOrUI)
       };
 }}}
 

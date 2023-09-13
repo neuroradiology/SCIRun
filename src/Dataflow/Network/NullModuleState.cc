@@ -54,7 +54,7 @@ bool NullModuleState::containsKey(const Name&) const
 
 ModuleStateHandle NullModuleState::clone() const
 {
-  return boost::make_shared<NullModuleState>();
+  return makeShared<NullModuleState>();
 }
 
 boost::signals2::connection NullModuleState::connectStateChanged(state_changed_sig_t::slot_function_type)
@@ -67,11 +67,11 @@ boost::signals2::connection NullModuleState::connectSpecificStateChanged(const N
   return {};
 }
 
-NullModuleState::TransientValueOption NullModuleState::getTransientValue(const Name& name) const
+NullModuleState::TransientValueOption NullModuleState::getTransientValue(const Name&) const
 {
   return TransientValueOption();
 }
 
-void NullModuleState::setTransientValue(const Name& name, const TransientValue& value, bool b)
+void NullModuleState::setTransientValue(const Name&, const TransientValue&, bool)
 {
 }

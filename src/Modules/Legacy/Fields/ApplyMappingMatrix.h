@@ -43,15 +43,15 @@ namespace SCIRun {
       public:
         ApplyMappingMatrix();
 
-        virtual void execute() override;
-        virtual void setStateDefaults() override {}
+        void execute() override;
+        void setStateDefaults() override {}
 
         INPUT_PORT(0, Source, Field);
         INPUT_PORT(1, Destination, Field);
         INPUT_PORT(2, Mapping, Matrix);
         OUTPUT_PORT(0, Output, Field);
 
-        MODULE_TRAITS_AND_INFO(ModuleHasAlgorithm)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasAlgorithm)
       };
 
     }

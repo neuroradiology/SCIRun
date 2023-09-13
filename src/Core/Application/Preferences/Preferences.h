@@ -33,8 +33,8 @@
 
 #include <boost/filesystem/path.hpp>
 #include <Core/Utils/Singleton.h>
-#include <Core/Algorithms/Base/Variable.h>
 #include <boost/signals2.hpp>
+#include <Core/Algorithms/Base/VariableHelper.h>
 #include <Core/Application/Preferences/share.h>
 
 namespace SCIRun
@@ -71,7 +71,7 @@ namespace SCIRun
 
     class SCISHARE Preferences : boost::noncopyable
     {
-	    CORE_SINGLETON( Preferences );
+	    CORE_SINGLETON( Preferences )
 
     private:
 	    Preferences();
@@ -91,6 +91,8 @@ namespace SCIRun
       TrackedVariable<BooleanVariable> moduleExecuteDownstreamOnly;
       TrackedVariable<BooleanVariable> forceGridBackground;
       TrackedVariable<BooleanVariable> modulesAreDockable;
+      TrackedVariable<IntVariable> toolBarPopupShowDelay;
+      TrackedVariable<IntVariable> toolBarPopupHideDelay;
       StringVariable networkBackgroundColor;
 
       TriggeredScriptInfo postModuleAdd;
@@ -100,7 +102,13 @@ namespace SCIRun
       std::string dataDirectoryPlaceholder() const;
 
       boost::filesystem::path dataDirectory() const;
-      void setDataDirectory(const boost::filesystem::path& path, bool runPython = true);
+
+      // returns python command to set the dataDir in the correct format
+      [[nodiscard]]
+      std::string setDataDirectory(const boost::filesystem::path& path);
+
+      boost::filesystem::path screenshotDirectory() const;
+      void setScreenshotDirectory(const boost::filesystem::path& path);
 
       std::vector<boost::filesystem::path> dataPath() const;
       void addToDataPath(const boost::filesystem::path& path);
@@ -108,6 +116,7 @@ namespace SCIRun
 
     private:
 	    boost::filesystem::path dataDir_;
+      boost::filesystem::path screenshotDir_;
       std::vector<boost::filesystem::path> dataPath_;
     };
 

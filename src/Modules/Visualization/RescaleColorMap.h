@@ -59,15 +59,15 @@ namespace SCIRun
       {
       public:
         RescaleColorMap();
-        virtual void execute() override;
-        virtual void setStateDefaults() override;
+        void execute() override;
+        void setStateDefaults() override;
         HAS_DYNAMIC_PORTS
         INPUT_PORT(0, ColorMapObject, ColorMap);
         INPUT_PORT_DYNAMIC(1, Field, Field);
 
         OUTPUT_PORT(0, ColorMapOutput, ColorMap);
 
-        MODULE_TRAITS_AND_INFO(ModuleHasUI)
+        MODULE_TRAITS_AND_INFO(ModuleFlags::ModuleHasUI)
       };
     }
   }
