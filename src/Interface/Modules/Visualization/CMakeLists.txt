@@ -27,10 +27,12 @@
 
 
 SET(Interface_Modules_Visualization_FORMS
+  ConvertMatrixToColorMap.ui
   CreateStandardColorMap.ui
   GenerateStreamLines.ui
   ShowField.ui
   ShowFieldGlyphs.ui
+  ShowFieldVtk.ui
   ShowString.ui
   ShowColorMap.ui
   RescaleColorMap.ui
@@ -44,11 +46,13 @@ SET(Interface_Modules_Visualization_FORMS
 )
 
 SET(Interface_Modules_Visualization_HEADERS
+  ConvertMatrixToColorMapDialog.h
   CreateStandardColorMapDialog.h
   GenerateStreamLinesDialog.h
   share.h
   ShowFieldDialog.h
   ShowFieldGlyphsDialog.h
+  ShowFieldVtkDialog.h
   ShowStringDialog.h
   ShowColorMapDialog.h
   RescaleColorMapDialog.h
@@ -62,10 +66,12 @@ SET(Interface_Modules_Visualization_HEADERS
 )
 
 SET(Interface_Modules_Visualization_SOURCES
+  ConvertMatrixToColorMapDialog.cc
   CreateStandardColorMapDialog.cc
   GenerateStreamLinesDialog.cc
   ShowFieldDialog.cc
   ShowFieldGlyphsDialog.cc
+  ShowFieldVtkDialog.cc
   ShowStringDialog.cc
   ShowColorMapDialog.cc
   RescaleColorMapDialog.cc
@@ -93,7 +99,6 @@ TARGET_LINK_LIBRARIES(Interface_Modules_Visualization
   Core_Algorithms_Legacy_Fields
   Interface_Modules_Base
   Core_Application
-  ${SCI_BOOST_LIBRARY}
   ${QT_LIBRARIES}
 )
 

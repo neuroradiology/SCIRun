@@ -29,7 +29,7 @@
 #define CORE_PYTHON_PYTHONINTERPRETER_H
 
 
-#ifdef BUILD_WITH_PYTHON
+#ifdef WITH_PYTHON
 
 #include <boost/python.hpp>
 #include <boost/filesystem/path.hpp>
@@ -53,7 +53,7 @@ namespace Core
 class PythonInterpreterPrivate;
 typedef SharedPointer< PythonInterpreterPrivate > PythonInterpreterPrivateHandle;
 
-class SCISHARE PythonInterpreter
+class SCISHARE PythonInterpreter : public PythonCommandInterpreterInterface
 {
 	CORE_SINGLETON( PythonInterpreter )
 
@@ -72,6 +72,8 @@ private:
 	/// class. It initializes the python interpreter.
   void initialize_eventhandler(bool needsSpecialPythonPathTreatment, const boost::filesystem::path& libPath);
 
+  void set_python_argv(const std::vector<std::string>& argv);
+
 public:
   // INITIALIZE:
   /// Initialize the python interpreter with extra modules.
@@ -84,12 +86,12 @@ public:
 	// RUN_STRING:
 	/// Execute a single python command.
 	/// NOTE: The command is run in the main namespace.
-	bool run_string( const std::string& command );
+	bool run_string( const std::string& command ) override;
 
 	// RUN_SCRIPT:
-	/// Execute a python script.
+	/// Execute a python script. Returns false if it failed to compile or raised.
 	/// NOTE: The script is run in its own local namespace.
-	void run_script( const std::string& script );
+	bool run_script( const std::string& script );
 
 	// RUN_FILE:
 	/// Execute a python script from file.
@@ -132,7 +134,7 @@ namespace SCIRun::Core
 {
   inline void runPythonString(const std::string& cmd)
   {
-    #ifdef BUILD_WITH_PYTHON
+    #ifdef WITH_PYTHON
     PythonInterpreter::Instance().run_string(cmd);
     #else
     (void)cmd;

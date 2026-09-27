@@ -53,6 +53,7 @@ namespace Modules
   struct SCISHARE FieldPortTag {};
   struct SCISHARE OsprayGeometryPortTag {};
   struct SCISHARE GeometryPortTag {};
+  struct SCISHARE GeometryVtkPortTag{};
   struct SCISHARE ColorMapPortTag {};
   struct SCISHARE BundlePortTag {};
   struct SCISHARE NrrdPortTag {};
@@ -322,6 +323,7 @@ namespace Modules
   PORT_SPEC(Field);
   PORT_SPEC(Geometry);
   PORT_SPEC(OsprayGeometry);
+  PORT_SPEC(GeometryVtk);
   PORT_SPEC(ColorMap);
   PORT_SPEC(Bundle);
   PORT_SPEC(Nrrd);
@@ -349,6 +351,12 @@ struct DummyPortName : Dataflow::Networks::StaticPortName<Core::Datatypes::Datat
 
   template <size_t numPorts, class ModuleType>
   struct IPortDescriber
+  {
+    static std::vector<Dataflow::Networks::InputPortDescription> inputs();
+  };
+
+  template <class ModuleType>
+  struct IPortDescriber<0, ModuleType>
   {
     static std::vector<Dataflow::Networks::InputPortDescription> inputs()
     {

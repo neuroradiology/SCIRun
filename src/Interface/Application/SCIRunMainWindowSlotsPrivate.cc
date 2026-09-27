@@ -60,7 +60,7 @@
 #include <Core/Application/Version.h>
 #include <Dataflow/Serialization/Network/NetworkDescriptionSerialization.h>
 
-#ifdef BUILD_WITH_PYTHON
+#ifdef WITH_PYTHON
 #include <Interface/Application/PythonConsoleWidget.h>
 #include <Core/Python/PythonInterpreter.h>
 #endif
@@ -293,7 +293,7 @@ void SCIRunMainWindow::runScript()
 
 void SCIRunMainWindow::runMacro()
 {
-#ifdef BUILD_WITH_PYTHON
+#ifdef WITH_PYTHON
   auto index = sender()->property(MacroEditor::Index).toInt();
   auto script = macroEditor_->macroForButton(index);
   NetworkEditor::InEditingContext iec(networkEditor_);
@@ -416,6 +416,9 @@ void SCIRunMainWindow::handleCheckedModuleEntry(QTreeWidgetItem* item, int colum
 {
   if (item && 0 == column)
   {
+    Q_ASSERT(moduleSelectorTreeWidget_);
+    Q_ASSERT(item);
+
     moduleSelectorTreeWidget_->setCurrentItem(item);
 
     auto faves = item->foreground(0) == CLIPBOARD_COLOR ? getSavedSubnetworksMenu() : getFavoriteMenu();
@@ -573,7 +576,7 @@ void SCIRunMainWindow::launchNewUserWizard()
 
 void SCIRunMainWindow::launchPythonWizard()
 {
-#ifdef BUILD_WITH_PYTHON
+#ifdef WITH_PYTHON
   PythonWizard *wiz = new PythonWizard( [this](const  QString& code) {pythonConsole_->runWizardCommand(code); }, this);
   wiz->show();
 #endif
@@ -915,7 +918,7 @@ void SCIRunMainWindow::loadToolkitsFromFile(const QString& filename)
 
     {
       auto file = command.get(Variables::Filename).toFilename();
-      auto stem = QString::fromStdString(file.leaf().stem().string());
+      auto stem = QString::fromStdString(file.filename().stem().string());
       auto dir = QString::fromStdString(file.parent_path().string());
       auto added = toolkitDirectories_.contains(stem);
       if (added && toolkitDirectories_[stem] == dir)

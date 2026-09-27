@@ -34,7 +34,6 @@ SET(Core_Basis_HEADERS
   CrvElementWeights.h
   CrvLinearLgn.h
   CrvQuadraticLgn.h
-  HexElementsWeights.h
   HexSamplingSchemes.h
   HexTricubicHmtScaleFactors.h
   Locate.h
@@ -93,6 +92,10 @@ SET(Core_Basis_SRCS
 SCIRUN_ADD_LIBRARY(Core_Basis
   ${Core_Basis_HEADERS}
   ${Core_Basis_SRCS}
+)
+
+target_link_libraries(Core_Basis
+  Boost::headers
 )
 
 IF(BUILD_SHARED_LIBS)

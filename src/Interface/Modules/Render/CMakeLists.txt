@@ -51,6 +51,8 @@ SET(Interface_Modules_Render_FORMS
   DevControls.ui
   LightControls.ui
   ViewAxisChooser.ui
+  ViewSceneShortcuts.ui
+  ViewSceneVtk.ui
 )
 
 SET(Interface_Modules_Render_HEADERS_TO_MOC
@@ -63,6 +65,7 @@ SET(Interface_Modules_Render_HEADERS_TO_MOC
   GLContextPlatformCompatibility.h
   Screenshot.h
   OsprayViewerDialog.h
+  ViewSceneVtkDialog.h
 )
 
 SET(Interface_Modules_Render_HEADERS_NO_MOC
@@ -100,6 +103,7 @@ SET(Interface_Modules_Render_SOURCES
   Screenshot.cc
   OsprayViewerDialog.cc
   ViewOspraySceneConfig.cc
+  ViewSceneVtkDialog.cc
   ES/SRCamera.cc
   ES/SRInterface.cc
   ES/SRUtil.cc
@@ -134,7 +138,6 @@ TARGET_LINK_LIBRARIES(Interface_Modules_Render
   ${OPENGL_LIBRARIES}
   ${QT_OPENGL_LIBRARY}
   ${SCI_SPIRE_LIBRARY}
-  ${SCI_BOOST_LIBRARY}
   ${QT_LIBRARIES}
   ${SCI_FREETYPE_LIBRARY}
   ${SCI_LODEPNG_LIBRARY}
@@ -143,6 +146,7 @@ TARGET_LINK_LIBRARIES(Interface_Modules_Render
 )
 
 TARGET_LINK_LIBRARIES(Interface_Modules_Render ${QT_GRAPHICS_LIBRARIES})
+TARGET_LINK_LIBRARIES(Interface_Modules_Render Qt::Svg)
 
 IF(BUILD_SHARED_LIBS)
   ADD_DEFINITIONS(-DBUILD_Interface_Modules_Render)
@@ -157,5 +161,13 @@ IF(WITH_OSPRAY)
   TARGET_LINK_LIBRARIES(Interface_Modules_Render
     Interface_Modules_Render_Ospray
     ospray::ospray
+  )
+ENDIF()
+
+IF(WITH_VTK)
+  ADD_SUBDIRECTORY(Vtk)
+  TARGET_LINK_LIBRARIES(Interface_Modules_Render
+    Interface_Modules_Render_Vtk
+    VTK::CommonCore
   )
 ENDIF()

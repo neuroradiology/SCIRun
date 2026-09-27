@@ -1,7 +1,7 @@
 include_directories(${SCI_BOOST_INCLUDE})
 link_directories(${SCI_BOOST_LIBRARY_DIR})
 add_definitions(-DBOOST_ALL_NO_LIB)
-if(BUILD_WITH_PYTHON)
+if(WITH_PYTHON)
   add_definitions(-DBOOST_PYTHON_STATIC_LIB -DBOOST_PYTHON_STATIC_MODULE)
 endif()
 
@@ -9,30 +9,40 @@ if(UNIX)
   add_definitions(-DBOOST_NO_CXX11_ALLOCATOR)
 endif()
 
-check_c_compiler_flag("-arch x86_64" x86_64Supported)
-#message("x86_64Supported=${x86_64Supported}")
-check_c_compiler_flag("-arch arm64" arm64Supported)
-#message("arm64Supported=${arm64Supported}")
+# Detect whether we are targeting arm64. On Apple platforms the "-arch" driver
+# flag is valid and also covers universal/cross builds, so probe it there.
+# Elsewhere (GCC/Clang on Linux) "-arch" is rejected and both probes would fail,
+# silently mislabeling aarch64 hosts as x64 -- so derive the arch from
+# CMAKE_SYSTEM_PROCESSOR instead. See issue #2583.
+if(APPLE)
+  check_c_compiler_flag("-arch arm64" arm64Supported)
+else()
+  if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
+    set(arm64Supported TRUE)
+  else()
+    set(arm64Supported FALSE)
+  endif()
+endif()
 
 # TODO: if static runtime link is supported, then ABI tag postfix must include s
 # see:
 # http://www.boost.org/doc/libs/1_58_0/more/getting_started/windows.html
 # http://www.boost.org/doc/libs/1_58_0/more/getting_started/unix-variants.html
 if(WIN32)
-  if(BUILD_WITH_PYTHON)
+  if(WITH_PYTHON)
     set(DEBUG_POSTFIX "-gyd")
   else()
     set(DEBUG_POSTFIX "-gd")
   endif()
   set(boost_LIB_PREFIX "lib")
 else()
-  if(BUILD_WITH_PYTHON)
+  if(WITH_PYTHON)
     set(DEBUG_POSTFIX "-yd")
   else()
     set(DEBUG_POSTFIX "-d")
   endif()
   set(boost_LIB_PREFIX ${CMAKE_STATIC_LIBRARY_PREFIX})
-  if(${arm64Supported})
+  if(arm64Supported)
     set(PLATFORM_SUFFIX "a64")
   else()
     set(PLATFORM_SUFFIX "x64")

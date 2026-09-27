@@ -47,10 +47,10 @@ SCIRUN_ADD_LIBRARY(Core_ConsoleApplication
 TARGET_LINK_LIBRARIES(Core_ConsoleApplication
   Core_Application
   Core_Command
-  ${SCI_BOOST_LIBRARY}
+  Core_Serialization_Network_Importer
 )
 
-IF(BUILD_WITH_PYTHON)
+IF(WITH_PYTHON)
 TARGET_LINK_LIBRARIES(Core_ConsoleApplication
   Core_Python)
 ENDIF()
